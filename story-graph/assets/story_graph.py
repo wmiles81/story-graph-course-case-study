@@ -167,6 +167,46 @@ def check_authority(graph, sources, report):
             report.error(f"Propositions [{pid}]: editorial source '{gov}' cannot be a governing-source (it flags, never asserts)")
 
 
+def is_provisional(row):
+    return any("provisional" in (v or "").lower() for v in row.values())
+
+
+def _span_ids(cell):
+    return [s.strip() for s in re.split(r"[,\s]+", cell or "") if s.strip() and s.strip().lower() != "provisional"]
+
+
+def _check_span_required(section, row_id, row, span_ids, report):
+    ids = _span_ids(row.get("span", ""))
+    if not ids:
+        if is_provisional(row):
+            report.warn(f"{section} [{row_id}]: provisional — no evidence span, claim is unverified")
+        else:
+            report.error(f"{section} [{row_id}]: load-bearing row has no evidence span (mark 'provisional' if intended)")
+        return
+    for sid in ids:
+        if sid not in span_ids:
+            report.error(f"{section} [{row_id}]: span '{sid}' is not a declared Evidence span-id")
+
+
+def check_propositions(graph, sources, span_ids, report):
+    prop_ids = set()
+    for r in graph["sections"].get("Propositions", []):
+        pid = r.get("prop-id", "")
+        if not pid:
+            continue
+        if pid in prop_ids:
+            report.error(f"Propositions: duplicate prop-id '{pid}'")
+        if not KEBAB.fullmatch(pid):
+            report.error(f"Propositions: prop-id '{pid}' is not kebab-case")
+        status = r.get("canon-status", "")
+        if status not in CANON_STATUS:
+            report.error(f"Propositions [{pid}]: unknown canon-status '{status}'")
+        if status in ("true", "false"):
+            _check_span_required("Propositions", pid, r, span_ids, report)
+        prop_ids.add(pid)
+    return prop_ids
+
+
 def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""):
     report = Report()
     try:
