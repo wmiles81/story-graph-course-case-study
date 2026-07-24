@@ -367,8 +367,18 @@ def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""
         report.error(f"cannot read graph file: {e}")
         return report
     graph = parse_graph(text)
+    canon_ch = check_header(graph, report)
     check_structure(graph, report)
-    check_header(graph, report)
+    sources = check_sources(graph, report)
+    check_authority(graph, sources, report)
+    entity_ids, location_ids = check_entities(graph, report)
+    span_ids = check_evidence(graph, sources, report)
+    verify_spans(graph, sources, chapters_dir, report)
+    prop_ids = check_propositions(graph, sources, span_ids, report)
+    check_epistemic(graph, entity_ids, prop_ids, span_ids, report)
+    check_open_loops(graph, canon_ch, span_ids, report)
+    check_logistics(graph, entity_ids, location_ids, span_ids, report)
+    check_commit_log(graph, report)
     return report
 
 
