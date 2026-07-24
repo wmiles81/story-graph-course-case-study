@@ -39,3 +39,11 @@ def test_run_query_irony_text_mentions_holders():
     import story_graph_query as q
     out = q.run_query("irony", graph_dict(), canon_ch=1)
     assert "reader" in out and "jonah" in out and "believes-false" in out
+
+
+def test_query_refuses_on_validation_error(tmp_path):
+    from conftest import MINIMAL_V2
+    g = tmp_path / "Story-Graph.md"
+    g.write_text(MINIMAL_V2.replace("| ontology-version | 2 |", "| ontology-version | 1 |"), encoding="utf-8")
+    out, report = sg.query_graph("irony", str(g))
+    assert report.errors and "irony" not in out.lower()

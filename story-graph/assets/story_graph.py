@@ -397,6 +397,21 @@ def compile_graph(graph_path, out_path, ontology="", chapters_dir=""):
     return report
 
 
+def query_graph(name, graph_path, target="", chapters_dir=""):
+    report = validate(graph_path, chapters_dir=chapters_dir)
+    if report.errors:
+        return "", report
+    try:
+        import story_graph_query
+    except ImportError:
+        report.error("query requires the 'kuzu' package (pip install kuzu)")
+        return "", report
+    text = Path(graph_path).read_text(encoding="utf-8")
+    graph = parse_graph(text)
+    out = story_graph_query.run_query(name, graph, canon_ch=graph["canon_ch"], target=target)
+    return out, report
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="story_graph")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -411,6 +426,11 @@ def main(argv=None):
     c.add_argument("--out", required=True)
     c.add_argument("--ontology", default="")
     c.add_argument("--chapters-dir", default="")
+    qp = sub.add_parser("query")
+    qp.add_argument("name")
+    qp.add_argument("graph")
+    qp.add_argument("target", nargs="?", default="")
+    qp.add_argument("--chapters-dir", default="")
     args = parser.parse_args(argv)
     if args.command == "validate":
         report = validate(args.graph, args.ontology, args.genres_dir, args.spe_dir, args.chapters_dir)
@@ -430,6 +450,14 @@ def main(argv=None):
         print(f"RESULT: {'compiled to ' + args.out if ok else 'not compiled'}; "
               f"{len(report.errors)} error(s), {len(report.warnings)} warning(s)")
         return 0 if ok else 1
+    if args.command == "query":
+        out, report = query_graph(args.name, args.graph, args.target, args.chapters_dir)
+        if report.errors:
+            for e in report.errors:
+                print(f"ERROR: {e}")
+            return 1
+        print(out)
+        return 0
     return 2
 
 
