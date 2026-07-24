@@ -382,6 +382,21 @@ def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""
     return report
 
 
+def compile_graph(graph_path, out_path, ontology="", chapters_dir=""):
+    report = validate(graph_path, ontology=ontology, chapters_dir=chapters_dir)
+    if report.errors:
+        report.error("refusing to compile: fix validation ERRORs first")
+        return report
+    try:
+        import story_graph_kuzu
+    except ImportError:
+        report.error("compile requires the 'kuzu' package (pip install kuzu); nothing was written")
+        return report
+    text = Path(graph_path).read_text(encoding="utf-8")
+    story_graph_kuzu.load_graph(parse_graph(text), out_path)
+    return report
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="story_graph")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -391,6 +406,11 @@ def main(argv=None):
     v.add_argument("--genres-dir", default="")
     v.add_argument("--spe-dir", default="")
     v.add_argument("--chapters-dir", default="")
+    c = sub.add_parser("compile")
+    c.add_argument("graph")
+    c.add_argument("--out", required=True)
+    c.add_argument("--ontology", default="")
+    c.add_argument("--chapters-dir", default="")
     args = parser.parse_args(argv)
     if args.command == "validate":
         report = validate(args.graph, args.ontology, args.genres_dir, args.spe_dir, args.chapters_dir)
@@ -400,6 +420,16 @@ def main(argv=None):
             print(f"WARN: {w}")
         print(f"RESULT: {len(report.errors)} error(s), {len(report.warnings)} warning(s)")
         return 1 if report.errors else 0
+    if args.command == "compile":
+        report = compile_graph(args.graph, args.out, args.ontology, args.chapters_dir)
+        for e in report.errors:
+            print(f"ERROR: {e}")
+        for w in report.warnings:
+            print(f"WARN: {w}")
+        ok = not report.errors
+        print(f"RESULT: {'compiled to ' + args.out if ok else 'not compiled'}; "
+              f"{len(report.errors)} error(s), {len(report.warnings)} warning(s)")
+        return 0 if ok else 1
     return 2
 
 

@@ -18,3 +18,13 @@ def test_load_graph_builds_queryable_db(tmp_path):
     conn = kuzu.Connection(kuzu.Database(db_path))
     res = conn.execute("MATCH (:Proposition)<-[e:EPISTEMIC]-(h) WHERE e.mode='believes-false' RETURN count(*)")
     assert res.get_next()[0] == 1
+
+
+def test_compile_refuses_on_error(tmp_path):
+    # invalid ontology-version -> validation error -> compile must refuse (no kuzu needed)
+    from conftest import MINIMAL_V2
+    g = tmp_path / "Story-Graph.md"
+    g.write_text(MINIMAL_V2.replace("| ontology-version | 2 |", "| ontology-version | 1 |"), encoding="utf-8")
+    report = sg.compile_graph(str(g), str(tmp_path / "out.kuzu"), "", "")
+    assert any("refus" in e.lower() or "ontology-version" in e for e in report.errors)
+    assert not (tmp_path / "out.kuzu").exists()
