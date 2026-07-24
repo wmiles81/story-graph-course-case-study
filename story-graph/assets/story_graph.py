@@ -253,6 +253,38 @@ def check_evidence(graph, sources, report):
     return span_ids
 
 
+def _resolve_chapter(chapters_dir, locator):
+    base = Path(chapters_dir)
+    m = re.fullmatch(r"ch(\d+)", (locator or "").strip())
+    candidates = [base / f"{locator}.md"]
+    if m:
+        candidates.append(base / f"ch{int(m.group(1)):02d}.md")
+    for c in candidates:
+        if c.is_file():
+            return c
+    return None
+
+
+def verify_spans(graph, sources, chapters_dir, report):
+    for r in graph["sections"].get("Evidence", []):
+        sid = r.get("span-id", "")
+        src = r.get("source-id", "")
+        if sources.get(src, {}).get("type") != "manuscript":
+            continue
+        quote = r.get("quote", "").strip()
+        if not quote:
+            continue  # already an error from check_evidence
+        if not chapters_dir:
+            report.warn(f"Evidence [{sid}]: could not verify manuscript quote (no --chapters-dir)")
+            continue
+        chapter = _resolve_chapter(chapters_dir, r.get("locator", ""))
+        if chapter is None:
+            report.warn(f"Evidence [{sid}]: could not verify — chapter file for '{r.get('locator','')}' not found")
+            continue
+        if quote not in chapter.read_text(encoding="utf-8"):
+            report.error(f"Evidence [{sid}]: quote not found in {chapter.name} — graph-vs-source mismatch")
+
+
 def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""):
     report = Report()
     try:
