@@ -412,6 +412,19 @@ def query_graph(name, graph_path, target="", chapters_dir=""):
     return out, report
 
 
+def report_graph(graph_path, chapters_dir=""):
+    report = validate(graph_path, chapters_dir=chapters_dir)
+    if report.errors:
+        return "", report
+    try:
+        import story_graph_query
+    except ImportError:
+        report.error("report requires the 'kuzu' package (pip install kuzu)")
+        return "", report
+    graph = parse_graph(Path(graph_path).read_text(encoding="utf-8"))
+    return story_graph_query.run_report(graph, canon_ch=graph["canon_ch"]), report
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="story_graph")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -431,6 +444,9 @@ def main(argv=None):
     qp.add_argument("graph")
     qp.add_argument("target", nargs="?", default="")
     qp.add_argument("--chapters-dir", default="")
+    rp = sub.add_parser("report")
+    rp.add_argument("graph")
+    rp.add_argument("--chapters-dir", default="")
     args = parser.parse_args(argv)
     if args.command == "validate":
         report = validate(args.graph, args.ontology, args.genres_dir, args.spe_dir, args.chapters_dir)
@@ -452,6 +468,14 @@ def main(argv=None):
         return 0 if ok else 1
     if args.command == "query":
         out, report = query_graph(args.name, args.graph, args.target, args.chapters_dir)
+        if report.errors:
+            for e in report.errors:
+                print(f"ERROR: {e}")
+            return 1
+        print(out)
+        return 0
+    if args.command == "report":
+        out, report = report_graph(args.graph, args.chapters_dir)
         if report.errors:
             for e in report.errors:
                 print(f"ERROR: {e}")
