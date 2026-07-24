@@ -89,8 +89,13 @@ def parse_graph(text):
     canon_raw = fields.get("current-canon-chapter", "0")
     canon_ch = int(canon_raw) if re.fullmatch(r"\d+", canon_raw or "") else 0
     rows = {name: parse_table(sections.get(name, []))[1] for name in order}
+    graph_raw = {name: sections.get(name, []) for name in order}
     return {"header": fields, "modules": modules, "canon_ch": canon_ch,
-            "sections": rows, "order": order}
+            "sections": rows, "order": order, "_raw": graph_raw}
+
+
+def _raw_section_lines(graph, name):
+    return graph.get("_raw", {}).get(name, [])
 
 
 def required_sections(graph):
@@ -251,6 +256,75 @@ def check_evidence(graph, sources, report):
             report.error(f"Evidence [{sid}]: manuscript span requires a verbatim quote")
         span_ids.add(sid)
     return span_ids
+
+
+def check_entities(graph, report):
+    ids, locations = set(), set()
+    for r in graph["sections"].get("Entities", []):
+        eid, etype = r.get("id", ""), r.get("type", "")
+        if not eid:
+            continue
+        if eid in ids:
+            report.error(f"Entities: duplicate id '{eid}'")
+        if not KEBAB.fullmatch(eid):
+            report.error(f"Entities: id '{eid}' is not kebab-case")
+        if etype not in ENTITY_TYPES:
+            report.error(f"Entities: unknown type '{etype}' for '{eid}'")
+        ids.add(eid)
+        if etype == "Location":
+            locations.add(eid)
+    return ids, locations
+
+
+def check_open_loops(graph, canon_ch, span_ids, report):
+    for r in graph["sections"].get("Open Loops & Setups", []):
+        gid, status = r.get("id", "?"), r.get("status", "")
+        if gid == "?" or not gid:
+            continue
+        if not SETUP_STATUS_RE.fullmatch(status):
+            report.error(f"Open Loops & Setups [{gid}]: invalid status '{status}'")
+            continue
+        planted_raw = r.get("planted-ch", "0") or "0"
+        if not planted_raw.isdigit():
+            report.error(f"Open Loops & Setups [{gid}]: planted-ch must be an integer, got '{planted_raw}'")
+            continue
+        planted = int(planted_raw)
+        m = re.match(r"FIRED ch-(\d+)", status)
+        if m and int(m.group(1)) < planted:
+            report.error(f"Open Loops & Setups [{gid}]: fired at ch{m.group(1)} before planted at ch{planted}")
+        _check_span_required("Open Loops & Setups", gid, r, span_ids, report)
+        must_by = r.get("must-fire-by", "")
+        if status == "UNFIRED" and must_by.isdigit() and int(must_by) <= canon_ch:
+            report.warn(f"Open Loops & Setups [{gid}]: OVERDUE — must fire by ch{must_by}, canon at ch{canon_ch}, still UNFIRED")
+
+
+def check_logistics(graph, entity_ids, location_ids, span_ids, report):
+    for r in graph["sections"].get("Logistics", []):
+        eid, loc = r.get("entity", ""), r.get("location", "")
+        if eid and eid not in entity_ids:
+            report.error(f"Logistics: entity '{eid}' is not declared")
+        if loc and loc != "-" and loc not in location_ids:
+            report.error(f"Logistics: location '{loc}' is not a Location entity")
+        change = (r.get("condition", "").strip() not in ("", "-"))
+        if change and _span_ids(r.get("span", "")) == [] and not is_provisional(r):
+            report.error(f"Logistics [ch{r.get('ch','?')}/{eid}]: condition change has no evidence span")
+
+
+LOG_RE = re.compile(r"^-\s*ch\s*(\d+)\s*:")
+
+
+def check_commit_log(graph, report):
+    last = 0
+    for line in "\n".join(
+        line for line in _raw_section_lines(graph, "Canon Commit Log")
+    ).splitlines():
+        m = LOG_RE.match(line.strip())
+        if not m:
+            continue
+        ch = int(m.group(1))
+        if ch <= last:
+            report.error(f"Canon Commit Log: chapter regression — ch{ch} after ch{last} (must strictly increase)")
+        last = ch
 
 
 def _resolve_chapter(chapters_dir, locator):
