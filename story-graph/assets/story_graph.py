@@ -207,6 +207,33 @@ def check_propositions(graph, sources, span_ids, report):
     return prop_ids
 
 
+def check_epistemic(graph, entity_ids, prop_ids, span_ids, report):
+    rows = graph["sections"].get("Epistemic States", [])
+    embargo = {}  # (prop, holder) -> ch
+    for r in rows:
+        if r.get("mode") == "embargoed-until":
+            ch = r.get("since-ch", "")
+            if ch.isdigit():
+                embargo[(r.get("prop-id", ""), r.get("holder", ""))] = int(ch)
+    for r in rows:
+        pid = r.get("prop-id", "")
+        holder = r.get("holder", "")
+        mode = r.get("mode", "")
+        label = f"{pid}/{holder}"
+        if pid and pid not in prop_ids:
+            report.error(f"Epistemic States [{label}]: proposition '{pid}' is not declared")
+        if holder and holder not in entity_ids and holder not in RESERVED_HOLDERS:
+            report.error(f"Epistemic States [{label}]: holder '{holder}' is not a declared entity or reserved holder")
+        if mode and mode not in EPISTEMIC_MODES:
+            report.error(f"Epistemic States [{label}]: unknown mode '{mode}'")
+        if mode in ("knows", "believes", "believes-false", "suspects"):
+            _check_span_required("Epistemic States", label, r, span_ids, report)
+            ch = r.get("since-ch", "")
+            key = (pid, holder)
+            if mode == "knows" and ch.isdigit() and key in embargo and int(ch) < embargo[key]:
+                report.error(f"Epistemic States [{label}]: embargo violation — knows at ch{ch} but embargoed until ch{embargo[key]}")
+
+
 def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""):
     report = Report()
     try:
