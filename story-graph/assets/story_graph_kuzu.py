@@ -21,11 +21,17 @@ REL_DDL = [
     "CREATE REL TABLE EPISTEMIC(FROM Holder TO Proposition, mode STRING, since_ch STRING, span_ids STRING)",
     "CREATE REL TABLE GOVERNED_BY(FROM Proposition TO Source)",
     "CREATE REL TABLE EVIDENCED_BY(FROM Evidence TO Source)",
+    "CREATE REL TABLE SUPPORTS(FROM Evidence TO Proposition, FROM Evidence TO OpenLoop)",
 ]
 
 
 def _int(v, default=0):
     return int(v) if re.fullmatch(r"-?\d+", (v or "").strip() or "") else default
+
+
+def _spans(cell):
+    return [s.strip() for s in re.split(r"[,\s]+", cell or "")
+            if s.strip() and s.strip().lower() != "provisional"]
 
 
 def load_graph(graph: dict, out_path: str) -> None:
@@ -82,6 +88,16 @@ def load_graph(graph: dict, out_path: str) -> None:
                 "CREATE (h)-[:EPISTEMIC {mode:$m, since_ch:$sc, span_ids:$sp}]->(p)",
                 {"h": r["holder"], "p": r["prop-id"], "m": r.get("mode", ""),
                  "sc": r.get("since-ch", ""), "sp": r.get("span", "")})
+    for r in S.get("Propositions", []):
+        for sid in _spans(r.get("span", "")):
+            conn.execute(
+                "MATCH (e:Evidence {id:$e}),(p:Proposition {id:$p}) CREATE (e)-[:SUPPORTS]->(p)",
+                {"e": sid, "p": r["prop-id"]})
+    for r in S.get("Open Loops & Setups", []):
+        for sid in _spans(r.get("span", "")):
+            conn.execute(
+                "MATCH (e:Evidence {id:$e}),(o:OpenLoop {id:$o}) CREATE (e)-[:SUPPORTS]->(o)",
+                {"e": sid, "o": r["id"]})
     for r in S.get("Relationships", []):
         if r.get("from") and r.get("to"):
             conn.execute(
