@@ -53,6 +53,13 @@ graph database added only as a derived, rebuildable projection.
 - Any app/UI (curiosity only; later).
 - SQLite / Neo4j back ends (loader stays pluggable; only Kùzu is built now).
 
+**Standing scope constraint (all slices).** The tool's remit is **structure,
+continuity, and editing**. It is **not** a prose-generation ("writing") tool and
+**not** a marketing tool — the five-act program's Act III "marketing alignment"
+deliverable is explicitly excluded. Prose quality remains the separate concern of
+the SPE module; this tool reasons over story *state*, not the words. (Source:
+author annotation on the five-act program, 2026-07-24.)
+
 ## 4. Ontology v2 — the core/module cut (layer A)
 
 The header bumps `ontology-version` to `2` and gains a `modules:` declaration.
@@ -280,8 +287,12 @@ Sequenced, each its own spec → plan → build:
    ratification step, and a versioned freeze, enriching the Commit Log.
 3. **Layer 4 — Continuity audit:** mechanical continuity-candidate detection plus
    an adjudication record.
-4. **Layer 5 — Revision-impact:** dependency traversal — "what breaks if I move
-   ch12" — as Cypher over the projection.
+4. **Layer 5 — Revision-impact & change intelligence:** dependency traversal —
+   "what breaks if I move ch12" — as Cypher over the projection. When the
+   manuscript changes, it does not silently update the graph: it **calls out
+   deviations** from ratified canon so the author sees where new prose departs
+   from established state. (Source: author annotation on the five-act program,
+   2026-07-24.)
 
 ## 10. Proof against Book 3
 
