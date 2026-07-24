@@ -133,6 +133,40 @@ def check_header(graph, report):
     return int(raw)
 
 
+def check_sources(graph, report):
+    sources = {}
+    for r in graph["sections"].get("Sources", []):
+        sid = r.get("source-id", "")
+        if not sid:
+            continue
+        if sid in sources:
+            report.error(f"Sources: duplicate source-id '{sid}'")
+        if not KEBAB.fullmatch(sid):
+            report.error(f"Sources: source-id '{sid}' is not kebab-case")
+        stype = r.get("type", "")
+        if stype not in SOURCE_TYPES:
+            report.error(f"Sources: unknown type '{stype}' for '{sid}'")
+        auth_raw = r.get("authority", "")
+        auth = int(auth_raw) if re.fullmatch(r"-?\d+", auth_raw or "") else None
+        if auth is None:
+            report.error(f"Sources: authority must be an integer for '{sid}', got '{auth_raw}'")
+        sources[sid] = {"type": stype, "authority": auth if auth is not None else 0}
+    return sources
+
+
+def check_authority(graph, sources, report):
+    for r in graph["sections"].get("Propositions", []):
+        gov = r.get("governing-source", "")
+        pid = r.get("prop-id", "?")
+        if not gov:
+            continue
+        if gov not in sources:
+            report.error(f"Propositions [{pid}]: governing-source '{gov}' is not a declared source")
+            continue
+        if sources[gov]["type"] == "editorial":
+            report.error(f"Propositions [{pid}]: editorial source '{gov}' cannot be a governing-source (it flags, never asserts)")
+
+
 def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""):
     report = Report()
     try:
