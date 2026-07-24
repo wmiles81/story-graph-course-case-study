@@ -279,6 +279,7 @@ stays the source of truth; the database is a derived, rebuildable projection
 | `EPISTEMIC` | `(Holder)->(Proposition)` | `mode`, `since_ch`, `span_ids` (the row's `span` cell, as text) |
 | `GOVERNED_BY` | `(Proposition)->(Source)` | — (created only when the Proposition has a `governing-source`) |
 | `EVIDENCED_BY` | `(Evidence)->(Source)` | — (created only when the Evidence row has a `source-id`) |
+| `SUPPORTS` | `(Evidence)->(Proposition \| OpenLoop)` | — (materialized from load-bearing `span` columns so a claim's evidence is a direct traversal) |
 
 **Current scope of the loader.** Only `Entities`, `Sources`, `Evidence`,
 `Propositions`, `Open Loops & Setups`, `Epistemic States`, and `Relationships`

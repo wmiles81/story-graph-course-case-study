@@ -157,35 +157,6 @@ python3 "<SKILL_DIR>/assets/story_graph.py" compile "<target>/Story-Graph.md" \
   database (e.g. to answer a dramatic-irony or overdue-setups question over
   Cypher) — it is not part of the default seed/catch-up/validate loop.
 
-## Querying
-
-Once a graph validates clean, it can be asked writer-facing questions directly
-— no separate `compile` step needed first: `query` and `report` compile the
-text graph to a throwaway temp Kùzu database on each run, so there is never a
-stale database to manage.
-
-```
-python3 "<SKILL_DIR>/assets/story_graph.py" query <irony|knows|open-loops|receipts> "<graph>" [target] [--chapters-dir <dir>]
-python3 "<SKILL_DIR>/assets/story_graph.py" report "<graph>" [--chapters-dir <dir>]
-```
-
-- Both need the optional `kuzu` package: `pip install kuzu`.
-- Both run `validate` first and **refuse to run if the graph has any
-  ERRORs** — fix them, then re-run.
-- Every answer carries its evidence receipts (source locator + quote), not
-  just a bare claim.
-- `irony` — propositions the reader `knows` that some character
-  `believes-false`; no target argument.
-- `knows` — what a holder currently holds, ordered by when each belief was
-  formed; target is a holder id (a character's Entity id, or `reader`).
-- `open-loops` — open loops & setups, flagged `[OVERDUE]` when unfired past
-  their `must-fire-by` chapter relative to `current-canon-chapter`.
-- `receipts` — the Evidence spans that support one proposition; target is a
-  `prop-id`. Returns only that proposition's own spans (via the `SUPPORTS`
-  edge), never another claim's quotes.
-- `report` runs all of the above and prints a single summary: irony count,
-  open-loop count (with overdue count), for the graph as a whole.
-
 ## Genre modules (optional)
 
 If the host project declares genre modules (in a worksheet RDL or an existing
