@@ -234,6 +234,25 @@ def check_epistemic(graph, entity_ids, prop_ids, span_ids, report):
                 report.error(f"Epistemic States [{label}]: embargo violation — knows at ch{ch} but embargoed until ch{embargo[key]}")
 
 
+def check_evidence(graph, sources, report):
+    span_ids = set()
+    for r in graph["sections"].get("Evidence", []):
+        sid = r.get("span-id", "")
+        if not sid:
+            continue
+        if sid in span_ids:
+            report.error(f"Evidence: duplicate span-id '{sid}'")
+        if not KEBAB.fullmatch(sid):
+            report.error(f"Evidence: span-id '{sid}' is not kebab-case")
+        src = r.get("source-id", "")
+        if src and src not in sources:
+            report.error(f"Evidence [{sid}]: source-id '{src}' is not a declared source")
+        if src in sources and sources[src]["type"] == "manuscript" and not r.get("quote", "").strip():
+            report.error(f"Evidence [{sid}]: manuscript span requires a verbatim quote")
+        span_ids.add(sid)
+    return span_ids
+
+
 def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""):
     report = Report()
     try:
