@@ -1,0 +1,9 @@
+check,status,detail
+All original candidates reviewed,PASS,49/49
+Every retained candidate resolves,PASS,All non-rejected originals resolve
+Event-specific evidence present,PASS,41/41
+Participants present,PASS,41/41
+Stable normalized IDs unique,PASS,41/41
+All events assigned continuity group,PASS,41/41
+All continuity groups registered,PASS,All groups registered
+Canon untouched,PASS,All normalized rows remain candidate

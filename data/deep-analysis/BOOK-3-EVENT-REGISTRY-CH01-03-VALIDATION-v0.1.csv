@@ -1,0 +1,8 @@
+test_id,test,passed,result,status
+VAL-001,unique event IDs,True,49/49 unique,PASS
+VAL-002,all scene references resolve,True,issues=0,PASS
+VAL-003,all participant IDs resolve,True,issues=0,PASS
+VAL-004,all proposition IDs resolve,True,issues=0,PASS
+VAL-005,all assertion IDs resolve,True,issues=0,PASS
+VAL-006,all candidates non-canonical,True,{'candidate': 49},PASS
+VAL-007,evidence present,True,missing=0,PASS

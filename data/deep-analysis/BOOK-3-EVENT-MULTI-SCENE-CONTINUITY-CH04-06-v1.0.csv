@@ -1,0 +1,13 @@
+continuity_group_id,start_scene_id,end_scene_id,sequence_label,event_count
+B2-ARRIVAL,B03-C04-S01,B03-C04-S04,"Arrival, recovery, intimacy, and environmental discovery at B2",2
+JONAH-INJURY,B03-C04-S01,B03-C06-S04,Jonah's injury and bodily instability,2
+RELATIONSHIP-ESCALATION,B03-C04-S01,B03-C05-S05,"Attraction, consent, intimacy, aftercare, and deferred conversation",4
+MATE-RECOGNITION,B03-C04-S02,B03-C04-S02,Spoken mate-claim disclosure,1
+FIRST-INTIMACY,B03-C04-S03,B03-C04-S04,First explicit encounter and aftercare,4
+B2-TRAVERSAL,B03-C04-S05,B03-C04-S05,Crossing the floating architecture,3
+GUARDIAN-RIDDLE,B03-C04-S05,B03-C05-S01,Lethal riddle challenge and resolution,5
+RESTING-POINT,B03-C05-S02,B03-C05-S02,Entry into temporary safe space,2
+SECOND-INTIMACY,B03-C05-S02,B03-C05-S04,Deliberate second encounter,8
+B3-DESCENT,B03-C05-S05,B03-C05-S05,Hazard briefing and descent to B3,2
+B3-FOREST,B03-C06-S01,B03-C06-S04,Poetry forest traversal and adaptive emotional attacks,9
+VILLANELLE-TRAP,B03-C06-S03,B03-C06-S04,"Courtroom identity trap, rescue, and mechanism disclosure",7

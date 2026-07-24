@@ -1,0 +1,391 @@
+event_id,scene_id,chapter,event_label,participant_status,type_status,continuity_status,review_flags
+N-EVT-B03-C13-S01-001,B03-C13-S01,13,Jonah shifts back,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C13-S01-002,B03-C13-S01,13,Margot gives him his clothes,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C13-S01-003,B03-C13-S01,13,he explains Alpha combat form and the danger of remaining full wolf,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C13-S01-004,B03-C13-S01,13,they confirm temporary safety,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C13-S02-001,B03-C13-S02,13,Jonah explains the Undercity,resolved,resolved,cross-scene,
+N-EVT-B03-C13-S02-002,B03-C13-S02,13,they enter the Hive,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C13-S02-003,B03-C13-S02,13,Iron-Jaw confronts them,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C13-S02-004,B03-C13-S02,13,Margot is identified as the Keeper,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C13-S02-005,B03-C13-S02,13,news of the riot and Pack blockade is delivered,resolved,review,cross-scene,type-review
+N-EVT-B03-C13-S02-006,B03-C13-S02,13,Iron-Jaw provides the route,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C13-S03-001,B03-C13-S03,13,They discuss Pack loyalty and hope,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C13-S03-002,B03-C13-S03,13,Jonah identifies the pressure-release timing,resolved,resolved,cross-scene,
+N-EVT-B03-C13-S03-003,B03-C13-S03,13,Margot asks for the Wolf,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C13-S03-004,B03-C13-S03,13,they have sex,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C13-S03-005,B03-C13-S03,13,the valve vents,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C13-S03-006,B03-C13-S03,13,they escape into the safety niche and continue,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C14-S01-001,B03-C14-S01,14,Margot climbs to the roof,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C14-S01-002,B03-C14-S01,14,they observe a disciplined human-monster coalition in the square,resolved,review,cross-scene,type-review
+N-EVT-B03-C14-S01-003,B03-C14-S01,14,Jonah spots snipers,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C14-S01-004,B03-C14-S01,14,he proposes a skylight insertion,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C14-S02-001,B03-C14-S02,14,Bridge crossing,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C14-S02-002,B03-C14-S02,14,spotlight evasion,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C14-S02-003,B03-C14-S02,14,shotgun breach,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C14-S02-004,B03-C14-S02,14,fall through skylight,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C14-S02-005,B03-C14-S02,14,guards surrender under Jonah's Alpha command,resolved,review,cross-scene,type-review
+N-EVT-B03-C14-S02-006,B03-C14-S02,14,Margot restrains them,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C14-S03-001,B03-C14-S03,14,Jonah breaches the office,resolved,resolved,cross-scene,
+N-EVT-B03-C14-S03-002,B03-C14-S03,14,Sterling defends the old order,resolved,review,cross-scene,type-review
+N-EVT-B03-C14-S03-003,B03-C14-S03,14,Margot reveals the original alliance and accuses Sterling's family of betrayal,resolved,resolved,cross-scene,
+N-EVT-B03-C14-S03-004,B03-C14-S03,14,Sterling shoots Jonah,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C14-S04-001,B03-C14-S04,14,Aleksei crashes through the window,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C14-S04-002,B03-C14-S04,14,he disables Sterling,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C14-S04-003,B03-C14-S04,14,Margot identifies the silver wound,resolved,resolved,cross-scene,
+N-EVT-B03-C14-S04-004,B03-C14-S04,14,Jonah insists she address the town,resolved,review,cross-scene,type-review
+N-EVT-B03-C14-S04-005,B03-C14-S04,14,she takes the microphone,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C14-S05-001,B03-C14-S05,14,Margot broadcasts the truth,resolved,resolved,cross-scene,
+N-EVT-B03-C14-S05-002,B03-C14-S05,14,humans and supernatural residents celebrate together,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C14-S05-003,B03-C14-S05,14,Jonah briefly rallies,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C14-S05-004,B03-C14-S05,14,Margot declares love,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C14-S05-005,B03-C14-S05,14,Magisterium forces break the barricades and descend on the square,resolved,review,cross-scene,type-review
+N-EVT-B03-C15-S01-001,B03-C15-S01,15,Chinooks land,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C15-S01-002,B03-C15-S01,15,black-armored Inquisitors deploy,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C15-S01-003,B03-C15-S01,15,a void-iron staff activates the dampening pulse,resolved,review,cross-scene,type-review
+N-EVT-B03-C15-S01-004,B03-C15-S01,15,Jonah loses the Wolf,resolved,resolved,cross-scene,
+N-EVT-B03-C15-S01-005,B03-C15-S01,15,Aleksei loses vampiric power,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C15-S02-001,B03-C15-S02,15,Martial law announcement,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C15-S02-002,B03-C15-S02,15,humans and monsters separated,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C15-S02-003,B03-C15-S02,15,Mrs. Gable struck,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C15-S02-004,B03-C15-S02,15,Sterling admits sanitization,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C15-S02-005,B03-C15-S02,15,group selects roof route,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C15-S03-001,B03-C15-S03,15,Rooftop crossing,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C15-S03-002,B03-C15-S03,15,Aleksei tackles Jonah out of a sniper shot,resolved,review,cross-scene,type-review
+N-EVT-B03-C15-S03-003,B03-C15-S03,15,repeated fire,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C15-S03-004,B03-C15-S03,15,group reaches Civic Center cover,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C15-S03-005,B03-C15-S03,15,Margot discovers communications jamming and proposes the duct route,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C15-S04-001,B03-C15-S04,15,Margot crawls through ducts,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C15-S04-002,B03-C15-S04,15,soldiers search below,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C15-S04-003,B03-C15-S04,15,group drops into locker room,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C15-S04-004,B03-C15-S04,15,Henderson emerges with a mop spear,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C15-S04-005,B03-C15-S04,15,he offers the lead-lined pump room,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C15-S05-001,B03-C15-S05,15,Industrial bio-foam and staples applied,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C15-S05-002,B03-C15-S05,15,Jonah's heartbeat stabilizes,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C15-S05-003,B03-C15-S05,15,need for Wolf blood identified,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C15-S05-004,B03-C15-S05,15,radio reveals processing at ice rink,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C15-S05-005,B03-C15-S05,15,Margot proposes sabotage and communications restoration,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C16-S01-001,B03-C16-S01,16,Jonah wakes,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C16-S01-002,B03-C16-S01,16,calls for the Wolf,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C16-S01-003,B03-C16-S01,16,fails to shift,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C16-S01-004,B03-C16-S01,16,Aleksei explains Henderson's treatment,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C16-S01-005,B03-C16-S01,16,Jonah learns Margot is scavenging,resolved,resolved,cross-scene,
+N-EVT-B03-C16-S02-001,B03-C16-S02,16,Aleksei explains six hours have passed,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C16-S02-002,B03-C16-S02,16,lead shielding is confirmed,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C16-S02-003,B03-C16-S02,16,both describe physical deterioration,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C16-S02-004,B03-C16-S02,16,Emitter location is inferred at the ski resort,resolved,review,cross-scene,type-review
+N-EVT-B03-C16-S03-001,B03-C16-S03,16,Margot returns with food,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C16-S03-002,B03-C16-S03,16,supports Jonah,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C16-S03-003,B03-C16-S03,16,confirms magic-level sorting,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C16-S03-004,B03-C16-S03,16,Henderson provides map,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C16-S03-005,B03-C16-S03,16,Jonah begins territorial analysis,resolved,review,cross-scene,type-review
+N-EVT-B03-C16-S04-001,B03-C16-S04,16,Emitter power source identified,resolved,review,cross-scene,type-review
+N-EVT-B03-C16-S04-002,B03-C16-S04,16,ten-to-fifteen-minute window estimated,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C16-S04-003,B03-C16-S04,16,Jonah declares himself a liability,resolved,resolved,cross-scene,
+N-EVT-B03-C16-S04-004,B03-C16-S04,16,roles assigned,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C16-S04-005,B03-C16-S04,16,Margot accepts leadership,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C16-S05-001,B03-C16-S05,16,Henderson builds improvised explosives,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C16-S05-002,B03-C16-S05,16,Aleksei takes crowbar,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C16-S05-003,B03-C16-S05,16,Margot transfers Treaty,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C16-S05-004,B03-C16-S05,16,Jonah gives firearm instructions,resolved,review,cross-scene,type-review
+N-EVT-B03-C16-S05-005,B03-C16-S05,16,radio check,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C16-S05-006,B03-C16-S05,16,desperate kiss,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C16-S05-007,B03-C16-S05,16,team departs,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C17-S01-001,B03-C17-S01,17,Team crawls through septic outflow,resolved,review,cross-scene,type-review
+N-EVT-B03-C17-S01-002,B03-C17-S01,17,radio contact weakens,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C17-S01-003,B03-C17-S01,17,Henderson uses reactive drain cleaner,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C17-S01-004,B03-C17-S01,17,grate opens,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C17-S01-005,B03-C17-S01,17,Margot checks Jonah's map,resolved,review,cross-scene,type-review
+N-EVT-B03-C17-S02-001,B03-C17-S02,17,Troopers discuss freezing detainees,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C17-S02-002,B03-C17-S02,17,Jonah orders mission focus,resolved,resolved,cross-scene,
+N-EVT-B03-C17-S02-003,B03-C17-S02,17,Henderson hot-wires elevator,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C17-S02-004,B03-C17-S02,17,override sends team upward,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C17-S02-005,B03-C17-S02,17,weapons drawn,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C17-S03-001,B03-C17-S03,17,Team captured at elevator,resolved,review,cross-scene,type-review
+N-EVT-B03-C17-S03-002,B03-C17-S03,17,Valerius defends sanitization calculus,resolved,review,cross-scene,type-review
+N-EVT-B03-C17-S03-003,B03-C17-S03,17,Margot accuses him of genocide,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C17-S03-004,B03-C17-S03,17,bag is retained as evidence,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C17-S03-005,B03-C17-S03,17,Henderson signals opportunity,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C17-S04-001,B03-C17-S04,17,Captives forced to kneel,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C17-S04-002,B03-C17-S04,17,purge ordered,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C17-S04-003,B03-C17-S04,17,Margot rejects fight/run/talk options,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C17-S04-004,B03-C17-S04,17,Henderson signals,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C17-S04-005,B03-C17-S04,17,Margot throws lighter,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C17-S05-001,B03-C17-S05,17,Chemical eruption destroys intake and tower,resolved,resolved,cross-scene,
+N-EVT-B03-C17-S05-002,B03-C17-S05,17,magic returns,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C17-S05-003,B03-C17-S05,17,Aleksei regains vampire power,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C17-S05-004,B03-C17-S05,17,Valerius retreats,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C17-S05-005,B03-C17-S05,17,Jonah reports transformation,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C17-S05-006,B03-C17-S05,17,Pack howls,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C18-S01-001,B03-C18-S01,18,Magic returns,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C18-S01-002,B03-C18-S01,18,silver expelled,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C18-S01-003,B03-C18-S01,18,wound heals,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C18-S01-004,B03-C18-S01,18,transformation occurs,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C18-S01-005,B03-C18-S01,18,Henderson spared and accepted,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C18-S01-006,B03-C18-S01,18,duct grate destroyed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C18-S02-001,B03-C18-S02,18,Jonah drops from vent,resolved,review,cross-scene,type-review
+N-EVT-B03-C18-S02-002,B03-C18-S02,18,overhears Alpha-level heat warning,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C18-S02-003,B03-C18-S02,18,incapacitates two troopers,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C18-S02-004,B03-C18-S02,18,follows Pack scent,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C18-S02-005,B03-C18-S02,18,bursts through doors,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C18-S03-001,B03-C18-S03,18,Jonah howls,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C18-S03-002,B03-C18-S03,18,wolves rally,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C18-S03-003,B03-C18-S03,18,lead transport attacked,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C18-S03-004,B03-C18-S03,18,coordinated disabling action,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C18-S03-005,B03-C18-S03,18,school secured,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C18-S03-006,B03-C18-S03,18,Sarah reports Margot passed toward the access road,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C18-S04-001,B03-C18-S04,18,Jonah runs uphill,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C18-S04-002,B03-C18-S04,18,sees overturned jeep,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C18-S04-003,B03-C18-S04,18,finds team,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C18-S04-004,B03-C18-S04,18,shifts,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C18-S04-005,B03-C18-S04,18,embraces Margot,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C18-S04-006,B03-C18-S04,18,confirms restored magic,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C18-S04-007,B03-C18-S04,18,Aleksei points to sky,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C18-S05-001,B03-C18-S05,18,Gunship appears,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C18-S05-002,B03-C18-S05,18,school rejected,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C18-S05-003,B03-C18-S05,18,Archives chosen as fortress,resolved,review,cross-scene,type-review
+N-EVT-B03-C18-S05-004,B03-C18-S05,18,ballista identified,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C18-S05-005,B03-C18-S05,18,"Pack, Trolls, and Aleksei assigned",resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C19-S01-001,B03-C19-S01,19,Gunship attacks main street,resolved,resolved,cross-scene,
+N-EVT-B03-C19-S01-002,B03-C19-S01,19,convoy flees through alley,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C19-S01-003,B03-C19-S01,19,wounded supernatural allies retreat toward library,resolved,resolved,cross-scene,
+N-EVT-B03-C19-S02-001,B03-C19-S02,19,Library communicates with Margot,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C19-S02-002,B03-C19-S02,19,lockdown systems activate,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C19-S02-003,B03-C19-S02,19,gargoyle sonic defenses engage,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C19-S03-001,B03-C19-S03,19,Survivors cross lawn under fire,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C19-S03-002,B03-C19-S03,19,all enter,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C19-S03-003,B03-C19-S03,19,doors and iron deadbolts seal,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C19-S03-004,B03-C19-S03,19,service hoist is selected,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C19-S04-001,B03-C19-S04,19,Hoist descends through B1-B3,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C19-S04-002,B03-C19-S04,19,B4 arsenal opened,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C19-S04-003,B03-C19-S04,19,Trolls lift ancient ballista,resolved,review,cross-scene,type-review
+N-EVT-B03-C19-S05-001,B03-C19-S05,19,Ballista positioned under skylight,resolved,review,cross-scene,type-review
+N-EVT-B03-C19-S05-002,B03-C19-S05,19,gunship aligns overhead,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C19-S05-003,B03-C19-S05,19,Margot fires magical harpoon,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C20-S01-001,B03-C20-S01,20,Green neurotoxin fills atrium,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C20-S01-002,B03-C20-S01,20,defenders collapse,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C20-S01-003,B03-C20-S01,20,Valerius reveals Grey Guard control and experimental intent,resolved,resolved,cross-scene,
+N-EVT-B03-C20-S02-001,B03-C20-S02,20,Wolf hunts Margot through iron forest,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C20-S02-002,B03-C20-S02,20,shadow interferes,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C20-S02-003,B03-C20-S02,20,Margot becomes pages and ash,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C20-S03-001,B03-C20-S03,20,Margot drags Jonah to safety,resolved,review,cross-scene,type-review
+N-EVT-B03-C20-S03-002,B03-C20-S03,20,occupied library seen under searchlights,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C20-S03-003,B03-C20-S03,20,Wild Hunt protocol activated,resolved,review,cross-scene,type-review
+N-EVT-B03-C21-S01-001,B03-C21-S01,21,Troll barricades built,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C21-S01-002,B03-C21-S01,21,wolf trenches dug,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C21-S01-003,B03-C21-S01,21,town fortified,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C21-S01-004,B03-C21-S01,21,Jonah recognizes command responsibility,resolved,resolved,cross-scene,
+N-EVT-B03-C21-S02-001,B03-C21-S02,21,Fire Elemental installed in furnace,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C21-S02-002,B03-C21-S02,21,ley-line capacitor powered,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C21-S02-003,B03-C21-S02,21,wards strengthened,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C21-S03-001,B03-C21-S03,21,Blade of Silas examined,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C21-S03-002,B03-C21-S03,21,dark artifacts debated,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C21-S03-003,B03-C21-S03,21,"rifles, armor, and grimoires distributed",resolved,review,cross-scene,type-review
+N-EVT-B03-C21-S04-001,B03-C21-S04,21,Topographic map reviewed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C21-S04-002,B03-C21-S04,21,bridge choke point planned,resolved,review,cross-scene,type-review
+N-EVT-B03-C21-S04-003,B03-C21-S04,21,Trolls assigned as living armor,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C21-S04-004,B03-C21-S04,21,escape and Scroll contingency discussed,resolved,review,cross-scene,type-review
+N-EVT-B03-C21-S05-001,B03-C21-S05,21,Jonah rejects abandoning Margot,resolved,review,cross-scene,type-review
+N-EVT-B03-C21-S05-002,B03-C21-S05,21,declares her his anchor,resolved,resolved,cross-scene,
+N-EVT-B03-C21-S05-003,B03-C21-S05,21,emotional confession,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C21-S05-004,B03-C21-S05,21,advancing army detected,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C21-S06-001,B03-C21-S06,21,Grey Guard legion crosses bridge,resolved,review,cross-scene,type-review
+N-EVT-B03-C21-S06-002,B03-C21-S06,21,anti-magic phalanx revealed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C21-S06-003,B03-C21-S06,21,Valerius demands surrender,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C21-S06-004,B03-C21-S06,21,town answers with armed defiance,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C22-S01-001,B03-C22-S01,22,Grey Guard advances,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C22-S01-002,B03-C22-S01,22,trench defense collapses,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C22-S01-003,B03-C22-S01,22,wounded defenders retreat,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C22-S01-004,B03-C22-S01,22,plasma cutter attacks the oak doors,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C22-S02-001,B03-C22-S02,22,Oak doors glow from plasma cutter,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C22-S02-002,B03-C22-S02,22,Grey Guard breaches,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C22-S02-003,B03-C22-S02,22,Margot positions defenders and prepares floor mechanism,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C22-S03-001,B03-C22-S03,22,Floor rotates,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C22-S03-002,B03-C22-S03,22,gravity follows,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C22-S03-003,B03-C22-S03,22,Grey Guard falls into paradox space,resolved,review,cross-scene,type-review
+N-EVT-B03-C22-S03-004,B03-C22-S03,22,Valerius orders reserves,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C22-S04-001,B03-C22-S04,22,Valerius approaches alone,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C22-S04-002,B03-C22-S04,22,terms exchanged,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C22-S04-003,B03-C22-S04,22,Margot requests access to the Scroll,resolved,review,cross-scene,type-review
+N-EVT-B03-C22-S04-004,B03-C22-S04,22,Jonah reads her real plan,resolved,review,cross-scene,type-review
+N-EVT-B03-C22-S05-001,B03-C22-S05,22,Margot consults the Fire Elemental,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C22-S05-002,B03-C22-S05,22,enemy construct approaches,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C22-S05-003,B03-C22-S05,22,Siege Golem revealed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C22-S06-001,B03-C22-S06,22,Siege Golem attacks,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C22-S06-002,B03-C22-S06,22,Grishka is thrown into fountain,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C22-S06-003,B03-C22-S06,22,Golem raises both arms to break through,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C23-S01-001,B03-C23-S01,23,Golem destroys interior,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C23-S01-002,B03-C23-S01,23,Grishka wounded,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C23-S01-003,B03-C23-S01,23,Margot analyzes construct rules,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C23-S01-004,B03-C23-S01,23,loophole idea forms,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S02-001,B03-C23-S02,23,Old Index searched,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S02-002,B03-C23-S02,23,Golem classified,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S02-003,B03-C23-S02,23,Trans-Dimensional Oversize Returns chute requested,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C23-S02-004,B03-C23-S02,23,Label Gun loaded,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S03-001,B03-C23-S03,23,Margot rides book cart,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C23-S03-002,B03-C23-S03,23,Jonah shifts and attacks hydraulics,resolved,resolved,cross-scene,
+N-EVT-B03-C23-S03-003,B03-C23-S03,23,Aleksei distracts,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S03-004,B03-C23-S03,23,Label Gun fired,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S04-001,B03-C23-S04,23,Golem fights sorting system,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C23-S04-002,B03-C23-S04,23,label smokes,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S04-003,B03-C23-S04,23,stamp identified,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S04-004,B03-C23-S04,23,fastball launch begins,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S05-001,B03-C23-S05,23,Margot lands on Golem,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C23-S05-002,B03-C23-S05,23,stamps it,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S05-003,B03-C23-S05,23,rollers accelerate,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S05-004,B03-C23-S05,23,Jonah uses Librarian's Shush,resolved,review,cross-scene,type-review
+N-EVT-B03-C23-S05-005,B03-C23-S05,23,Golem falls into vortex,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C23-S06-001,B03-C23-S06,23,Casualty check,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S06-002,B03-C23-S06,23,Grishka survives,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C23-S06-003,B03-C23-S06,23,Valerius establishes perimeter and containment grid,resolved,review,cross-scene,type-review
+N-EVT-B03-C23-S06-004,B03-C23-S06,23,offensive decision,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S01-001,B03-C24-S01,24,Supply status reviewed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S01-002,B03-C24-S01,24,jamming analyzed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S01-003,B03-C24-S01,24,logging station identified,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S01-004,B03-C24-S01,24,Aleksei and Sarah join mission,resolved,review,cross-scene,type-review
+N-EVT-B03-C24-S02-001,B03-C24-S02,24,Coal-chute escape,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S02-002,B03-C24-S02,24,patrol evaded,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S02-003,B03-C24-S02,24,forest hunt,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S02-004,B03-C24-S02,24,logging station reconnoitered,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S03-001,B03-C24-S03,24,Guards knocked unconscious,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S03-002,B03-C24-S03,24,shack breached,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S03-003,B03-C24-S03,24,geothermal backup and transmitter activated,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C24-S04-001,B03-C24-S04,24,"Jonah broadcasts town identity, siege facts, and plea for witnesses",resolved,resolved,cross-scene,
+N-EVT-B03-C24-S04-002,B03-C24-S04,24,transmitter destroyed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S04-003,B03-C24-S04,24,escape begins,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S05-001,B03-C24-S05,24,Team scatters,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S05-002,B03-C24-S05,24,Jonah full-shifts,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C24-S05-003,B03-C24-S05,24,net and taser strike,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C24-S05-004,B03-C24-S05,24,earth roots attack soldiers,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C24-S05-005,B03-C24-S05,24,cliff jump,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C24-S06-001,B03-C24-S06,24,Jonah falls into icy river,resolved,review,cross-scene,type-review
+N-EVT-B03-C24-S06-002,B03-C24-S06,24,reaches bank naked and exhausted,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C24-S06-003,B03-C24-S06,24,civilian convoy approaches town,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C25-S01-001,B03-C25-S01,25,Jonah returns through coal chute,resolved,review,cross-scene,type-review
+N-EVT-B03-C25-S01-002,B03-C25-S01,25,reunion,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C25-S01-003,B03-C25-S01,25,broadcast success confirmed,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C25-S01-004,B03-C25-S01,25,Jonah treated for cold exposure,resolved,review,cross-scene,type-review
+N-EVT-B03-C25-S02-001,B03-C25-S02,25,Convoy arrives,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C25-S02-002,B03-C25-S02,25,cameras record,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C25-S02-003,B03-C25-S02,25,Jonah confronts Valerius,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C25-S02-004,B03-C25-S02,25,Valerius triggers backup system,resolved,review,cross-scene,type-review
+N-EVT-B03-C25-S03-001,B03-C25-S03,25,Backup signal disperses,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C25-S03-002,B03-C25-S03,25,"Trolls, Vampires, and Wolves go feral",resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C25-S03-003,B03-C25-S03,25,civilians and cameramen are attacked,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C25-S04-001,B03-C25-S04,25,Grey Guard uses tranquilizer fire to shape violence toward cameras,resolved,review,cross-scene,type-review
+N-EVT-B03-C25-S04-002,B03-C25-S04,25,defenders lose control,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C25-S04-003,B03-C25-S04,25,Margot dragged inside,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C25-S04-004,B03-C25-S04,25,Jonah left outside,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C25-S05-001,B03-C25-S05,25,Margot commits to catching Jonah,resolved,resolved,cross-scene,
+N-EVT-B03-C25-S05-002,B03-C25-S05,25,alchemy station assembled,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C25-S05-003,B03-C25-S05,25,cure plan formed,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C25-S06-001,B03-C25-S06,25,Alchemy workspace prepared,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C25-S06-002,B03-C25-S06,25,dragon's blood antiviral process initiated,resolved,review,cross-scene,type-review
+N-EVT-B03-C26-S01-001,B03-C26-S01,26,Virus intensifies,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C26-S01-002,B03-C26-S01,26,hallucinations begin,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C26-S01-003,B03-C26-S01,26,rat killed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C26-S01-004,B03-C26-S01,26,Jonah uses scent to navigate,resolved,review,cross-scene,type-review
+N-EVT-B03-C26-S02-001,B03-C26-S02,26,Ruined bar explored,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C26-S02-002,B03-C26-S02,26,whiskey used to blunt rage,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C26-S02-003,B03-C26-S02,26,civilian enters,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C26-S02-004,B03-C26-S02,26,Jonah resists attack,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C26-S03-001,B03-C26-S03,26,Jonah locks himself in drunk tank,resolved,review,cross-scene,type-review
+N-EVT-B03-C26-S03-002,B03-C26-S03,26,hallucinations worsen,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C26-S03-003,B03-C26-S03,26,CCTV contact with Margot established,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C26-S04-001,B03-C26-S04,26,Kill squad arrives,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C26-S04-002,B03-C26-S04,26,Margot activates PA counter-signal,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C26-S04-003,B03-C26-S04,26,Jonah vomits black ichor,resolved,review,cross-scene,type-review
+N-EVT-B03-C26-S04-004,B03-C26-S04,26,rifles aimed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C26-S05-001,B03-C26-S05,26,Lights fail,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C26-S05-002,B03-C26-S05,26,Silas attacks soldiers,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C26-S05-003,B03-C26-S05,26,lock rusts away,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C26-S05-004,B03-C26-S05,26,Jonah freed,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C26-S06-001,B03-C26-S06,26,Silas uses Notice-Me-Not and blind door,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C26-S06-002,B03-C26-S06,26,reunion in B4,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C26-S06-003,B03-C26-S06,26,virus mechanism explained,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C26-S06-004,B03-C26-S06,26,train robbery proposed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S01-001,B03-C27-S01,27,Train layout reviewed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S01-002,B03-C27-S01,27,derailment rejected,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S01-003,B03-C27-S01,27,boarding strategy formed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S01-004,B03-C27-S01,27,zip-line tower selected,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C27-S02-001,B03-C27-S02,27,Tower climbed,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C27-S02-002,B03-C27-S02,27,Iron Horse approaches,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C27-S02-003,B03-C27-S02,27,zip-line route assessed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S02-004,B03-C27-S02,27,Aleksei jumps,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S03-001,B03-C27-S03,27,Aleksei disables turret,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C27-S03-002,B03-C27-S03,27,Margot and others zip-line aboard,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C27-S03-003,B03-C27-S03,27,Jonah destroys mounted gun,resolved,resolved,cross-scene,
+N-EVT-B03-C27-S03-004,B03-C27-S03,27,hatch decoded,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S04-001,B03-C27-S04,27,Server-car firefight,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S04-002,B03-C27-S04,27,Shock Troopers defeated,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S04-003,B03-C27-S04,27,telemetry examined,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S04-004,B03-C27-S04,27,Jackson Harrow identified as fuel,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C27-S05-001,B03-C27-S05,27,Jonah charges through sleeper car,resolved,review,cross-scene,type-review
+N-EVT-B03-C27-S05-002,B03-C27-S05,27,guards defeated,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C27-S05-003,B03-C27-S05,27,Valerius confronted,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C27-S05-004,B03-C27-S05,27,dam collision announced,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C28-S01-001,B03-C28-S01,28,Jonah fights Valerius,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C28-S01-002,B03-C28-S01,28,Margot attacks Jackson's tank,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C28-S01-003,B03-C28-S01,28,throttle control is destroyed,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C28-S02-001,B03-C28-S02,28,Roof combat,unresolved,review,local-sequence,participant-unresolved;granularity-review;type-review;continuity-group-local
+N-EVT-B03-C28-S02-002,B03-C28-S02,28,coupling pin removed,unresolved,review,local-sequence,participant-unresolved;granularity-review;type-review;continuity-group-local
+N-EVT-B03-C28-S02-003,B03-C28-S02,28,safety-chain problem revealed,unresolved,review,local-sequence,participant-unresolved;granularity-review;type-review;continuity-group-local
+N-EVT-B03-C28-S03-001,B03-C28-S03,28,Margot breaks tank,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C28-S03-002,B03-C28-S03,28,Jackson freed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C28-S03-003,B03-C28-S03,28,Emitter destroyed,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C28-S03-004,B03-C28-S03,28,Jonah tackles Valerius,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C28-S04-001,B03-C28-S04,28,Safety chain severed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C28-S04-002,B03-C28-S04,28,rear train brakes,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C28-S04-003,B03-C28-S04,28,Valerius parachutes away,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C28-S04-004,B03-C28-S04,28,locomotive reaches dam wall,resolved,resolved,local-sequence,continuity-group-local
+N-EVT-B03-C28-S05-001,B03-C28-S05,28,Locomotive crashes,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C28-S05-002,B03-C28-S05,28,engine enters reservoir,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C28-S05-003,B03-C28-S05,28,survivors reach surface,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C28-S05-004,B03-C28-S05,28,dam holds despite cracking,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C28-S06-001,B03-C28-S06,28,Jonah shifts human,resolved,resolved,cross-scene,granularity-review
+N-EVT-B03-C28-S06-002,B03-C28-S06,28,Jackson remains wolf but regains awareness,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C28-S06-003,B03-C28-S06,28,father-son contact,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C28-S06-004,B03-C28-S06,28,town status checked,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C29-S01-001,B03-C29-S01,29,Return walk,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C29-S01-002,B03-C29-S01,29,helicopter spotted,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C29-S01-003,B03-C29-S01,29,Margot carries Founding Scroll,resolved,review,cross-scene,type-review
+N-EVT-B03-C29-S01-004,B03-C29-S01,29,Jonah ordered to paramedics,resolved,review,cross-scene,type-review
+N-EVT-B03-C29-S02-001,B03-C29-S02,29,Sterling caught packing cash,resolved,review,cross-scene,type-review
+N-EVT-B03-C29-S02-002,B03-C29-S02,29,betrayal confessed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C29-S02-003,B03-C29-S02,29,Margot condemns him,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C29-S03-001,B03-C29-S03,29,Valerius claims he can still prove the town failed,resolved,review,cross-scene,type-review
+N-EVT-B03-C29-S03-002,B03-C29-S03,29,Margot invokes Charter and House Rules,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C29-S04-001,B03-C29-S04,29,Fire absorbed,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C29-S04-002,B03-C29-S04,29,gravity blocked,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C29-S04-003,B03-C29-S04,29,helicopter immobilized,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C29-S04-004,B03-C29-S04,29,access revoked,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C29-S05-001,B03-C29-S05,29,Bullet becomes paper moth,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C29-S05-002,B03-C29-S05,29,Valerius flattens into parchment,resolved,review,cross-scene,type-review
+N-EVT-B03-C29-S05-003,B03-C29-S05,29,pilot surrenders,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C29-S06-001,B03-C29-S06,29,Margot reports Valerius processed,resolved,resolved,cross-scene,
+N-EVT-B03-C29-S06-002,B03-C29-S06,29,Jackson receives care,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C29-S06-003,B03-C29-S06,29,victory acknowledged,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C29-S06-004,B03-C29-S06,29,pair return to library,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C30-S01-001,B03-C30-S01,30,Businesses reopen,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S01-002,B03-C30-S01,30,supernatural residents work openly,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C30-S01-003,B03-C30-S01,30,journalists remain,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S01-004,B03-C30-S01,30,Silas gives interviews,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S01-005,B03-C30-S01,30,library doors become transparent,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C30-S02-001,B03-C30-S02,30,Valerius book shelved,resolved,review,cross-scene,granularity-review;type-review
+N-EVT-B03-C30-S02-002,B03-C30-S02,30,Integration Act and Special Administrative Zone established,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C30-S02-003,B03-C30-S02,30,Margot named Administrator,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S03-001,B03-C30-S03,30,Cabin restored,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S03-002,B03-C30-S03,30,no-more-secrets agreement,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S03-003,B03-C30-S03,30,consensual intimacy,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C30-S03-004,B03-C30-S03,30,love and relief shared through bond,resolved,resolved,cross-scene,
+N-EVT-B03-C30-S04-001,B03-C30-S04,30,Coffee conversation,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S04-002,B03-C30-S04,30,old badge transferred,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S04-003,B03-C30-S04,30,Jackson plans museum work with Silas,resolved,review,cross-scene,type-review
+N-EVT-B03-C30-S05-001,B03-C30-S05,30,Council meeting,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S05-002,B03-C30-S05,30,school and blood-drive agenda,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C30-S05-003,B03-C30-S05,30,statue unveiled,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S05-004,B03-C30-S05,30,Silas presides as Speaker,resolved,review,local-sequence,type-review;continuity-group-local
+N-EVT-B03-C30-S06-001,B03-C30-S06,30,Black sedan arrives,resolved,resolved,local-sequence,granularity-review;continuity-group-local
+N-EVT-B03-C30-S06-002,B03-C30-S06,30,Cian confronts Aleksei,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S06-003,B03-C30-S06,30,father-survival tease,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S06-004,B03-C30-S06,30,Necronomicon request,resolved,review,local-sequence,granularity-review;type-review;continuity-group-local
+N-EVT-B03-C30-S06-005,B03-C30-S06,30,Jonah and Margot kiss and prepare,resolved,review,cross-scene,type-review

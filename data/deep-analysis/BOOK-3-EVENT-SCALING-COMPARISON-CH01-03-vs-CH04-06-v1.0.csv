@@ -1,0 +1,6 @@
+metric,chapters_1_3,chapters_4_6,interpretation
+scenes,15,14,Comparable batch size
+normalized_events,41,50,Slightly denser second batch
+events_per_scene,2.73,3.57,Within expected narrative-density range
+continuity_groups,10,12,More long-running sequences due intimacy and B3 trap arcs
+candidate_only,yes,yes,Canon remains untouched

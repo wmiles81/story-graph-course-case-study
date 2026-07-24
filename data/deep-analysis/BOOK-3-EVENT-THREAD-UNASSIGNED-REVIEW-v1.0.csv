@@ -1,0 +1,391 @@
+event_id,scene_id,event_label,continuity_group_id,reason
+N-EVT-B03-C01-S01-001,B03-C01-S01,Grishka strikes Aleksei and starts the bar fight,BAR-DISTURBANCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C01-S01-002,B03-C01-S01,Jonah physically stops the fight,BAR-DISTURBANCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C01-S01-003,B03-C01-S01,Jonah bans Grishka from the bar for the weekend,BAR-DISTURBANCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C01-S02-001,B03-C01-S02,Jonah clears Grishka and Aleksei from the bar area,BAR-DISTURBANCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C03-S03-003,B03-C03-S03,Jonah and Margot detect a learning shadow before the lexivore emerges,LEXIVORE-ENCOUNTER,No child-thread rule reached assignment threshold
+N-EVT-B03-C03-S04-001,B03-C03-S04,The lexivore attacks and frost-burns Jonah,LEXIVORE-ENCOUNTER,No child-thread rule reached assignment threshold
+N-EVT-B03-C03-S04-002,B03-C03-S04,Margot uses light and sacrificial books to distract the lexivore,LEXIVORE-ENCOUNTER,No child-thread rule reached assignment threshold
+N-EVT-B03-C03-S05-001,B03-C03-S05,Margot opens the B2 door and Jonah follows her into the Architecture Section,B2-TRANSITION,No child-thread rule reached assignment threshold
+N-EVT-B03-C03-S05-002,B03-C03-S05,Margot explains that B2 contains actual impossible spaces,B2-TRANSITION,No child-thread rule reached assignment threshold
+N-EVT-B03-C03-S05-003,B03-C03-S05,They discover gravity-defying stairs and an unknown entity below,B2-TRANSITION,No child-thread rule reached assignment threshold
+N-EVT-B03-C04-S01-001,B03-C04-S01,Margot and Jonah recover after escaping B1,B2-ARRIVAL,No child-thread rule reached assignment threshold
+N-EVT-B03-C04-S01-002,B03-C04-S01,Margot identifies Jonah's injury and unstable wolf state,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C04-S04-003,B03-C04-S04,They discover B2's floorless and gravity-shifting architecture,B2-ARRIVAL,No child-thread rule reached assignment threshold
+N-EVT-B03-C05-S01-001,B03-C05-S01,The Guardian counts down toward eating Jonah,GUARDIAN-RIDDLE,No child-thread rule reached assignment threshold
+N-EVT-B03-C05-S01-002,B03-C05-S01,Margot reframes the riddle around unrealized architecture,GUARDIAN-RIDDLE,No child-thread rule reached assignment threshold
+N-EVT-B03-C05-S01-003,B03-C05-S01,Margot answers with plans for buildings never approved or built,GUARDIAN-RIDDLE,No child-thread rule reached assignment threshold
+N-EVT-B03-C05-S01-004,B03-C05-S01,The Guardian accepts the answer and unlocks the passage,GUARDIAN-RIDDLE,No child-thread rule reached assignment threshold
+N-EVT-B03-C05-S02-001,B03-C05-S02,Margot and Jonah enter the Resting Point Study,RESTING-POINT,No child-thread rule reached assignment threshold
+N-EVT-B03-C05-S02-002,B03-C05-S02,Margot confirms the Resting Point is temporarily safe,RESTING-POINT,No child-thread rule reached assignment threshold
+N-EVT-B03-C05-S05-002,B03-C05-S05,Margot explains B3's emotional and poetic traps,B3-DESCENT,No child-thread rule reached assignment threshold
+N-EVT-B03-C05-S05-003,B03-C05-S05,Margot and Jonah begin the descent to B3 hand in hand,B3-DESCENT,No child-thread rule reached assignment threshold
+N-EVT-B03-C06-S04-002,B03-C06-S04,Ink-text recedes from Jonah's body,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C08-S02-003,B03-C08-S02,The silver rod burns Jonah severely,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C08-S03-002,B03-C08-S03,Jonah begins partial supernatural healing from the silver attack,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C09-S01-001,B03-C09-S01,Margot and Jonah climb out of the Deep Stacks carrying the Treaty,LIBRARY-ESCAPE,No child-thread rule reached assignment threshold
+N-EVT-B03-C09-S01-002,B03-C09-S01,Jonah's silver injuries impair his movement,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C09-S05-004,B03-C09-S05,Jonah decides to regroup at his ridge cabin,CABIN-RETREAT,No child-thread rule reached assignment threshold
+N-EVT-B03-C09-S05-005,B03-C09-S05,Margot and Jonah flee with the Treaty,CABIN-RETREAT,No child-thread rule reached assignment threshold
+N-EVT-B03-C09-S06-004,B03-C09-S06,Jonah offers his cabin as refuge,CABIN-RETREAT,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S01-001,B03-C10-S01,Jonah and Margot arrive at the fortified ridge cabin,CABIN-REFUGE,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S01-002,B03-C10-S01,Jonah explains the cabin's wards and isolation,CABIN-REFUGE,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S01-003,B03-C10-S01,Margot acknowledges that her apartment and former life are gone,DISPLACEMENT,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S01-004,B03-C10-S01,"Jonah gives Margot clothes, shelter, and access to the cabin",CABIN-REFUGE,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S01-005,B03-C10-S01,Margot begins showering and physical recovery,CABIN-REFUGE,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S02-001,B03-C10-S02,Jonah arms and secures the cabin,CABIN-DEFENSE,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S02-003,B03-C10-S02,Jonah and Margot discuss their fugitive status and immediate options,CABIN-REFUGE,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S03-001,B03-C10-S03,Margot cleans and dresses Jonah's silver burn,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S03-002,B03-C10-S03,Margot treats Jonah's chest injuries,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S03-003,B03-C10-S03,Jonah and Margot discuss his old scars and long service to the town,JONAH-BACKSTORY,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S05-005,B03-C10-S05,Jonah deletes the order and prepares to resist,CABIN-DEFENSE,No child-thread rule reached assignment threshold
+N-EVT-B03-C10-S05-006,B03-C10-S05,Jonah arms himself for the coming attack,CABIN-DEFENSE,No child-thread rule reached assignment threshold
+N-EVT-B03-C11-S02-005,B03-C11-S02,Jonah proposes blowing the root-cellar wall as an escape route,ROOT-CELLAR-ESCAPE,No child-thread rule reached assignment threshold
+N-EVT-B03-C11-S02-006,B03-C11-S02,Jonah and Margot retreat into the root cellar,ROOT-CELLAR-ESCAPE,No child-thread rule reached assignment threshold
+N-EVT-B03-C11-S03-001,B03-C11-S03,Jonah barricades the root cellar,ROOT-CELLAR-ESCAPE,No child-thread rule reached assignment threshold
+N-EVT-B03-C11-S03-002,B03-C11-S03,Jonah prepares old mining charges in the retaining wall,ROOT-CELLAR-ESCAPE,No child-thread rule reached assignment threshold
+N-EVT-B03-C11-S03-003,B03-C11-S03,The tactical team breaches the cellar entrance,ROOT-CELLAR-ESCAPE,No child-thread rule reached assignment threshold
+N-EVT-B03-C11-S03-004,B03-C11-S03,Jonah detonates the retaining wall,ROOT-CELLAR-ESCAPE,No child-thread rule reached assignment threshold
+N-EVT-B03-C11-S03-005,B03-C11-S03,Margot and Jonah escape into the ravine with the Treaty,WILDERNESS-FLIGHT,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S01-001,B03-C12-S01,Margot and Jonah flee through deep snow,WILDERNESS-FLIGHT,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S01-002,B03-C12-S01,A helicopter pursues them through the woods,WILDERNESS-FLIGHT,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S01-004,B03-C12-S01,Jonah decides they must cross the river despite lethal weather,RIVER-CROSSING,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S02-001,B03-C12-S02,Margot and Jonah cross the frozen river,RIVER-CROSSING,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S02-002,B03-C12-S02,They evade the helicopter spotlight during the crossing,RIVER-CROSSING,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S02-003,B03-C12-S02,Margot becomes unable to move from cold exposure,HYPOTHERMIA,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S02-004,B03-C12-S02,Jonah removes Margot's wet clothing and deploys an emergency blanket,HYPOTHERMIA,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S02-005,B03-C12-S02,Jonah begins skin-to-skin warming,HYPOTHERMIA,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S03-001,B03-C12-S03,Margot's body temperature begins to recover,HYPOTHERMIA,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S03-002,B03-C12-S03,The pursuing helicopter leaves the area,WILDERNESS-FLIGHT,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S03-003,B03-C12-S03,Jonah decides to circle back through the old mining tunnels,MINE-ROUTE,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S03-004,B03-C12-S03,Margot stabilizes enough to continue,HYPOTHERMIA,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S04-001,B03-C12-S04,Margot and Jonah put on dry clothes and resume travel,MINE-ROUTE,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S04-002,B03-C12-S04,Jonah tracks the route toward the mine entrance in wolf mode,MINE-ROUTE,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S04-003,B03-C12-S04,A Yeti appears and blocks the route,YETI-ENCOUNTER,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S04-004,B03-C12-S04,Jonah fully shifts into wolf form to fight without shooting the Yeti,YETI-ENCOUNTER,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S05-001,B03-C12-S05,Jonah fights the Yeti in wolf form,YETI-ENCOUNTER,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S05-002,B03-C12-S05,Margot fires a warning shot into the air,YETI-ENCOUNTER,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S05-003,B03-C12-S05,The Yeti retreats,YETI-ENCOUNTER,No child-thread rule reached assignment threshold
+N-EVT-B03-C12-S05-006,B03-C12-S05,Margot and Jonah enter the old mine,MINE-ROUTE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S01-001,B03-C13-S01,Jonah shifts back,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S01-002,B03-C13-S01,Margot gives him his clothes,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S01-003,B03-C13-S01,he explains Alpha combat form and the danger of remaining full wolf,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S01-004,B03-C13-S01,they confirm temporary safety,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S02-001,B03-C13-S02,Jonah explains the Undercity,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S02-002,B03-C13-S02,they enter the Hive,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S02-003,B03-C13-S02,Iron-Jaw confronts them,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S02-004,B03-C13-S02,Margot is identified as the Keeper,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S02-005,B03-C13-S02,news of the riot and Pack blockade is delivered,TOWN-HALL-UPRISING,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S02-006,B03-C13-S02,Iron-Jaw provides the route,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S03-001,B03-C13-S03,They discuss Pack loyalty and hope,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S03-002,B03-C13-S03,Jonah identifies the pressure-release timing,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S03-003,B03-C13-S03,Margot asks for the Wolf,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S03-004,B03-C13-S03,they have sex,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S03-005,B03-C13-S03,the valve vents,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C13-S03-006,B03-C13-S03,they escape into the safety niche and continue,CH13-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S01-001,B03-C14-S01,Margot climbs to the roof,CH14-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S01-002,B03-C14-S01,they observe a disciplined human-monster coalition in the square,TOWN-HALL-UPRISING,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S01-003,B03-C14-S01,Jonah spots snipers,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S01-004,B03-C14-S01,he proposes a skylight insertion,CH14-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S02-001,B03-C14-S02,Bridge crossing,CH14-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S02-002,B03-C14-S02,spotlight evasion,CH14-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S02-003,B03-C14-S02,shotgun breach,CH14-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S02-004,B03-C14-S02,fall through skylight,CH14-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S02-005,B03-C14-S02,guards surrender under Jonah's Alpha command,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S02-006,B03-C14-S02,Margot restrains them,CH14-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S03-001,B03-C14-S03,Jonah breaches the office,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S03-004,B03-C14-S03,Sterling shoots Jonah,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S04-001,B03-C14-S04,Aleksei crashes through the window,CH14-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S04-003,B03-C14-S04,Margot identifies the silver wound,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S04-004,B03-C14-S04,Jonah insists she address the town,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S04-005,B03-C14-S04,she takes the microphone,CH14-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S05-001,B03-C14-S05,Margot broadcasts the truth,TOWN-HALL-UPRISING,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S05-002,B03-C14-S05,humans and supernatural residents celebrate together,CH14-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C14-S05-003,B03-C14-S05,Jonah briefly rallies,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S01-004,B03-C15-S01,Jonah loses the Wolf,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S01-005,B03-C15-S01,Aleksei loses vampiric power,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S02-002,B03-C15-S02,humans and monsters separated,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S02-003,B03-C15-S02,Mrs. Gable struck,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S02-005,B03-C15-S02,group selects roof route,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S03-001,B03-C15-S03,Rooftop crossing,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S03-002,B03-C15-S03,Aleksei tackles Jonah out of a sniper shot,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S03-003,B03-C15-S03,repeated fire,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S03-004,B03-C15-S03,group reaches Civic Center cover,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S03-005,B03-C15-S03,Margot discovers communications jamming and proposes the duct route,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S04-001,B03-C15-S04,Margot crawls through ducts,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S04-002,B03-C15-S04,soldiers search below,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S04-003,B03-C15-S04,group drops into locker room,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S04-004,B03-C15-S04,Henderson emerges with a mop spear,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S04-005,B03-C15-S04,he offers the lead-lined pump room,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S05-001,B03-C15-S05,Industrial bio-foam and staples applied,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S05-002,B03-C15-S05,Jonah's heartbeat stabilizes,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S05-003,B03-C15-S05,need for Wolf blood identified,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S05-004,B03-C15-S05,radio reveals processing at ice rink,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C15-S05-005,B03-C15-S05,Margot proposes sabotage and communications restoration,CH15-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S01-001,B03-C16-S01,Jonah wakes,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S01-002,B03-C16-S01,calls for the Wolf,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S01-003,B03-C16-S01,fails to shift,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S01-004,B03-C16-S01,Aleksei explains Henderson's treatment,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S01-005,B03-C16-S01,Jonah learns Margot is scavenging,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S02-001,B03-C16-S02,Aleksei explains six hours have passed,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S02-002,B03-C16-S02,lead shielding is confirmed,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S02-003,B03-C16-S02,both describe physical deterioration,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S03-001,B03-C16-S03,Margot returns with food,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S03-002,B03-C16-S03,supports Jonah,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S03-003,B03-C16-S03,confirms magic-level sorting,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S03-004,B03-C16-S03,Henderson provides map,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S03-005,B03-C16-S03,Jonah begins territorial analysis,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S04-003,B03-C16-S04,Jonah declares himself a liability,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S04-004,B03-C16-S04,roles assigned,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S04-005,B03-C16-S04,Margot accepts leadership,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S05-001,B03-C16-S05,Henderson builds improvised explosives,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S05-002,B03-C16-S05,Aleksei takes crowbar,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S05-004,B03-C16-S05,Jonah gives firearm instructions,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S05-005,B03-C16-S05,radio check,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C16-S05-007,B03-C16-S05,team departs,CH16-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S01-002,B03-C17-S01,radio contact weakens,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S01-003,B03-C17-S01,Henderson uses reactive drain cleaner,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S01-004,B03-C17-S01,grate opens,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S01-005,B03-C17-S01,Margot checks Jonah's map,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S02-001,B03-C17-S02,Troopers discuss freezing detainees,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S02-002,B03-C17-S02,Jonah orders mission focus,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S02-004,B03-C17-S02,override sends team upward,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S02-005,B03-C17-S02,weapons drawn,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S03-003,B03-C17-S03,Margot accuses him of genocide,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S03-004,B03-C17-S03,bag is retained as evidence,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S03-005,B03-C17-S03,Henderson signals opportunity,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S04-001,B03-C17-S04,Captives forced to kneel,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S04-002,B03-C17-S04,purge ordered,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S04-003,B03-C17-S04,Margot rejects fight/run/talk options,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S04-004,B03-C17-S04,Henderson signals,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S04-005,B03-C17-S04,Margot throws lighter,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S05-002,B03-C17-S05,magic returns,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S05-003,B03-C17-S05,Aleksei regains vampire power,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S05-005,B03-C17-S05,Jonah reports transformation,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C17-S05-006,B03-C17-S05,Pack howls,CH17-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S01-001,B03-C18-S01,Magic returns,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S01-002,B03-C18-S01,silver expelled,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S01-003,B03-C18-S01,wound heals,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S01-004,B03-C18-S01,transformation occurs,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S01-005,B03-C18-S01,Henderson spared and accepted,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S01-006,B03-C18-S01,duct grate destroyed,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S02-001,B03-C18-S02,Jonah drops from vent,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S02-002,B03-C18-S02,overhears Alpha-level heat warning,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S02-003,B03-C18-S02,incapacitates two troopers,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S02-004,B03-C18-S02,follows Pack scent,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S02-005,B03-C18-S02,bursts through doors,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S03-001,B03-C18-S03,Jonah howls,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S03-002,B03-C18-S03,wolves rally,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S03-003,B03-C18-S03,lead transport attacked,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S03-004,B03-C18-S03,coordinated disabling action,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S03-006,B03-C18-S03,Sarah reports Margot passed toward the access road,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S04-001,B03-C18-S04,Jonah runs uphill,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S04-002,B03-C18-S04,sees overturned jeep,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S04-003,B03-C18-S04,finds team,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S04-004,B03-C18-S04,shifts,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S04-005,B03-C18-S04,embraces Margot,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S04-006,B03-C18-S04,confirms restored magic,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S04-007,B03-C18-S04,Aleksei points to sky,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S05-002,B03-C18-S05,school rejected,CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C18-S05-005,B03-C18-S05,"Pack, Trolls, and Aleksei assigned",CH18-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S01-002,B03-C19-S01,convoy flees through alley,CH19-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S01-003,B03-C19-S01,wounded supernatural allies retreat toward library,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S02-001,B03-C19-S02,Library communicates with Margot,CH19-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S02-002,B03-C19-S02,lockdown systems activate,CH19-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S02-003,B03-C19-S02,gargoyle sonic defenses engage,CH19-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S03-001,B03-C19-S03,Survivors cross lawn under fire,CH19-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S03-002,B03-C19-S03,all enter,CH19-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S03-003,B03-C19-S03,doors and iron deadbolts seal,CH19-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S03-004,B03-C19-S03,service hoist is selected,CH19-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S04-002,B03-C19-S04,B4 arsenal opened,CH19-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C19-S05-003,B03-C19-S05,Margot fires magical harpoon,CH19-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C20-S01-001,B03-C20-S01,Green neurotoxin fills atrium,CH20-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C20-S01-002,B03-C20-S01,defenders collapse,CH20-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C20-S02-001,B03-C20-S02,Wolf hunts Margot through iron forest,CH20-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C20-S02-002,B03-C20-S02,shadow interferes,CH20-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C20-S02-003,B03-C20-S02,Margot becomes pages and ash,CH20-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C20-S03-001,B03-C20-S03,Margot drags Jonah to safety,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C20-S03-002,B03-C20-S03,occupied library seen under searchlights,CH20-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S01-001,B03-C21-S01,Troll barricades built,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S01-002,B03-C21-S01,wolf trenches dug,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S01-003,B03-C21-S01,town fortified,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S01-004,B03-C21-S01,Jonah recognizes command responsibility,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S02-001,B03-C21-S02,Fire Elemental installed in furnace,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S02-002,B03-C21-S02,ley-line capacitor powered,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S02-003,B03-C21-S02,wards strengthened,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S03-001,B03-C21-S03,Blade of Silas examined,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S03-002,B03-C21-S03,dark artifacts debated,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S04-001,B03-C21-S04,Topographic map reviewed,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S04-003,B03-C21-S04,Trolls assigned as living armor,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S05-001,B03-C21-S05,Jonah rejects abandoning Margot,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S05-003,B03-C21-S05,emotional confession,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S05-004,B03-C21-S05,advancing army detected,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S06-002,B03-C21-S06,anti-magic phalanx revealed,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C21-S06-004,B03-C21-S06,town answers with armed defiance,CH21-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S01-002,B03-C22-S01,trench defense collapses,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S01-003,B03-C22-S01,wounded defenders retreat,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S01-004,B03-C22-S01,plasma cutter attacks the oak doors,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S02-001,B03-C22-S02,Oak doors glow from plasma cutter,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S02-003,B03-C22-S02,Margot positions defenders and prepares floor mechanism,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S03-001,B03-C22-S03,Floor rotates,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S03-002,B03-C22-S03,gravity follows,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S04-002,B03-C22-S04,terms exchanged,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S04-004,B03-C22-S04,Jonah reads her real plan,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S05-001,B03-C22-S05,Margot consults the Fire Elemental,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S05-002,B03-C22-S05,enemy construct approaches,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S05-003,B03-C22-S05,Siege Golem revealed,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S06-001,B03-C22-S06,Siege Golem attacks,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S06-002,B03-C22-S06,Grishka is thrown into fountain,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C22-S06-003,B03-C22-S06,Golem raises both arms to break through,CH22-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S01-001,B03-C23-S01,Golem destroys interior,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S01-002,B03-C23-S01,Grishka wounded,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S01-003,B03-C23-S01,Margot analyzes construct rules,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S01-004,B03-C23-S01,loophole idea forms,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S02-001,B03-C23-S02,Old Index searched,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S02-002,B03-C23-S02,Golem classified,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S02-003,B03-C23-S02,Trans-Dimensional Oversize Returns chute requested,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S02-004,B03-C23-S02,Label Gun loaded,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S03-001,B03-C23-S03,Margot rides book cart,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S03-002,B03-C23-S03,Jonah shifts and attacks hydraulics,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S03-003,B03-C23-S03,Aleksei distracts,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S03-004,B03-C23-S03,Label Gun fired,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S04-001,B03-C23-S04,Golem fights sorting system,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S04-002,B03-C23-S04,label smokes,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S04-003,B03-C23-S04,stamp identified,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S04-004,B03-C23-S04,fastball launch begins,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S05-001,B03-C23-S05,Margot lands on Golem,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S05-002,B03-C23-S05,stamps it,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S05-003,B03-C23-S05,rollers accelerate,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S05-004,B03-C23-S05,Jonah uses Librarian's Shush,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S05-005,B03-C23-S05,Golem falls into vortex,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S06-001,B03-C23-S06,Casualty check,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S06-002,B03-C23-S06,Grishka survives,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C23-S06-004,B03-C23-S06,offensive decision,CH23-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S01-001,B03-C24-S01,Supply status reviewed,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S01-002,B03-C24-S01,jamming analyzed,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S01-003,B03-C24-S01,logging station identified,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S02-001,B03-C24-S02,Coal-chute escape,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S02-002,B03-C24-S02,patrol evaded,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S02-003,B03-C24-S02,forest hunt,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S02-004,B03-C24-S02,logging station reconnoitered,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S03-001,B03-C24-S03,Guards knocked unconscious,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S03-002,B03-C24-S03,shack breached,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S03-003,B03-C24-S03,geothermal backup and transmitter activated,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S04-002,B03-C24-S04,transmitter destroyed,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S04-003,B03-C24-S04,escape begins,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S05-001,B03-C24-S05,Team scatters,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S05-002,B03-C24-S05,Jonah full-shifts,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S05-003,B03-C24-S05,net and taser strike,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S05-004,B03-C24-S05,earth roots attack soldiers,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S05-005,B03-C24-S05,cliff jump,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S06-001,B03-C24-S06,Jonah falls into icy river,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S06-002,B03-C24-S06,reaches bank naked and exhausted,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C24-S06-003,B03-C24-S06,civilian convoy approaches town,CH24-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S01-001,B03-C25-S01,Jonah returns through coal chute,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S01-002,B03-C25-S01,reunion,CH25-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S01-003,B03-C25-S01,broadcast success confirmed,TOWN-HALL-UPRISING,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S01-004,B03-C25-S01,Jonah treated for cold exposure,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S02-001,B03-C25-S02,Convoy arrives,CH25-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S02-002,B03-C25-S02,cameras record,CH25-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S02-003,B03-C25-S02,Jonah confronts Valerius,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S03-001,B03-C25-S03,Backup signal disperses,CH25-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S03-002,B03-C25-S03,"Trolls, Vampires, and Wolves go feral",CH25-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S03-003,B03-C25-S03,civilians and cameramen are attacked,CH25-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S04-002,B03-C25-S04,defenders lose control,CH25-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S04-003,B03-C25-S04,Margot dragged inside,CH25-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S04-004,B03-C25-S04,Jonah left outside,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S05-001,B03-C25-S05,Margot commits to catching Jonah,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S05-002,B03-C25-S05,alchemy station assembled,CH25-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C25-S06-001,B03-C25-S06,Alchemy workspace prepared,CH25-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S01-001,B03-C26-S01,Virus intensifies,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S01-002,B03-C26-S01,hallucinations begin,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S01-003,B03-C26-S01,rat killed,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S01-004,B03-C26-S01,Jonah uses scent to navigate,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S02-001,B03-C26-S02,Ruined bar explored,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S02-002,B03-C26-S02,whiskey used to blunt rage,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S02-003,B03-C26-S02,civilian enters,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S02-004,B03-C26-S02,Jonah resists attack,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S03-001,B03-C26-S03,Jonah locks himself in drunk tank,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S03-002,B03-C26-S03,hallucinations worsen,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S03-003,B03-C26-S03,CCTV contact with Margot established,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S04-001,B03-C26-S04,Kill squad arrives,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S04-002,B03-C26-S04,Margot activates PA counter-signal,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S04-003,B03-C26-S04,Jonah vomits black ichor,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S04-004,B03-C26-S04,rifles aimed,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S05-001,B03-C26-S05,Lights fail,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S05-002,B03-C26-S05,Silas attacks soldiers,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S05-003,B03-C26-S05,lock rusts away,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S05-004,B03-C26-S05,Jonah freed,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S06-001,B03-C26-S06,Silas uses Notice-Me-Not and blind door,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S06-002,B03-C26-S06,reunion in B4,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S06-003,B03-C26-S06,virus mechanism explained,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C26-S06-004,B03-C26-S06,train robbery proposed,CH26-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S01-001,B03-C27-S01,Train layout reviewed,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S01-002,B03-C27-S01,derailment rejected,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S01-003,B03-C27-S01,boarding strategy formed,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S02-003,B03-C27-S02,zip-line route assessed,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S02-004,B03-C27-S02,Aleksei jumps,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S03-001,B03-C27-S03,Aleksei disables turret,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S03-002,B03-C27-S03,Margot and others zip-line aboard,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S03-003,B03-C27-S03,Jonah destroys mounted gun,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S03-004,B03-C27-S03,hatch decoded,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S04-001,B03-C27-S04,Server-car firefight,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S04-002,B03-C27-S04,Shock Troopers defeated,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S04-003,B03-C27-S04,telemetry examined,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S04-004,B03-C27-S04,Jackson Harrow identified as fuel,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S05-001,B03-C27-S05,Jonah charges through sleeper car,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S05-002,B03-C27-S05,guards defeated,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C27-S05-004,B03-C27-S05,dam collision announced,CH27-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S01-001,B03-C28-S01,Jonah fights Valerius,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S01-002,B03-C28-S01,Margot attacks Jackson's tank,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S01-003,B03-C28-S01,throttle control is destroyed,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S02-001,B03-C28-S02,Roof combat,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S02-002,B03-C28-S02,coupling pin removed,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S02-003,B03-C28-S02,safety-chain problem revealed,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S03-001,B03-C28-S03,Margot breaks tank,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S03-002,B03-C28-S03,Jackson freed,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S03-004,B03-C28-S03,Jonah tackles Valerius,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S04-001,B03-C28-S04,Safety chain severed,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S04-002,B03-C28-S04,rear train brakes,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S04-004,B03-C28-S04,locomotive reaches dam wall,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S05-001,B03-C28-S05,Locomotive crashes,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S05-002,B03-C28-S05,engine enters reservoir,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S05-003,B03-C28-S05,survivors reach surface,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S05-004,B03-C28-S05,dam holds despite cracking,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S06-001,B03-C28-S06,Jonah shifts human,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S06-002,B03-C28-S06,Jackson remains wolf but regains awareness,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S06-003,B03-C28-S06,father-son contact,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C28-S06-004,B03-C28-S06,town status checked,CH28-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S01-001,B03-C29-S01,Return walk,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S01-004,B03-C29-S01,Jonah ordered to paramedics,JONAH-INJURY,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S02-002,B03-C29-S02,betrayal confessed,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S02-003,B03-C29-S02,Margot condemns him,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S03-002,B03-C29-S03,Margot invokes Charter and House Rules,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S04-001,B03-C29-S04,Fire absorbed,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S04-002,B03-C29-S04,gravity blocked,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S04-004,B03-C29-S04,access revoked,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S05-001,B03-C29-S05,Bullet becomes paper moth,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S05-003,B03-C29-S05,pilot surrenders,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S06-002,B03-C29-S06,Jackson receives care,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S06-003,B03-C29-S06,victory acknowledged,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C29-S06-004,B03-C29-S06,pair return to library,CH29-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S01-001,B03-C30-S01,Businesses reopen,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S01-002,B03-C30-S01,supernatural residents work openly,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S01-003,B03-C30-S01,journalists remain,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S01-004,B03-C30-S01,Silas gives interviews,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S01-005,B03-C30-S01,library doors become transparent,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S02-002,B03-C30-S02,Integration Act and Special Administrative Zone established,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S02-003,B03-C30-S02,Margot named Administrator,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S03-001,B03-C30-S03,Cabin restored,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S03-002,B03-C30-S03,no-more-secrets agreement,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S03-003,B03-C30-S03,consensual intimacy,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S04-001,B03-C30-S04,Coffee conversation,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S04-002,B03-C30-S04,old badge transferred,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S05-001,B03-C30-S05,Council meeting,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S05-002,B03-C30-S05,school and blood-drive agenda,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S05-003,B03-C30-S05,statue unveiled,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S05-004,B03-C30-S05,Silas presides as Speaker,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S06-001,B03-C30-S06,Black sedan arrives,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S06-002,B03-C30-S06,Cian confronts Aleksei,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S06-003,B03-C30-S06,father-survival tease,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold
+N-EVT-B03-C30-S06-004,B03-C30-S06,Necronomicon request,CH30-LOCAL-SEQUENCE,No child-thread rule reached assignment threshold

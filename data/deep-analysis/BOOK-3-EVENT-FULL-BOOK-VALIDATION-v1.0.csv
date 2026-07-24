@@ -1,0 +1,6 @@
+check,status,detail
+All remaining scenes represented,PASS,95/95
+Full-book stable IDs unique,PASS,614/614
+Every event has a source span,PASS,614/614
+Canon untouched,PASS,All events remain candidate
+Continuity groups registered,PASS,All groups registered

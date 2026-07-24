@@ -1,0 +1,9 @@
+check,status,detail
+All 16 scenes represented,PASS,16/16
+Stable IDs unique,PASS,68/68
+Participants present,PASS,68/68
+Participant roles present,PASS,68/68
+Evidence anchors present,PASS,68/68
+All continuity groups registered,FAIL,All groups registered
+Canon untouched,PASS,All rows candidate
+No author-intent gate triggered,PASS,All events source-supported

@@ -1,0 +1,74 @@
+source_predicate,destination_section,normalized_class,preserve_original_predicate,notes
+ACCEPTS,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+ACHIEVE,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+ACTIVATES,Open Loops & Guns,promise-or-obligation,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+ARCHIVES_AS_BOOK,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+ARRIVES_AS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+ATTACK,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+ATTEMPTS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+ATTEMPT_CAPTURE,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+BECOMES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+BELIEVES,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+BOARDS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+BROADCASTS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+CAPTURES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+CAUSES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+CHOOSE,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+CLASSIFIES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+COLLABORATES_FOR,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+COMMITS_TO,Open Loops & Guns,promise-or-obligation,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+CONCEALS,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+CONFINES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+CONFRONTS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+CONTAINS,Logistics,state-or-custody,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+CONTROLS,Logistics,state-or-custody,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+CORROBORATES,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+DECLARES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+DECOUPLE,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+DEPLOYS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+DESTROYS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+DESTROYS_OR_DISABLES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+DISCOVERS,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+DISRUPTS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+DISTRIBUTES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+DOCUMENTS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+ESTABLISHES,Open Loops & Guns,promise-or-obligation,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+EVENT_OCCURRED,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+FREES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+HAS_DEADLINE,Open Loops & Guns,promise-or-obligation,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+HAS_PROPERTY,Logistics,state-or-custody,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+HAS_STATUS,Logistics,state-or-custody,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+HAS_UNKNOWN_CUSTODY,Logistics,state-or-custody,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+IDENTIFIES_AS,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+INTERPRETS,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+INTRODUCES,Open Loops & Guns,promise-or-obligation,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+INVOKES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+KNOWS,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+MASKS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+MISSING,Logistics,state-or-custody,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+MOBILIZES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+ORDERS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+PLANS,Open Loops & Guns,promise-or-obligation,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+POSSESSES,Logistics,state-or-custody,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+POWERS,Logistics,state-or-custody,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+PROTECTS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+RECOGNIZES,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+RECOGNIZES_AS,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+REFUSES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+REJECTS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+RENOUNCES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+RESCUES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+RESPONDS_TO,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+RETURNS_FOR,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+RETURNS_TO_VOID,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+REVEALS,Knowledge States,epistemic,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+SAVES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+SECURES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+SELECTS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+SETS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+STATE_CONTINUES,Logistics,state-or-custody,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+SYNTHESIZES,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+TESTIFY_AGAINST,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+TRANSFERS,Logistics,state-or-custody,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+TRANSMITS,Canon Commit Log,event,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.
+WORKS_FOR,Relationships,relationship,yes,Routing rule for Story Graph migration; original analytical predicate remains unchanged.

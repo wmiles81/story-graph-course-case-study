@@ -1,0 +1,68 @@
+entity_id,entity_type,canonical_name,aliases,first_appearance,source_document,review_status,status,notes,entity_key
+ENT-CHAR-0001,Character,Jonah Harrow,Jonah; Sheriff Harrow,B03-C01-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,principal protagonist; supernatural sheriff,5e33ed1f4043
+ENT-CHAR-0002,Character,Margot Vance,Margot; Ms. Vance,B03-C01-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,principal protagonist; librarian and Keeper,98aee503c4fa
+ENT-CHAR-0003,Character,Grishka,,B03-C01-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,supernatural bar patron,dac7b52fb1b7
+ENT-CHAR-0004,Character,Aleksei Petrov,Aleksei,B03-C01-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,bar patron,9aa54ee7c203
+ENT-CHAR-0005,Character,Marcy,,B03-C01-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,bar staff or patron; role to confirm,2d0584c0f7eb
+ENT-CHAR-0006,Character,Meredith,Meredith hologram,B03-C02-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,library protocol interface or archival intelligence,5282f0b902bb
+ENT-CHAR-0007,Character,Unknown B2 Entity,,B03-C03-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,unidentified entity in or beneath B2,22ac9091800c
+ENT-CHAR-0008,Character,Kael,,B03-C08-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Combat mage and mercenary working for the Council.,4daa307db756
+ENT-CHAR-0009,Character,Arthur Sterling,Sterling; Councilman Sterling,B03-C09-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Council power broker and antagonist.,c8287bf9f78e
+ENT-CHAR-0010,Character,Unnamed Marksman,female mercenary; sniper,B03-C09-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Armed mercenary supporting Sterling.,f1f9fe6449a4
+ENT-CHAR-0011,Character,Jackson Harrow,Jackson; Sheriff Harrow's father,B03-C27-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,"Jonah's father; presumed dead, later revealed alive and used as an Alpha battery.",4551f70e8a59
+ENT-CREATURE-0001,Creature,Bibliovore,,B03-C03-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,text-consuming creature,82221cc41378
+ENT-CREATURE-0002,Creature,Lexivore,,B03-C03-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,language- or meaning-consuming creature,1379e438fb32
+ENT-CREATURE-0003,Creature,Concept Guardian Cat,Riddle Cat; Sphinx Cat,B03-C04-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Tattooed giant Sphinx cat guarding B3 access.,648a070ea34d
+ENT-CREATURE-0004,Creature,Captured Fire Elemental,Fire Elemental,B03-C21-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Contained supernatural power source connected to the library defenses.,305371db23ea
+ENT-CREATURE-0005,Creature,Siege Golem,,B03-C22-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,removed,Enemy siege construct classified and returned to the trans-dimensional Void.,96dbdbdb7212
+ENT-EVENT-0001,Event,Courtroom Villanelle Trap,bad stanza; courtroom illusion,B03-C06-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Guilt-based poetic trap targeting Jonah.,458041d8847a
+ENT-GROUP-0001,Group,Snowfall Creek Townspeople,crowd; witnesses; mob,B03-C09-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Public audience and political force.,a5d3130d8f0b
+ENT-GROUP-0002,Group,Snowfall Creek Werewolf Pack,Pack from the Ghetto,B03-C09-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Werewolf community harmed by the Treaty.,a180aeb6a69c
+ENT-LOC-0001,Location,Snowfall Creek,,B03-C01-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,town setting,15feee58329e
+ENT-LOC-0002,Location,The Howling Moon,Howling Moon bar,B03-C01-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,supernatural bar,c7d11985c5c4
+ENT-LOC-0003,Location,Snowfall Creek Public Library,the library,B03-C01-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,primary magical location,6427ab428ae7
+ENT-LOC-0004,Location,Library Basement,basement,B03-C01-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,initial hidden magical space,6a6c6a50d526
+ENT-LOC-0005,Location,Preservation Section,,B03-C02-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,location of Founding Scrolls before disappearance,c8c3a0472eec
+ENT-LOC-0006,Location,Deep Stacks,,B03-C02-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,underground unstable archive levels,524bcadb096e
+ENT-LOC-0007,Location,Level B1,B1; Extended Stacks,B03-C02-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,first lower level,ec94a0637322
+ENT-LOC-0008,Location,Level B2,B2; Architecture Section,B03-C03-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,second lower level,453c185f7ae3
+ENT-LOC-0009,Location,Level B4,B4; Heart of the Archive,B03-C02-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,target level for recovery,afcf29d36efe
+ENT-LOC-0010,Location,Central Spire,,B03-C04-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,B2 axis and gate to B3.,1057ba68bd1d
+ENT-LOC-0011,Location,Resting Point Study,Victorian study; Resting Point,B03-C05-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Safe transitional airlock between B2 and B3.,a42b759de706
+ENT-LOC-0012,Location,Level B3,B3; Poetry Section; Forest of Feeling,B03-C05-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Emotion- and memory-reactive archive level.,081ceb0f97eb
+ENT-LOC-0013,Location,Sonnet Glade,B3 Subsection A,B03-C07-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Idealized romance-trope environment.,64ec6cd5ae28
+ENT-LOC-0014,Location,B4 Vault,Heart of the Archive; Archives proper,B03-C07-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Obsidian fortress containing original records.,5664f25edede
+ENT-LOC-0015,Location,Jonah's Ridge Cabin,Jonah's cabin,B03-C09-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Defensible private refuge.,a6c5665eda89
+ENT-OBJ-0001,Object,Founding Scrolls,the Scrolls,B03-C02-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,central missing archival documents,60929c720ffa
+ENT-OBJ-0002,Object,Margot's Grandmother's Journal,grandmother's journal; journal,B03-C02-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,concealed inherited knowledge source,59c6e5d0dc41
+ENT-OBJ-0003,Object,Deep Stacks Key,key,B03-C02-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,access object,8787aebbbade
+ENT-OBJ-0004,Object,Flashlight,,B03-C02-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,survival tool,49fbc9cecb8c
+ENT-OBJ-0005,Object,Biting Animated Book,biting book,B03-C01-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,magically active book,83cd11058ab1
+ENT-OBJ-0006,Object,Flying Book Claimed by Bibliovore,flying book,B03-C03-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,short-lived active book,4cbdc72d6146
+ENT-OBJ-0007,Object,Sacrificial Books,books thrown to lexivore,B03-C03-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,consumed distractions,b4f4b24121d6
+ENT-OBJ-0008,Object,Paper Jonah Effigy,idealized Jonah,B03-C07-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Paper construct used by the Sonnet Glade.,9d7a1932ddc6
+ENT-OBJ-0009,Object,Paper Margot Effigy,idealized Margot,B03-C07-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Paper construct destroyed by Margot.,802c4926695e
+ENT-OBJ-0010,Object,Original Integration Treaty,real Treaty,B03-C08-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Founding document proving coercive integration.,89fe020e0309
+ENT-OBJ-0011,Object,Margot's Glasses,,B03-C04-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Personal glasses; cracked or displaced during danger sequence; exact damage timing remains under review.,94197ee0bcbb
+ENT-OBJ-0012,Object,Snub-nosed .38 Revolver,Margot's revolver,B03-C11-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Temporary firearm issued to Margot during the cabin siege.,b370478dd59d
+ENT-OBJ-0013,Object,Mossberg Shotgun,Jonah's shotgun,B03-C11-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Combat and survival weapon used by Jonah and later Margot.,adb1b44e7430
+ENT-OBJ-0014,Object,Treaty Evidence Copies,Treaty copies,B03-C14-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Distributed copies of the original Integration Treaty.,d022f1487014
+ENT-OBJ-0015,Object,Compromised Tracking Source,tracker; surveillance source,B03-C15-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Provisional object/mechanism representing the source of the safehouse compromise; exact form requires adjudication.,37a5b7d5d16b
+ENT-OBJ-0016,Object,Detainee Files and Transfer Records,detainee files,B03-C16-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Institutional evidence seized during the detainee rescue.,423404401e04
+ENT-OBJ-0017,Object,Rescued Witness Testimony,witness testimony,B03-C16-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Recorded eyewitness evidence from rescued detainees.,12cbc1d6a12e
+ENT-OBJ-0018,Object,Sterling's Master Archive Records,master archive records,B03-C18-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Records partially seized during the archive breach.,77fc2994cb3e
+ENT-OBJ-0019,Object,Dragon-Killer Ballista,ancient history-lance ballista,B03-C18-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Ancient gravity-rune siege weapon deployed from the Archives.,9c9931a73ccd
+ENT-OBJ-0020,Object,Combat Grimoires,,B03-C21-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Magical combat books distributed to resistance casters.,8db46a0325c3
+ENT-OBJ-0021,Object,Keeper's Label Gun,label gun,B03-C23-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Magical cataloging weapon loaded with VOID tags.,eace0c85d06e
+ENT-OBJ-0022,Object,Checkout Stamp,,B03-C23-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Magical verification and routing tool transferred to Margot.,9998663ebf76
+ENT-OBJ-0023,Object,Logging-Station AM Transmitter,AM transmitter,B03-C24-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,destroyed,Temporary communications asset used for the resistance broadcast and then destroyed.,975e7c4d8086
+ENT-OBJ-0024,Object,Dragon's-Blood Antiviral Cure,dragon-blood cure,B03-C25-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Experimental countermeasure to the techno-arcane Feral virus.,cff7ccf1a8f0
+ENT-OBJ-0025,Object,Iron Horse Schematic,Iron Horse map,B03-C27-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Mission-planning document used to board the Iron Horse.,22ca18c235f5
+ENT-OBJ-0026,Object,Iron Horse Emitter,,B03-C27-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,destroyed,Active Feral Signal source destroyed by Margot.,325f74960e24
+ENT-OBJ-0027,Object,The Ego of Inquisitors: A Tragedy,Valerius book,B03-C29-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Book-form containment artifact holding Valerius in the B4 Restricted Section.,56f834542cd8
+ENT-OBJ-0028,Object,Jackson Harrow's Old Sheriff Badge,old sheriff badge,B03-C30-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,source-reconciled-v1.1,active,Heirloom badge transferred by Jackson to Jonah.,899c181d1f9e
+ENT-STATE-0001,PhysicalState,Jonah's Lexivore Injury,frost-burn injury,B03-C03-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,persistent physical consequence,3352997f1505
+ENT-SYS-0001,System,Purge Protocol,,B03-C02-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,library self-erasure protocol,85b43cc4053a
+ENT-THREAD-0001,NarrativeThread,Founding Scrolls Mystery,,B03-C02-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,central suspense thread,baac812e4ee9
+ENT-THREAD-0002,NarrativeThread,Mate-Bond Romance,,B03-C01-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,central romantic thread,13ee5ddb6e4f
+ENT-THREAD-0003,NarrativeThread,Keeper Legacy,,B03-C01-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,human-curated-v0.1,active,Margot family-history thread,ff4f802f1802

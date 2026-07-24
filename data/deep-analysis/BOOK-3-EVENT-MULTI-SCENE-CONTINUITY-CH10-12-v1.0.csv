@@ -1,0 +1,21 @@
+continuity_group_id,start_scene_id,end_scene_id,sequence_label,event_count
+CABIN-REFUGE,B03-C10-S01,B03-C10-S02,"Arrival, shelter, and immediate planning at the cabin",5
+DISPLACEMENT,B03-C10-S01,B03-C10-S01,Margot's recognition of lost home and former life,1
+CABIN-DEFENSE,B03-C10-S02,B03-C10-S05,Securing the refuge and choosing resistance,3
+RELATIONSHIP-ESCALATION,B03-C10-S02,B03-C10-S03,"Domesticity, care, and openness",3
+RELATIONSHIP-COMMITMENT,B03-C10-S02,B03-C10-S04,Explicit commitment to a shared future,3
+JONAH-INJURY,B03-C10-S03,B03-C10-S03,Treatment of silver and combat injuries,2
+JONAH-BACKSTORY,B03-C10-S03,B03-C10-S03,Scars and long service to the town,1
+CABIN-INTIMACY,B03-C10-S04,B03-C10-S05,"Permanence disclosure, consent, and intimacy",4
+MATE-BOND,B03-C10-S04,B03-C12-S05,Lifelong bond disclosure and wolf-form pack recognition,3
+MAGISTERIUM-ULTIMATUM,B03-C10-S05,B03-C10-S05,"Surrender demand, quarantine, and saboteur accusation",2
+CABIN-SIEGE,B03-C10-S05,B03-C11-S02,Containment-team arrival and assault,8
+TREATY-EVIDENCE,B03-C11-S01,B03-C11-S01,Disappearance ledger discovered in the Treaty,1
+EVIDENCE-DISTRIBUTION,B03-C11-S01,B03-C11-S01,Upload attempt blocked by jamming,1
+ROOT-CELLAR-ESCAPE,B03-C11-S02,B03-C11-S03,"Retreat, demolition preparation, breach, and blast",6
+WILDERNESS-FLIGHT,B03-C11-S03,B03-C12-S03,Ravine escape and aerial pursuit,4
+TREATY-CUSTODY,B03-C11-S03,B03-C12-S05,Preservation and concealment of the Treaty,1
+RIVER-CROSSING,B03-C12-S01,B03-C12-S02,Hazardous river escape,3
+HYPOTHERMIA,B03-C12-S02,B03-C12-S03,Margot's cold injury and recovery,5
+MINE-ROUTE,B03-C12-S03,B03-C12-S05,Counter-route through old mining tunnels,4
+YETI-ENCOUNTER,B03-C12-S04,B03-C12-S05,Full-wolf combat and nonlethal resolution,5

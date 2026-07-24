@@ -1,0 +1,11 @@
+continuity_group_id,start_scene_id,end_scene_id,sequence_label,continuity_rationale,event_count
+BAR-DISTURBANCE,B03-C01-S01,B03-C01-S02,Bar fight and law-enforcement resolution,"Attack, intervention, sanction, and removal form one continuous disturbance.",4
+LIBRARY-DISTURBANCE,B03-C01-S02,B03-C01-S04,Detection and investigation of the library anomaly,"Jonah senses danger, locates it, breaches the library, and discovers the magical crisis.",6
+LIBRARY-CONTAINMENT,B03-C01-S05,B03-C01-S05,Immediate containment response,Closing the door ends the book storm and precedes the building-wide seal.,2
+SCROLL-CRISIS,B03-C02-S01,B03-C02-S03,Disclosure and discovery of the missing Founding Scrolls,Margot's partial explanation leads to discovery of the theft and disclosure of its stakes.,3
+PURGE-ACTIVATION,B03-C01-S05,B03-C02-S04,Library sealing and Purge Protocol activation,"Exit sealing begins before the protocol is named, then becomes a timed erasure threat.",5
+RECOVERY-MISSION,B03-C02-S04,B03-C02-S05,Formation and launch of the B4 recovery mission,Meredith supplies the conditional solution; Margot commits and enters B1.,4
+DEEP-STACKS-DESCENT,B03-C02-S05,B03-C03-S02,Entry into and navigation of B1,"Threshold crossing, environmental activation, creature encounter, and spatial distortion form one descent sequence.",5
+MATE-RECOGNITION,B03-C01-S03,B03-C03-S05,Mate recognition and early relationship escalation,"Recognition recurs, physical contact regulates panic, attraction becomes observable, and mutual commitment becomes explicit.",5
+LEXIVORE-ENCOUNTER,B03-C03-S03,B03-C03-S04,"Detection, attack, tactical response, and escape from the lexivore","Threat emerges, injures Jonah, is distracted, and is left behind at the level boundary.",3
+B2-TRANSITION,B03-C03-S04,B03-C03-S05,Escape from B1 and entry into B2,"The B1 escape flows directly into B2 threshold crossing, rule disclosure, discovery, and commitment.",4

@@ -1,0 +1,19 @@
+continuity_group_id,start_scene_id,end_scene_id,sequence_label,event_count
+SONNET-GLADE,B03-C07-S01,B03-C07-S04,"Idealized romance trap, subversion, and escape",13
+RELATIONSHIP-ESCALATION,B03-C07-S04,B03-C09-S06,"Recognition, intimacy meaning, refuge, and love realization",3
+B4-APPROACH,B03-C07-S04,B03-C07-S05,Descent and access to the Vault,3
+SCROLL-TRUTH,B03-C07-S05,B03-C07-S05,Reframing the missing Scrolls mystery,1
+FOUNDING-TRUTH,B03-C07-S05,B03-C09-S04,Historical revelation and public disclosure,3
+KAEL-VAULT-CONFRONTATION,B03-C08-S01,B03-C08-S03,"Kael reveal, combat, and escape",7
+PURGE-CAUSE,B03-C08-S01,B03-C08-S01,Kael's admission of purge acceleration,1
+JONAH-INJURY,B03-C08-S02,B03-C09-S02,"Silver injury, partial healing, and impaired escape",3
+VAULT-INTIMACY,B03-C08-S03,B03-C08-S05,Combat-grounding intimacy and completion,7
+MATE-RECOGNITION,B03-C08-S04,B03-C08-S04,Spoken possessive mate claim,1
+TREATY-CUSTODY,B03-C08-S05,B03-C09-S06,Jonah's custody of the original Treaty,1
+B4-EXIT,B03-C08-S05,B03-C09-S01,Leaving B4 and returning to public levels,1
+STERLING-STANDOFF,B03-C09-S01,B03-C09-S02,Political confrontation and force display,4
+PUBLIC-EXPOSURE,B03-C09-S02,B03-C09-S05,"Public witness strategy, disclosure, corroboration, and crowd reaction",12
+ANTAGONIST-ESCAPE,B03-C09-S05,B03-C09-S05,Sterling's emergency withdrawal,2
+CABIN-RETREAT,B03-C09-S05,B03-C09-S06,Escape to Jonah's cabin,3
+EVIDENCE-DISTRIBUTION,B03-C09-S06,B03-C09-S06,Plan to scan and upload the Treaty,1
+LIBRARY-LOSS,B03-C09-S06,B03-C09-S06,Recognition of probable library loss,1
