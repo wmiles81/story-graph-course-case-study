@@ -186,32 +186,6 @@ python3 "<SKILL_DIR>/assets/story_graph.py" report "<graph>" [--chapters-dir <di
 - `report` runs all of the above and prints a single summary: irony count,
   open-loop count (with overdue count), for the graph as a whole.
 
-## Importing legacy canon
-
-If a book was already modelled in an older CSV-ledger pipeline, `import-legacy`
-converts that canon into a v2 `Story-Graph.md` in one pass, plus a coverage
-report of what it could not faithfully carry over.
-
-```
-python3 "<SKILL_DIR>/assets/story_graph.py" import-legacy <legacy-dir> --out <Story-Graph.md> [--report <coverage.md>] [--title "..."]
-```
-
-- Reads the legacy ledgers found in `<legacy-dir>` (stdlib only): entity
-  registry, proposition registry, routed assertions (with a
-  `story_graph_destination` column), and scene ledger — matched by filename.
-- Entity references are resolved by canonical name, then alias, then token
-  overlap. A still-unresolved proper-noun **agent** (the subject of a
-  knowledge/relationship assertion) is auto-registered as a `provisional`
-  entity and disclosed in the coverage report; value strings and events are
-  never turned into entities (anti-invention).
-- CANON/world-level facts are reported as already captured by their proposition
-  rather than dropped.
-- Load-bearing rows are marked `provisional` when the legacy data has no
-  verbatim `source_quote`, so the output validates with warnings, not errors.
-- The coverage report lists everything covered-elsewhere, dropped, or degraded,
-  plus layers these ledgers never contained (events, plot threads, promise
-  lifecycle). Always `validate` the output; `compile`/`query` it like any graph.
-
 ## Genre modules (optional)
 
 If the host project declares genre modules (in a worksheet RDL or an existing

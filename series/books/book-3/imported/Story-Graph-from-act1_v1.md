@@ -9,7 +9,6 @@
 ## Local Vocabulary
 | edge | description |
 |---|---|
-| works_for | imported from legacy predicate WORKS_FOR |
 
 ## Sources
 | source-id | type | authority | note |
@@ -81,9 +80,6 @@
 | the-ego-of-inquisitors-a-tragedy | Object | active | - | Valerius book |
 | jackson-harrow-s-old-sheriff-badge | Object | active | - | old sheriff badge |
 | purge-protocol | Faction | active | - |  |
-| analyst | Character | provisional | - | provisional — auto-registered from an assertion reference; type guessed Character |
-| council | Faction | provisional | - | provisional — auto-registered from an assertion reference; type guessed Faction |
-| resistance | Faction | provisional | - | provisional — auto-registered from an assertion reference; type guessed Faction |
 
 ## Locations & Distances
 | from | to | time | mode |
@@ -92,7 +88,6 @@
 ## Relationships
 | from | edge | to | trend | since-ch | span | note |
 |---|---|---|---|---|---|---|
-| kael | works_for | council | stable | 8 |  | imported |
 
 ## Propositions
 | prop-id | statement | canon-status | governing-source | span |
@@ -235,21 +230,15 @@
 | p-b03-000010 | margot-vance | knows | 2 | provisional |
 | p-b03-000010 | jonah-harrow | knows | 2 | provisional |
 | p-b03-000012 | margot-vance | knows | 2 | provisional |
-| p-b03-000015 | analyst | knows | 2 | provisional |
 | p-b03-000019 | jonah-harrow | knows | 4 | provisional |
 | p-b03-000019 | margot-vance | knows | 4 | provisional |
 | p-b03-000026 | jonah-harrow | knows | 5 | provisional |
-| p-b03-000029 | analyst | knows | 6 | provisional |
-| p-b03-000032 | analyst | knows | 6 | provisional |
 | p-b03-000040 | margot-vance | believes | 8 | provisional |
 | p-b03-000045 | jonah-harrow | knows | 9 | provisional |
 | p-b03-000047 | margot-vance | believes | 9 | provisional |
 | p-b03-000048 | jonah-harrow | knows | 9 | provisional |
 | p-b03-000052 | margot-vance | knows | 10 | provisional |
 | p-b03-000060 | margot-vance | knows | 12 | provisional |
-| p-b03-000061 | jonah-harrow | knows | 12 | provisional |
-| p-b03-000069 | resistance | knows | 15 | provisional |
-| p-b03-000077 | rescued-witness-testimony | knows | 17 | provisional |
 | p-b03-000114 | jackson-harrow | knows | 28 | provisional |
 
 ## Open Loops & Setups
@@ -310,7 +299,6 @@
 | 2 | margot-vance | - | grandmother's journal | provisional | POSSESSES |
 | 8 | jonah-harrow | - | Original Integration Treaty | provisional | POSSESSES |
 | 14 | arthur-sterling | - | quarantine narrative | provisional | CONTROLS |
-| 21 | captured-fire-elemental | - | library defenses | provisional | POWERS |
 | 27 | jackson-harrow | - | alive Alpha battery | provisional | HAS_STATUS |
 | 30 | jackson-harrow | - | old sheriff badge to Jonah | provisional | TRANSFERS |
 

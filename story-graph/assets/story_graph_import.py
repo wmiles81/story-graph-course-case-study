@@ -7,6 +7,18 @@ plus a coverage report of everything it could NOT faithfully map. Anything the
 legacy data does not support (e.g. missing verbatim evidence quotes) is marked
 `provisional` rather than fabricated.
 
+Fidelity rules (anti-invention):
+  * Entity references are resolved by canonical name, alias, and token overlap
+    before anything is dropped.
+  * A referenced name that does not resolve is auto-registered as a PROVISIONAL
+    entity ONLY when it is the agent (subject/endpoint) of a knowledge or
+    relationship assertion and reads as a proper noun. Value strings and events
+    are never turned into entities.
+  * CANON-subject world/setting facts are already captured by their proposition
+    (every such assertion carries a proposition_id present in the registry), so
+    they are reported as covered, not dropped, and no bogus Logistics row is
+    emitted.
+
 Usage:
     python3 story_graph_import.py <legacy-dir> --out <Story-Graph.md> [--report <coverage.md>] [--title "..."]
 """
@@ -27,6 +39,10 @@ ENTITY_TYPE_MAP = {
 # NarrativeThread / Event / PhysicalState have no v2 entity home -> coverage report.
 
 PRED_MODE = {"KNOWS": "knows", "BELIEVES": "believes", "SUSPECTS": "suspects"}
+AGENT_RE = re.compile(r"^[A-Z][A-Za-z'’]+(?: [A-Z][A-Za-z'’]+)*$")
+GROUP_WORDS = {"council", "guard", "government", "forces", "resistance", "magisterium",
+               "coalition", "guild", "team", "convoy", "zone", "administration", "signal",
+               "hunt", "hunters", "gunship", "guardians"}
 
 
 def slug(s: str) -> str:
@@ -55,65 +71,105 @@ def _read(path):
         return list(csv.DictReader(f))
 
 
+def _looks_like_agent(s: str) -> bool:
+    s = (s or "").strip()
+    return bool(s) and len(s) <= 40 and bool(AGENT_RE.fullmatch(s))
+
+
 def build(legacy_dir: str, title: str):
     ents = _read(_find(legacy_dir, "*ENTITY-REGISTRY*.csv"))
     props = _read(_find(legacy_dir, "*PROPOSITION-REGISTRY*.csv"))
     asserts = _read(_find(legacy_dir, "*ASSERTIONS*.csv"))
     scenes = _read(_find(legacy_dir, "*SCENE-LEDGER*.csv"))
-    cov = []
-    stats = {}
+    cov, stats = [], {}
 
-    # ---- Entities -------------------------------------------------------
-    ent_by_legacy, ent_by_name, used = {}, {}, set()
+    ent_by_legacy, name_map, used = {}, {}, set()
     entity_rows = []
+
+    def register(base, v2t, status, note, legacy_id=None, names=()):
+        eid, i = slug(base), 2
+        while eid in used:
+            eid, i = f"{slug(base)}-{i}", i + 1
+        used.add(eid)
+        entity_rows.append((eid, v2t, cell(status) or "active", "-", cell(note)))
+        if legacy_id:
+            ent_by_legacy[legacy_id] = eid
+        for nm in names:
+            k = (nm or "").lower().strip()
+            if k:
+                name_map.setdefault(k, eid)
+        return eid
+
+    # ---- Entities from the registry ------------------------------------
     for r in ents:
         et = r.get("entity_type", "")
         v2t = ENTITY_TYPE_MAP.get(et)
         if not v2t:
-            cov.append(f"ENTITY dropped — type '{et}' has no v2 entity home: {r.get('canonical_name','?')}")
+            cov.append(f"ENTITY not imported — type '{et}' is not a v2 entity: {r.get('canonical_name','?')}")
             continue
-        base = slug(r.get("canonical_name") or r.get("entity_id"))
-        eid, i = base, 2
-        while eid in used:
-            eid, i = f"{base}-{i}", i + 1
-        used.add(eid)
-        ent_by_legacy[r.get("entity_id", "")] = eid
-        nm = (r.get("canonical_name") or "").lower().strip()
-        if nm:
-            ent_by_name[nm] = eid
-        note = cell(r.get("aliases", ""))
-        entity_rows.append((eid, v2t, cell(r.get("status") or "active"), "-", note))
-    stats["entities"] = len(entity_rows)
+        aliases = [a for a in re.split(r"[;,/]", r.get("aliases", "") or "") if a.strip()]
+        register(r.get("canonical_name") or r.get("entity_id"), v2t,
+                 r.get("status", "active"), r.get("aliases", ""),
+                 legacy_id=r.get("entity_id", ""),
+                 names=[r.get("canonical_name", "")] + aliases)
+    stats["entities_from_registry"] = len(entity_rows)
 
-    def resolve(subj: str):
-        s = (subj or "").strip()
+    def resolve(s):
+        s = (s or "").strip()
         if not s:
             return None
         if s.lower() == "reader":
             return "reader"
         if s in ent_by_legacy:
             return ent_by_legacy[s]
-        return ent_by_name.get(s.lower())
+        k = s.lower()
+        if k in name_map:
+            return name_map[k]
+        toks = set(re.findall(r"[a-z]+", k))
+        if toks:
+            for nm, eid in name_map.items():
+                nt = set(re.findall(r"[a-z]+", nm))
+                if nt and (toks <= nt or nt <= toks):
+                    return eid
+        return None
+
+    # ---- Auto-register provisional agents (subjects/endpoints only) -----
+    auto = 0
+    for a in asserts:
+        dest = a.get("story_graph_destination", "")
+        cands = []
+        if dest == "Knowledge States":
+            cands = [a.get("subject_id", "")]
+        elif dest == "Relationships":
+            cands = [a.get("subject_id", ""), a.get("object_id_or_value", "")]
+        for v in cands:
+            v = (v or "").strip()
+            if not v or v.upper() == "CANON" or resolve(v) or not _looks_like_agent(v):
+                continue
+            v2t = "Faction" if (set(re.findall(r"[a-z]+", v.lower())) & GROUP_WORDS) else "Character"
+            register(v, v2t, "provisional", f"provisional — auto-registered from an assertion reference; type guessed {v2t}",
+                     names=[v])
+            cov.append(f"ENTITY auto-registered (provisional {v2t}) from assertion reference: {v}")
+            auto += 1
+    stats["entities_auto_registered"] = auto
+    stats["entities_total"] = len(entity_rows)
 
     # ---- Propositions (canon-status derived from assertions) ------------
     truth_by_prop = {}
     for a in asserts:
         pid = a.get("proposition_id", "")
         if pid:
-            truth_by_prop.setdefault(pid, []).append(
-                (a.get("truth_status", ""), a.get("canonical_status", "")))
+            truth_by_prop.setdefault(pid, []).append(a.get("truth_status", ""))
 
     def canon_status(lpid):
-        vals = truth_by_prop.get(lpid, [])
-        truths = {t for t, _ in vals}
-        if truths == {"true"} or ("true" in truths and "unknown" not in truths):
+        truths = set(truth_by_prop.get(lpid, []))
+        if truths and "unknown" not in truths and truths <= {"true"}:
             return "true"
-        if "unknown" in truths:
-            return "undetermined"
+        if truths == {"false"}:
+            return "false"
         return "undetermined"
 
-    prop_kid = {}
-    prop_rows = []
+    prop_kid, prop_rows = {}, []
     for r in props:
         lpid = r.get("proposition_id", "")
         kid = slug(lpid)
@@ -125,12 +181,11 @@ def build(legacy_dir: str, title: str):
 
     # ---- Assertions routed by story_graph_destination -------------------
     epi_rows, log_rows, loop_rows, rel_rows = [], [], [], []
-    local_vocab = {}
-    quotes_present = 0
+    local_vocab, quotes = {}, 0
     for a in asserts:
         dest = a.get("story_graph_destination", "")
         if a.get("source_quote", "").strip():
-            quotes_present += 1
+            quotes += 1
         ch = chapter_of(a.get("valid_from_scene", ""))
         if dest == "Knowledge States":
             holder = resolve(a.get("subject_id", ""))
@@ -144,14 +199,18 @@ def build(legacy_dir: str, title: str):
             epi_rows.append((pid, holder, mode, ch, "provisional"))
         elif dest == "Logistics":
             ent = resolve(a.get("subject_id", ""))
-            if not ent:
-                cov.append(f"LOGISTICS dropped — subject '{a.get('subject_id','?')}' is not a v2 entity (e.g. CANON/world-level): {cell(a.get('predicate',''))} {cell(a.get('object_id_or_value',''))}")
+            if ent is None:
+                lpid = a.get("proposition_id", "")
+                if lpid in prop_kid:
+                    cov.append(f"WORLD-FACT captured as proposition {prop_kid[lpid]} (world/CANON-level, no entity home in Logistics): {cell(a.get('predicate',''))} {cell(a.get('object_id_or_value',''))}")
+                else:
+                    cov.append(f"LOGISTICS dropped — world/CANON-level with no backing proposition: {cell(a.get('predicate',''))} {cell(a.get('object_id_or_value',''))}")
                 continue
             log_rows.append((ch, ent, "-", cell(a.get("object_id_or_value", "")), "provisional",
                              cell(a.get("predicate", ""))))
         elif dest == "Open Loops & Guns":
-            base = slug(a.get("proposition_id", "") or a.get("assertion_id", ""))
-            loop_rows.append((base, ch, cell(a.get("object_id_or_value", "") or a.get("predicate", "")),
+            loop_rows.append((slug(a.get("proposition_id", "") or a.get("assertion_id", "")), ch,
+                              cell(a.get("object_id_or_value", "") or a.get("predicate", "")),
                               "", "UNFIRED", "provisional"))
         elif dest == "Relationships":
             frm, to = resolve(a.get("subject_id", "")), resolve(a.get("object_id_or_value", ""))
@@ -161,16 +220,12 @@ def build(legacy_dir: str, title: str):
             edge = slug(a.get("predicate", "")).replace("-", "_")
             local_vocab[edge] = f"imported from legacy predicate {a.get('predicate','')}"
             rel_rows.append((frm, edge, to, "stable", ch, "", "imported"))
-        # Canon Commit Log destination handled via scene ledger below.
-    stats["epistemic"] = len(epi_rows)
-    stats["logistics"] = len(log_rows)
-    stats["open_loops"] = len(loop_rows)
-    stats["relationships"] = len(rel_rows)
-    stats["assertion_quotes_present"] = quotes_present
-    stats["assertion_total"] = len(asserts)
-    if quotes_present == 0 and asserts:
+    stats.update(epistemic=len(epi_rows), logistics=len(log_rows),
+                 open_loops=len(loop_rows), relationships=len(rel_rows),
+                 assertion_quotes_present=quotes, assertion_total=len(asserts))
+    if quotes == 0 and asserts:
         cov.append(f"EVIDENCE — 0 of {len(asserts)} assertions carry a verbatim source_quote; "
-                   "no Evidence spans could be built, so all load-bearing rows are marked provisional.")
+                   "no Evidence spans could be built, so every load-bearing row is provisional.")
 
     # ---- Timeline + Canon Commit Log from the scene ledger --------------
     chapters = {}
@@ -181,20 +236,17 @@ def build(legacy_dir: str, title: str):
     timeline_rows, commit_lines = [], []
     for c in sorted(chapters):
         first = chapters[c][0]
-        story_time = cell(first.get("story_time_candidate", ""))
         heading = cell(first.get("chapter_heading", "")) or f"Chapter {c}"
-        timeline_rows.append((str(c), story_time or "-", "-", heading))
-        events = cell(chapters[c][0].get("major_events_candidate", ""))
+        timeline_rows.append((str(c), cell(first.get("story_time_candidate", "")) or "-", "-", heading))
+        events = cell(first.get("major_events_candidate", ""))
         commit_lines.append(f"- ch {c}: {heading}" + (f" — {events[:160]}" if events else ""))
-    stats["chapters"] = len(chapters)
-    stats["scenes"] = len(scenes)
+    stats.update(chapters=len(chapters), scenes=len(scenes))
 
-    md = _render(title, entity_rows, [("ms-book3", "manuscript", "4",
-                 "imported: source_class=manuscript, authority_level=4")],
-                 prop_rows, epi_rows, loop_rows, log_rows, rel_rows, timeline_rows,
-                 commit_lines, local_vocab, max(chapters) if chapters else 0)
-    report = _render_report(legacy_dir, stats, cov)
-    return md, report, stats
+    md = _render(title, entity_rows,
+                 [("ms-book3", "manuscript", "4", "imported: source_class=manuscript, authority_level=4")],
+                 prop_rows, epi_rows, loop_rows, log_rows, rel_rows, timeline_rows, commit_lines,
+                 local_vocab, max(chapters) if chapters else 0)
+    return md, _render_report(legacy_dir, stats, cov), stats
 
 
 def _tbl(header, rows):
@@ -206,11 +258,10 @@ def _tbl(header, rows):
 
 
 def _render(title, ents, srcs, props, epi, loops, logs, rels, timeline, commits, local_vocab, canon_ch):
-    lv_rows = [(e, d) for e, d in sorted(local_vocab.items())]
     parts = [f"# Story Graph: {title}", "",
              _tbl("field | value", [("ontology-version", "2"), ("modules", "none"),
                                     ("current-canon-chapter", str(canon_ch))]), "",
-             "## Local Vocabulary", _tbl("edge | description", lv_rows), "",
+             "## Local Vocabulary", _tbl("edge | description", sorted(local_vocab.items())), "",
              "## Sources", _tbl("source-id | type | authority | note", srcs), "",
              "## Entities", _tbl("id | type | status | voice | note", ents), "",
              "## Locations & Distances", _tbl("from | to | time | mode", []), "",
@@ -226,20 +277,16 @@ def _render(title, ents, srcs, props, epi, loops, logs, rels, timeline, commits,
 
 
 def _render_report(legacy_dir, stats, cov):
-    lines = ["# Legacy import — coverage report", "",
-             f"Source: `{legacy_dir}`", "",
+    lines = ["# Legacy import — coverage report", "", f"Source: `{legacy_dir}`", "",
              "## Imported into the v2 graph", ""]
-    for k in ("scenes", "chapters", "entities", "propositions", "epistemic",
-              "logistics", "open_loops", "relationships"):
+    for k in ("scenes", "chapters", "entities_from_registry", "entities_auto_registered",
+              "entities_total", "propositions", "epistemic", "logistics", "open_loops", "relationships"):
         lines.append(f"- {k.replace('_',' ')}: **{stats.get(k,0)}**")
     lines += ["", f"- assertions carrying a verbatim quote: **{stats.get('assertion_quotes_present',0)}** "
               f"of {stats.get('assertion_total',0)}", "",
-              "## Not faithfully representable in ontology v2 (dropped or degraded)", ""]
-    if cov:
-        for c in cov:
-            lines.append(f"- {c}")
-    else:
-        lines.append("- (nothing dropped)")
+              "## Mapping notes — covered elsewhere, dropped, or degraded", ""]
+    for c in (cov or ["(nothing to note)"]):
+        lines.append(f"- {c}")
     lines += ["", "## Layers absent from these ledgers entirely", "",
               "- Event layer (events, continuity groups) — lives in the deep-analysis packages, not these masters.",
               "- Plot threads / intersections — same.",
