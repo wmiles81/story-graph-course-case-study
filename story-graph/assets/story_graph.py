@@ -486,6 +486,147 @@ def audit_graph(graph_path, chapters_dir="", adjudicated_path=""):
     return out, report
 
 
+_VIZ_COLORS = {
+    "entity:Character": "#0b7d84", "entity:Object": "#6b7280", "entity:Location": "#8a5cf6",
+    "entity:Faction": "#b4531f", "proposition": "#0e7c86", "source": "#94708a",
+    "holder": "#1f6f78", "reader": "#5a3fa6", "evidence": "#a94b1c",
+}
+
+
+def _viz_model(graph, prop_id=""):
+    """Build (nodes, edges) for a graphical view: a proposition's neighbourhood
+    when prop_id is given, else the whole entity/proposition/source graph."""
+    S = graph["sections"]
+    nodes, edges = {}, []
+
+    def add(nid, kind):
+        if nid and nid not in nodes:
+            nodes[nid] = kind
+
+    if prop_id:
+        prow = next((r for r in S.get("Propositions", []) if r.get("prop-id") == prop_id), None)
+        if not prow:
+            return nodes, edges
+        add(prop_id, "proposition")
+        for r in S.get("Epistemic States", []):
+            if r.get("prop-id") == prop_id and r.get("holder"):
+                h = r["holder"]
+                add(h, "reader" if h == "reader" else "holder")
+                edges.append((h, prop_id, r.get("mode", "")))
+        if prow.get("governing-source"):
+            add(prow["governing-source"], "source")
+            edges.append((prop_id, prow["governing-source"], "governed-by"))
+        for sid in _span_ids(prow.get("span", "")):
+            add(sid, "evidence")
+            edges.append((sid, prop_id, "supports"))
+        return nodes, edges
+
+    for r in S.get("Entities", []):
+        if r.get("id"):
+            add(r["id"], "entity:" + (r.get("type") or "Entity"))
+    for r in S.get("Propositions", []):
+        pid = r.get("prop-id")
+        if not pid:
+            continue
+        add(pid, "proposition")
+        if r.get("governing-source"):
+            add(r["governing-source"], "source")
+            edges.append((pid, r["governing-source"], "governed-by"))
+    for r in S.get("Relationships", []):
+        if r.get("from") and r.get("to"):
+            edges.append((r["from"], r["to"], r.get("edge", "")))
+    for r in S.get("Epistemic States", []):
+        if r.get("prop-id") and r.get("holder"):
+            h = r["holder"]
+            add(h, "reader" if h == "reader" else "holder")
+            edges.append((h, r["prop-id"], r.get("mode", "")))
+    return nodes, edges
+
+
+def _viz_layout(nodes, edges, w=960, h=680, iters=400, seed=7):
+    import math
+    import random
+    rnd = random.Random(seed)
+    pos = {n: [rnd.uniform(40, w - 40), rnd.uniform(40, h - 40)] for n in nodes}
+    if not nodes:
+        return pos
+    k = math.sqrt(w * h / len(nodes))
+    ns = list(nodes)
+    for it in range(iters):
+        disp = {n: [0.0, 0.0] for n in nodes}
+        for i in range(len(ns)):
+            for j in range(i + 1, len(ns)):
+                a, b = ns[i], ns[j]
+                dx, dy = pos[a][0] - pos[b][0], pos[a][1] - pos[b][1]
+                d = math.hypot(dx, dy) or 0.01
+                f = k * k / d
+                disp[a][0] += dx / d * f; disp[a][1] += dy / d * f
+                disp[b][0] -= dx / d * f; disp[b][1] -= dy / d * f
+        for u, v, _lab in edges:
+            if u not in pos or v not in pos:
+                continue
+            dx, dy = pos[u][0] - pos[v][0], pos[u][1] - pos[v][1]
+            d = math.hypot(dx, dy) or 0.01
+            f = d * d / k
+            disp[u][0] -= dx / d * f; disp[u][1] -= dy / d * f
+            disp[v][0] += dx / d * f; disp[v][1] += dy / d * f
+        t = 0.1 * w * (1 - it / iters)
+        for n in nodes:
+            dl = math.hypot(*disp[n]) or 0.01
+            pos[n][0] = min(w - 24, max(24, pos[n][0] + disp[n][0] / dl * min(dl, t)))
+            pos[n][1] = min(h - 24, max(24, pos[n][1] + disp[n][1] / dl * min(dl, t)))
+    return pos
+
+
+def _viz_html(title, nodes, edges, pos, w=960, h=680):
+    import html as _html
+    show_labels = len(edges) <= 30
+    parts = [f'<line x1="{pos[u][0]:.1f}" y1="{pos[u][1]:.1f}" x2="{pos[v][0]:.1f}" '
+             f'y2="{pos[v][1]:.1f}" stroke="var(--edge)" stroke-width="1.2"/>'
+             for u, v, _lab in edges if u in pos and v in pos]
+    if show_labels:
+        for u, v, lab in edges:
+            if lab and u in pos and v in pos:
+                mx, my = (pos[u][0] + pos[v][0]) / 2, (pos[u][1] + pos[v][1]) / 2
+                parts.append(f'<text x="{mx:.1f}" y="{my:.1f}" class="elab">{_html.escape(lab)}</text>')
+    for nid, kind in nodes.items():
+        x, y = pos[nid]
+        color = _VIZ_COLORS.get(kind, "#888")
+        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" fill="{color}"/>'
+                     f'<text x="{x + 9:.1f}" y="{y + 4:.1f}" class="nlab">{_html.escape(nid)}</text>')
+    legend = " ".join(
+        f'<span><i style="background:{c}"></i>{_html.escape(k)}</span>'
+        for k, c in _VIZ_COLORS.items())
+    return f"""<!doctype html><meta charset="utf-8"><title>{_html.escape(title)}</title>
+<style>
+:root{{--bg:#eef1f5;--ink:#151c26;--edge:#c2ccd6;--panel:#f7f8fb}}
+@media(prefers-color-scheme:dark){{:root{{--bg:#0c121a;--ink:#e7edf4;--edge:#2a3a49;--panel:#141c26}}}}
+body{{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui,-apple-system,sans-serif}}
+header{{padding:14px 18px}} h1{{font-size:1.1rem;margin:0}}
+.legend{{display:flex;flex-wrap:wrap;gap:.4rem 1rem;padding:0 18px 10px;font:11px ui-monospace,monospace;color:var(--ink)}}
+.legend i{{display:inline-block;width:.7rem;height:.7rem;border-radius:3px;margin-right:.35rem;vertical-align:middle}}
+.wrap{{overflow:auto;padding:0 12px 18px}}
+svg{{background:var(--panel);border:1px solid var(--edge);border-radius:10px;max-width:100%;height:auto}}
+.nlab{{font:10px ui-monospace,monospace;fill:var(--ink)}} .elab{{font:9px ui-monospace,monospace;fill:#8a97a5;text-anchor:middle}}
+</style>
+<header><h1>{_html.escape(title)}</h1></header>
+<div class="legend">{legend}</div>
+<div class="wrap"><svg viewBox="0 0 {w} {h}" xmlns="http://www.w3.org/2000/svg">{''.join(parts)}</svg></div>
+"""
+
+
+def visualize_graph(graph_path, out_path, prop_id=""):
+    text = Path(graph_path).read_text(encoding="utf-8")
+    graph = parse_graph(text)
+    title = text.splitlines()[0].lstrip("# ").strip() if text.strip() else "Story Graph"
+    if prop_id:
+        title += f" — impact of {prop_id}"
+    nodes, edges = _viz_model(graph, prop_id)
+    pos = _viz_layout(nodes, edges)
+    Path(out_path).write_text(_viz_html(title, nodes, edges, pos), encoding="utf-8")
+    return len(nodes), len(edges)
+
+
 def impact_graph(graph_path, prop_id, chapters_dir=""):
     report = validate(graph_path, chapters_dir=chapters_dir)
     if report.errors:
@@ -620,6 +761,10 @@ def main(argv=None):
     dv = sub.add_parser("deviations")
     dv.add_argument("graph")
     dv.add_argument("--chapters-dir", required=True)
+    vz = sub.add_parser("visualize")
+    vz.add_argument("graph")
+    vz.add_argument("--out", required=True)
+    vz.add_argument("--prop", default="")
     args = parser.parse_args(argv)
     if args.command == "validate":
         report = validate(args.graph, args.ontology, args.genres_dir, args.spe_dir, args.chapters_dir)
@@ -707,6 +852,10 @@ def main(argv=None):
         for sid, prop, loc, reason in devs:
             print(f"  [{loc}] {sid} (supports '{prop}') — {reason}")
         return 1
+    if args.command == "visualize":
+        n, e = visualize_graph(args.graph, args.out, args.prop)
+        print(f"RESULT: wrote {args.out}; {n} node(s), {e} edge(s)")
+        return 0
     return 2
 
 
