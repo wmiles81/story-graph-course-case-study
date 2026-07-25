@@ -68,12 +68,21 @@ Declaring `spe` in the header `modules` field additionally **requires**:
 
 A thriller/mystery author declares no module and never has to add Physics
 State; a romance author using the SPE module declares `spe` and must add it
-(its absence is a missing-required-section error). **Current scope note:**
-the v2 foundation-slice validator enforces Physics State's presence as a
-required section when `spe` is declared, but does not yet validate its row
-content (vector vocabulary, anchor-catalog cross-checks) — that is carried
-forward from the v1 ontology's Physics State schema and is out of scope for
-this slice. A romance/NPE `ghost-draft` **Source type** is available in core
+(its absence is a missing-required-section error).
+
+**Physics State schema.** `ch | vector | subject | anchor | note` — one row per
+vector that moved in a committed chapter. `ch` must be an integer. `vector` is
+an SPE character vector (`trauma`, `mask`, `desire`, `agency`, per-pair
+`charge`) or scene axis (`axis-internal`, `axis-relationship`, `axis-external`,
+`axis-temporal`), plus the free-form vectors `intimacy-ladder` and
+`door-closed`. For every non-free-form vector, `anchor` must be a catalog anchor
+id from the host's SPE narrative-state catalog when it is supplied via
+`--spe-dir` (`<spe-dir>/narrative_state/anchors/*.yaml`); an unknown anchor is an
+**ERROR**. With no catalog supplied, the anchors are reported as unvalidated
+free-form (a **WARN**). `intimacy-ladder` / `door-closed` anchors are always
+free-form and never checked against the catalog.
+
+A romance/NPE `ghost-draft` **Source type** is available in core
 (see Controlled Vocabularies below) precisely so a private/ghost belief is
 just an Epistemic State row whose span resolves to a Ghost Draft layer rather
 than prose — there is no separate "Private Beliefs (Ghost)" section in v2.

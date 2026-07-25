@@ -27,6 +27,11 @@ SETUP_STATUS_RE = re.compile(r"^(UNFIRED|FIRED ch-\d+|DEFUSED ch-\d+)$")
 RESERVED_HOLDERS = {"reader"}
 KEBAB = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
+# SPE module (Physics State): vectors whose anchor is free-form prose, not a
+# catalog id; and the pattern for extracting anchor ids from the SPE catalog.
+FREEFORM_VECTORS = {"intimacy-ladder", "door-closed"}
+ANCHOR_ID_RE = re.compile(r"^\s*-?\s*id:\s*[\"']?([A-Za-z0-9_-]+)", re.MULTILINE)
+
 
 class Report:
     def __init__(self):
@@ -359,6 +364,37 @@ def verify_spans(graph, sources, chapters_dir, report):
             report.error(f"Evidence [{sid}]: quote not found in {chapter.name} — graph-vs-source mismatch")
 
 
+def load_spe_anchors(spe_dir):
+    """Return the set of anchor ids in <spe_dir>/narrative_state/anchors/*.yaml,
+    or None when the catalog directory is absent (checks degrade to warnings)."""
+    anchors_dir = Path(spe_dir) / "narrative_state" / "anchors"
+    if not anchors_dir.is_dir():
+        return None
+    found = set()
+    for f in anchors_dir.glob("*.yaml"):
+        found |= set(ANCHOR_ID_RE.findall(f.read_text(encoding="utf-8")))
+    return found
+
+
+def check_physics(graph, spe_dir, report):
+    """SPE module: validate the Physics State rows. `ch` must be an integer; for
+    non-free-form vectors the `anchor` must be a catalog anchor id when the SPE
+    catalog is available (else the rows are reported as unvalidated free-form)."""
+    rows = graph["sections"].get("Physics State", [])
+    anchors = load_spe_anchors(spe_dir) if spe_dir else None
+    if anchors is None and rows:
+        report.warn("Physics State: SPE anchor catalog not found — "
+                    "anchor values are unvalidated free-form")
+    for r in rows:
+        ch = r.get("ch", "")
+        if ch and not ch.isdigit():
+            report.error(f"Physics State: ch must be an integer, got '{ch}'")
+        if anchors is not None and r.get("vector", "") not in FREEFORM_VECTORS:
+            a = r.get("anchor", "")
+            if a and a not in anchors:
+                report.error(f"Physics State: anchor '{a}' not in SPE narrative-state catalog")
+
+
 def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""):
     report = Report()
     try:
@@ -379,6 +415,8 @@ def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""
     check_open_loops(graph, canon_ch, span_ids, report)
     check_logistics(graph, entity_ids, location_ids, span_ids, report)
     check_commit_log(graph, report)
+    if "spe" in graph["modules"]:
+        check_physics(graph, spe_dir, report)
     return report
 
 
