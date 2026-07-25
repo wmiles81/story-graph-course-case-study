@@ -254,33 +254,6 @@ python3 "<SKILL_DIR>/assets/story_graph.py" deviations "<graph>" --chapters-dir 
   their chapter: canon claims the current prose has drifted from. Rewrite a scene
   and its claims light up. Exits non-zero when drift is found.
 
-## Visualizing the graph
-
-Two ways to see the graph, not just read it as text.
-
-**Built-in — a self-contained HTML page (stdlib, no dependencies):**
-```
-python3 "<SKILL_DIR>/assets/story_graph.py" visualize "<graph>" --out <graph.html> [--prop <prop-id>]
-```
-Renders a node-link diagram (a deterministic force layout emitted as inline SVG,
-coloured by node kind, light/dark aware) that opens in any browser. With `--prop`
-it draws just that proposition's neighbourhood — holders, evidence, governing
-source — the visual companion to `impact`; without it, the whole
-entity/proposition/source graph.
-
-**Kùzu Explorer — interactive Cypher + graph viz (third-party, Docker):**
-A `compile --out db.kuzu` database is a standard Kùzu database, so Kùzu's official
-browser UI can open it for interactive exploration and graphical Cypher:
-```
-python3 "<SKILL_DIR>/assets/story_graph.py" compile "<graph>" --out /abs/path/book.kuzu
-docker run --rm -p 8000:8000 -v /abs/path/book.kuzu:/database -e MODE=READ_ONLY kuzudb/explorer:latest
-# then open http://localhost:8000
-```
-Use the `kuzudb/explorer` image tag matching your installed Kùzu version — the
-on-disk format is version-specific (Kùzu 0.11.x here). `MODE=READ_ONLY` is
-recommended: the compiled DB is a rebuildable projection of `Story-Graph.md`, so
-there is no reason to let the UI write back to it.
-
 ## Genre modules (optional)
 
 If the host project declares genre modules (in a worksheet RDL or an existing
