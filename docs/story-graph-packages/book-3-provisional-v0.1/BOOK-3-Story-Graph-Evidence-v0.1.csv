@@ -1,0 +1,132 @@
+assertion_id,proposition_id,subject,predicate,object_or_value,valid_from_scene,source_document,source_span,source_quote,confidence,review_status,story_graph_destination
+A-B03-000001,P-B03-000001,CANON,HAS_PROPERTY,active-old-magic,B03-C01-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C01-S03,,high,human-verified,Logistics
+A-B03-000002,P-B03-000002,Jonah Harrow,KNOWS,P-B03-000002,B03-C01-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C01-S03,,high,human-verified,Knowledge States
+A-B03-000003,P-B03-000003,Jonah Harrow,BELIEVES,P-B03-000003,B03-C01-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C01-S03,,high,human-verified,Knowledge States
+A-B03-000004,P-B03-000004,CANON,HAS_PROPERTY,impossible-architecture,B03-C01-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C01-S04,,high,human-verified,Logistics
+A-B03-000005,P-B03-000005,CANON,HAS_PROPERTY,animated-attacking-books,B03-C01-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C01-S04,,high,human-verified,Logistics
+A-B03-000006,P-B03-000006,CANON,EVENT_OCCURRED,library-seals,B03-C01-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C01-S05,,high,human-verified,Canon Commit Log
+A-B03-000007,P-B03-000007,CANON,MISSING,Founding Scrolls,B03-C02-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S02,,high,human-verified,Logistics
+A-B03-000008,P-B03-000007,Margot Vance,KNOWS,P-B03-000007,B03-C02-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S02,,high,human-verified,Knowledge States
+A-B03-000009,P-B03-000007,Jonah Harrow,KNOWS,P-B03-000007,B03-C02-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S02,,high,human-verified,Knowledge States
+A-B03-000010,P-B03-000007,READER,KNOWS,P-B03-000007,B03-C02-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S02,,high,human-verified,Knowledge States
+A-B03-000011,P-B03-000008,Jonah Harrow,KNOWS,P-B03-000008,B03-C02-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S03,,high,human-verified,Knowledge States
+A-B03-000012,P-B03-000009,CANON,HAS_DEADLINE,twelve-hours,B03-C02-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S03,,high,human-verified,Open Loops & Guns
+A-B03-000013,P-B03-000009,Margot Vance,KNOWS,P-B03-000009,B03-C02-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S03,,high,human-verified,Knowledge States
+A-B03-000014,P-B03-000009,Jonah Harrow,KNOWS,P-B03-000009,B03-C02-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S03,,high,human-verified,Knowledge States
+A-B03-000015,P-B03-000009,READER,KNOWS,P-B03-000009,B03-C02-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S03,,high,human-verified,Knowledge States
+A-B03-000016,P-B03-000010,Margot Vance,KNOWS,P-B03-000010,B03-C02-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S04,,high,human-verified,Knowledge States
+A-B03-000017,P-B03-000010,Jonah Harrow,KNOWS,P-B03-000010,B03-C02-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S04,,high,human-verified,Knowledge States
+A-B03-000018,P-B03-000011,Margot Vance,POSSESSES,grandmother's journal,B03-C02-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S01,,high,human-verified,Logistics
+A-B03-000019,P-B03-000012,Margot Vance,CONCEALS,journal from Jonah,B03-C02-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S01,,high,human-verified,Knowledge States
+A-B03-000020,P-B03-000018,CANON,HAS_UNKNOWN_CUSTODY,Founding Scrolls,B03-C02-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S02,,high,human-verified,Logistics
+A-B03-000021,P-B03-000013,CANON,CONTAINS,bibliovore and lexivore,B03-C03-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C03-S02,,high,human-verified,Logistics
+A-B03-000022,P-B03-000014,CANON,HAS_PROPERTY,distorted-space-and-direction,B03-C03-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C03-S01,,high,human-verified,Logistics
+A-B03-000023,P-B03-000017,CANON,EVENT_OCCURRED,Jonah injured by lexivore,B03-C03-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C03-S04,,high,human-verified,Canon Commit Log
+A-B03-000024,P-B03-000015,ANALYST,INTERPRETS,cooperation required,B03-C02-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C02-S05,,medium,human-verified,Knowledge States
+A-B03-000025,P-B03-000016,CANON,EVENT_OCCURRED,enter B2 together,B03-C03-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C03-S05,,high,human-verified,Canon Commit Log
+A-B03-000026,P-B03-000019,Jonah Harrow,KNOWS,mutual desire,B03-C04-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C04-S02,,high,human-verified,Knowledge States
+A-B03-000027,P-B03-000019,Margot Vance,KNOWS,mutual desire,B03-C04-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C04-S02,,high,human-verified,Knowledge States
+A-B03-000028,P-B03-000020,CANON,EVENT_OCCURRED,consensual sexual intimacy,B03-C04-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C04-S03,,high,human-verified,Canon Commit Log
+A-B03-000029,P-B03-000021,CANON,HAS_PROPERTY,subjective gravity,B03-C04-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C04-S05,,high,human-verified,Logistics
+A-B03-000030,P-B03-000022,CANON,EVENT_OCCURRED,Concept Guardian blocks access,B03-C04-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C04-S05,,high,human-verified,Canon Commit Log
+A-B03-000031,P-B03-000023,CANON,EVENT_OCCURRED,Margot solves riddle,B03-C05-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C05-S01,,high,human-verified,Canon Commit Log
+A-B03-000032,P-B03-000024,CANON,HAS_PROPERTY,temporarily safe,B03-C05-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C05-S02,,high,human-verified,Logistics
+A-B03-000033,P-B03-000025,CANON,EVENT_OCCURRED,Margot resumes intimacy,B03-C05-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C05-S02,,high,human-verified,Canon Commit Log
+A-B03-000034,P-B03-000026,Jonah Harrow,KNOWS,Margot's inexperience,B03-C05-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C05-S03,,high,human-verified,Knowledge States
+A-B03-000035,P-B03-000027,CANON,HAS_PROPERTY,emotion-and-poetry traps,B03-C06-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C06-S01,,high,human-verified,Logistics
+A-B03-000036,P-B03-000028,CANON,EVENT_OCCURRED,Margot breaks poetic trap,B03-C06-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C06-S01,,high,human-verified,Canon Commit Log
+A-B03-000037,P-B03-000028,CANON,EVENT_OCCURRED,Margot rescues Jonah from courtroom trap,B03-C06-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C06-S03,,high,human-verified,Canon Commit Log
+A-B03-000038,P-B03-000029,ANALYST,INTERPRETS,Jonah guilt vulnerability,B03-C06-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C06-S03,,medium,human-verified,Knowledge States
+A-B03-000039,P-B03-000030,CANON,EVENT_OCCURRED,future topside conversation agreed,B03-C05-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C05-S05,,high,human-verified,Canon Commit Log
+A-B03-000040,P-B03-000031,CANON,STATE_CONTINUES,twelve-hour countdown,B03-C04-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C04-S01,,medium,human-verified,Logistics
+A-B03-000041,P-B03-000032,ANALYST,INTERPRETS,Margot as emotional anchor,B03-C06-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C06-S03,,medium,human-verified,Knowledge States
+A-B03-000042,P-B03-000033,CANON,EVENT_OCCURRED,Sonnet Glade casts idealized romance,B03-C07-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C07-S01,,high,human-verified,Canon Commit Log
+A-B03-000043,P-B03-000034,CANON,EVENT_OCCURRED,Margot subverts and breaks the Glade,B03-C07-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C07-S03,,high,human-verified,Canon Commit Log
+A-B03-000044,P-B03-000035,CANON,HAS_STATUS,Scrolls hidden not stolen,B03-C07-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C07-S05,,high,human-verified,Logistics
+A-B03-000045,P-B03-000036,CANON,HAS_STATUS,official Treaty fraudulent,B03-C08-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C08-S01,,high,human-verified,Logistics
+A-B03-000046,P-B03-000037,CANON,DOCUMENTS,coercive supernatural servitude,B03-C08-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C08-S01,,high,human-verified,Canon Commit Log
+A-B03-000047,P-B03-000038,Kael,WORKS_FOR,Council,B03-C08-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C08-S01,,high,human-verified,Relationships
+A-B03-000048,P-B03-000039,CANON,EVENT_OCCURRED,Jonah defeats Kael; Kael escapes,B03-C08-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C08-S02,,high,human-verified,Canon Commit Log
+A-B03-000049,P-B03-000040,Margot Vance,BELIEVES,Jonah's Alpha nature is safe with her,B03-C08-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C08-S03,,high,human-verified,Knowledge States
+A-B03-000050,P-B03-000041,CANON,EVENT_OCCURRED,full sexual consummation,B03-C08-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C08-S05,,high,human-verified,Canon Commit Log
+A-B03-000051,P-B03-000042,Jonah Harrow,POSSESSES,Original Integration Treaty,B03-C08-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C08-S05,,high,human-verified,Logistics
+A-B03-000052,P-B03-000043,Arthur Sterling,ATTEMPTS,suppress or seize Treaty,B03-C09-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C09-S01,,high,human-verified,Canon Commit Log
+A-B03-000053,P-B03-000044,Margot Vance,CAUSES,public accountability event,B03-C09-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C09-S02,,high,human-verified,Canon Commit Log
+A-B03-000054,P-B03-000045,Jonah Harrow,REVEALS,official history false,B03-C09-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C09-S04,,high,human-verified,Knowledge States
+A-B03-000055,P-B03-000046,CANON,EVENT_OCCURRED,Sterling and mercenaries retreat,B03-C09-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C09-S05,,high,human-verified,Canon Commit Log
+A-B03-000056,P-B03-000047,Margot Vance,BELIEVES,she loves Jonah,B03-C09-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C09-S06,,high,human-verified,Knowledge States
+A-B03-000057,P-B03-000048,Jonah Harrow,IDENTIFIES_AS,planned refuge,B03-C09-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C09-S06,,high,human-verified,Knowledge States
+A-B03-000058,P-B03-000049,CANON,HAS_PROPERTY,fortified off-grid refuge,B03-C10-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C10-S01,,high,human-verified,Logistics
+A-B03-000059,P-B03-000050,Jonah Harrow,COMMITS_TO,future together,B03-C10-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C10-S02,,high,human-verified,Open Loops & Guns
+A-B03-000060,P-B03-000051,CANON,EVENT_OCCURRED,Margot treats Jonah,B03-C10-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C10-S03,,high,human-verified,Canon Commit Log
+A-B03-000061,P-B03-000052,Margot Vance,ACCEPTS,lifelong wolf bond,B03-C10-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C10-S04,,high,human-verified,Knowledge States
+A-B03-000062,P-B03-000053,Magisterium,ORDERS,surrender Margot,B03-C10-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C10-S05,,high,human-verified,Canon Commit Log
+A-B03-000063,P-B03-000054,Original Integration Treaty,DOCUMENTS,disappearances since 1995,B03-C11-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C11-S01,,high,human-verified,Canon Commit Log
+A-B03-000064,P-B03-000055,Federal forces,ATTACK,Jonah's cabin,B03-C11-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C11-S02,,high,human-verified,Canon Commit Log
+A-B03-000065,P-B03-000056,CANON,EVENT_OCCURRED,root-cellar escape,B03-C11-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C11-S03,,high,human-verified,Canon Commit Log
+A-B03-000066,P-B03-000057,Jonah Harrow,MASKS,Treaty signature,B03-C12-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C12-S01,,high,human-verified,Canon Commit Log
+A-B03-000067,P-B03-000058,Jonah Harrow,SAVES,Margot from hypothermia,B03-C12-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C12-S02,,high,human-verified,Canon Commit Log
+A-B03-000068,P-B03-000059,Jonah Harrow,PLANS,return through mines,B03-C12-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C12-S03,,high,human-verified,Open Loops & Guns
+A-B03-000069,P-B03-000060,Margot Vance,ACCEPTS,Jonah full wolf form,B03-C12-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C12-S05,,high,human-verified,Knowledge States
+A-B03-000070,P-B03-000061,Jonah wolf,RECOGNIZES_AS,Margot as pack,B03-C12-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C12-S05,,high,human-verified,Knowledge States
+A-B03-000071,P-B03-000062,CANON,HAS_STATUS,mine tunnels actively used,B03-C13-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C13-S01,,high,human-verified,Logistics
+A-B03-000072,P-B03-000063,CANON,CORROBORATES,disappearance ledger,B03-C13-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C13-S02,,medium,human-verified,Knowledge States
+A-B03-000073,P-B03-000064,Arthur Sterling,CONTROLS,quarantine narrative,B03-C14-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C14-S01,,high,human-verified,Logistics
+A-B03-000074,P-B03-000065,CANON,EVENT_OCCURRED,local resistance forms,B03-C14-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C14-S02,,high,human-verified,Canon Commit Log
+A-B03-000075,P-B03-000066,Resistance,DISTRIBUTES,Treaty evidence copies,B03-C14-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C14-S03,,high,human-verified,Canon Commit Log
+A-B03-000076,P-B03-000067,Sterling forces,ATTACK,resistance position,B03-C14-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C14-S04,,high,human-verified,Canon Commit Log
+A-B03-000077,P-B03-000068,CANON,HAS_STATUS,evidence outside Sterling control,B03-C15-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C15-S01,,high,human-verified,Logistics
+A-B03-000078,P-B03-000069,Resistance,DISCOVERS,surveillance compromise,B03-C15-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C15-S02,,high,human-verified,Knowledge States
+A-B03-000079,P-B03-000070,External recipient,POSSESSES,Treaty evidence,B03-C15-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C15-S03,,high,human-verified,Logistics
+A-B03-000080,P-B03-000071,Jonah Harrow and Margot Vance,CHOOSE,active liberation strategy,B03-C15-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C15-S04,,high,human-verified,Canon Commit Log
+A-B03-000081,P-B03-000072,Resistance,RESCUES,detainees,B03-C16-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C16-S03,,high,human-verified,Canon Commit Log
+A-B03-000082,P-B03-000073,Rescued detainees,TESTIFY_AGAINST,Sterling network,B03-C16-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C16-S03,,high,human-verified,Canon Commit Log
+A-B03-000083,P-B03-000074,Jonah Harrow,PROTECTS,evacuation,B03-C16-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C16-S04,,high,human-verified,Canon Commit Log
+A-B03-000084,P-B03-000075,Kael,CONFRONTS,Jonah Harrow,B03-C17-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C17-S01,,high,human-verified,Canon Commit Log
+A-B03-000085,P-B03-000076,Margot Vance,RETURNS_FOR,Jonah Harrow,B03-C17-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C17-S03,,high,human-verified,Canon Commit Log
+A-B03-000086,P-B03-000077,Rescued witness,REVEALS,Sterling command site,B03-C17-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C17-S04,,high,human-verified,Knowledge States
+A-B03-000087,P-B03-000078,Resistance,SELECTS,master archive target,B03-C18-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C18-S01,,high,human-verified,Canon Commit Log
+A-B03-000088,P-B03-000079,Jonah Harrow,RENOUNCES,corrupt enforcement structure,B03-C18-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C18-S02,,high,human-verified,Canon Commit Log
+A-B03-000089,P-B03-000080,Arthur Sterling,DESTROYS,records,B03-C18-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C18-S03,,high,human-verified,Canon Commit Log
+A-B03-000090,P-B03-000081,Resistance,SECURES,part of master archive,B03-C18-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C18-S04,,high,human-verified,Canon Commit Log
+A-B03-000091,P-B03-000082,Snowfall Creek Archives,DEPLOYS,ancient lockdown defenses,B03-C19-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C19-S02,,high,human-verified,Canon Commit Log
+A-B03-000092,P-B03-000083,Margot Vance,DESTROYS_OR_DISABLES,Gunship,B03-C19-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C19-S05,,high,human-verified,Canon Commit Log
+A-B03-000093,P-B03-000084,Valerius,CAPTURES,library,B03-C20-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C20-S01,,high,human-verified,Canon Commit Log
+A-B03-000094,P-B03-000085,Margot Vance,ACTIVATES,Protocol Wild Hunt,B03-C20-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C20-S03,,high,human-verified,Open Loops & Guns
+A-B03-000095,P-B03-000086,Protocol Wild Hunt,MOBILIZES,Snowfall Creek,B03-C21-S01,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C21-S01,,high,human-verified,Canon Commit Log
+A-B03-000096,P-B03-000087,Fire Elemental,POWERS,library defenses,B03-C21-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C21-S02,,high,human-verified,Logistics
+A-B03-000097,P-B03-000088,Jonah Harrow,REJECTS,cursed weapons,B03-C21-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C21-S03,,high,human-verified,Canon Commit Log
+A-B03-000098,P-B03-000089,Jonah Harrow,DECLARES,Margot is his anchor,B03-C21-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C21-S05,,high,human-verified,Canon Commit Log
+A-B03-000099,P-B03-000090,Grey Guard,ARRIVES_AS,anti-magic siege legion,B03-C21-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C21-S06,,high,human-verified,Canon Commit Log
+A-B03-000100,P-B03-000091,Snowfall Creek coalition,REFUSES,Valerius surrender demand,B03-C21-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C21-S06,,high,human-verified,Canon Commit Log
+A-B03-000101,P-B03-000092,Margot Vance,ACTIVATES,Escher-floor trap,B03-C22-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C22-S03,,high,human-verified,Open Loops & Guns
+A-B03-000102,P-B03-000093,Valerius,DEPLOYS,Siege Golem,B03-C22-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C22-S05,,high,human-verified,Canon Commit Log
+A-B03-000103,P-B03-000094,Margot Vance,CLASSIFIES,Siege Golem as inventory,B03-C23-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C23-S02,,high,human-verified,Canon Commit Log
+A-B03-000104,P-B03-000095,Margot Vance,RETURNS_TO_VOID,Siege Golem,B03-C23-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C23-S05,,high,human-verified,Canon Commit Log
+A-B03-000105,P-B03-000096,Valerius,ESTABLISHES,starvation siege,B03-C23-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C23-S06,,high,human-verified,Open Loops & Guns
+A-B03-000106,P-B03-000097,Aleksei,ACTIVATES,AM transmitter,B03-C24-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C24-S03,,high,human-verified,Open Loops & Guns
+A-B03-000107,P-B03-000098,Jonah Harrow,BROADCASTS,regional plea for witnesses,B03-C24-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C24-S04,,high,human-verified,Canon Commit Log
+A-B03-000108,P-B03-000099,Grey Guard Hunters,ATTEMPT_CAPTURE,Jonah Harrow,B03-C24-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C24-S05,,high,human-verified,Canon Commit Log
+A-B03-000109,P-B03-000100,Civilian convoy,RESPONDS_TO,Jonah broadcast,B03-C24-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C24-S06,,high,human-verified,Canon Commit Log
+A-B03-000110,P-B03-000101,Valerius,ACTIVATES,backup Feral Signal,B03-C25-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C25-S03,,high,human-verified,Open Loops & Guns
+A-B03-000111,P-B03-000102,Margot Vance,SYNTHESIZES,antiviral cure,B03-C25-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C25-S06,,high,human-verified,Canon Commit Log
+A-B03-000112,P-B03-000103,Jonah Harrow,CONFINES,self in holding cell,B03-C26-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C26-S03,,high,human-verified,Canon Commit Log
+A-B03-000113,P-B03-000104,Margot Vance,DISRUPTS,Jonah infection with counter-signal,B03-C26-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C26-S04,,high,human-verified,Canon Commit Log
+A-B03-000114,P-B03-000105,Silas,HAS_STATUS,revenant founder,B03-C26-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C26-S05,,high,human-verified,Logistics
+A-B03-000115,P-B03-000106,Iron Horse,TRANSMITS,Feral Signal,B03-C26-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C26-S06,,high,human-verified,Canon Commit Log
+A-B03-000116,P-B03-000107,Assault team,BOARDS,Iron Horse,B03-C27-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C27-S03,,high,human-verified,Canon Commit Log
+A-B03-000117,P-B03-000108,Jackson Harrow,HAS_STATUS,alive Alpha battery,B03-C27-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C27-S04,,high,human-verified,Logistics
+A-B03-000118,P-B03-000109,Valerius,SETS,dam collision course,B03-C27-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C27-S05,,high,human-verified,Canon Commit Log
+A-B03-000119,P-B03-000110,Margot Vance,DESTROYS,Iron Horse Emitter,B03-C28-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C28-S03,,high,human-verified,Canon Commit Log
+A-B03-000120,P-B03-000111,Margot Vance,FREES,Jackson Harrow,B03-C28-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C28-S03,,high,human-verified,Canon Commit Log
+A-B03-000121,P-B03-000112,Aleksei and Sarah,DECOUPLE,rear train cars,B03-C28-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C28-S04,,high,human-verified,Canon Commit Log
+A-B03-000122,P-B03-000113,CANON,EVENT_OCCURRED,locomotive crash without dam failure,B03-C28-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C28-S05,,high,human-verified,Canon Commit Log
+A-B03-000123,P-B03-000114,Jackson Harrow,RECOGNIZES,Jonah Harrow,B03-C28-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C28-S06,,high,human-verified,Knowledge States
+A-B03-000124,P-B03-000115,Arthur Sterling,COLLABORATES_FOR,political advancement and control,B03-C29-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C29-S02,,high,human-verified,Canon Commit Log
+A-B03-000125,P-B03-000116,Margot Vance,INVOKES,original Charter,B03-C29-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C29-S03,,high,human-verified,Canon Commit Log
+A-B03-000126,P-B03-000117,Margot Vance,ARCHIVES_AS_BOOK,Valerius,B03-C29-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C29-S05,,high,human-verified,Canon Commit Log
+A-B03-000127,P-B03-000118,Federal Government,ESTABLISHES,Special Administrative Zone,B03-C30-S02,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C30-S02,,high,human-verified,Open Loops & Guns
+A-B03-000128,P-B03-000119,Jonah Harrow and Margot Vance,ACHIEVE,durable HEA,B03-C30-S03,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C30-S03,,high,human-verified,Canon Commit Log
+A-B03-000129,P-B03-000120,Jackson Harrow,TRANSFERS,old sheriff badge to Jonah,B03-C30-S04,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C30-S04,,high,human-verified,Logistics
+A-B03-000130,P-B03-000121,Silas,BECOMES,Speaker of Council,B03-C30-S05,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C30-S05,,high,human-verified,Canon Commit Log
+A-B03-000131,P-B03-000122,Cian,INTRODUCES,next-book threat,B03-C30-S06,series/books/book-3/phase-8-editing/MANUSCRIPT.md,B03-C30-S06,,high,human-verified,Open Loops & Guns
