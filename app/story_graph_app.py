@@ -85,6 +85,22 @@ def api_graph(prop=""):
     }
 
 
+def api_timeline():
+    S = STATE["graph"]["sections"]
+    stmt = {r.get("prop-id"): r.get("statement", "") for r in S.get("Propositions", [])}
+    items, holders, maxch = [], set(), 1
+    for r in S.get("Epistemic States", []):
+        h, pid, ch = r.get("holder", ""), r.get("prop-id", ""), r.get("since-ch", "")
+        if not h or not pid or not ch.isdigit():
+            continue
+        c = int(ch)
+        holders.add(h)
+        maxch = max(maxch, c)
+        items.append({"chapter": c, "character": h, "stance": r.get("mode", ""),
+                      "belief": stmt.get(pid, pid)})
+    return {"holders": sorted(holders), "max_chapter": maxch, "items": items}
+
+
 def api_cypher(cypher):
     if STATE["conn"] is None:
         return {"error": f"Cypher needs kuzu (pip install kuzu). {STATE['kuzu_err']}".strip()}
@@ -147,6 +163,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_summary())
         if u.path == "/api/graph":
             return self._json(api_graph(q.get("prop", [""])[0]))
+        if u.path == "/api/timeline":
+            return self._json(api_timeline())
         if u.path == "/api/report":
             return self._json(api_report(q.get("kind", ["report"])[0]))
         return self._json({"error": "not found"}, 404)
@@ -179,6 +197,7 @@ main{padding:18px 20px;max-width:1100px}
 svg{display:block;width:100%;height:560px;touch-action:none}
 circle{cursor:grab} text{font:11px ui-monospace,monospace;fill:var(--ink);pointer-events:none}
 .elab{fill:var(--muted);font-size:10px;text-anchor:middle}
+.tlab{font:11px ui-monospace,monospace;fill:var(--muted)}
 textarea{width:100%;height:90px;font:13px ui-monospace,monospace;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:.6rem}
 .row{display:flex;gap:.6rem;align-items:center;margin:.5rem 0}
 button.go{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:.5rem .9rem;font:600 13px system-ui;cursor:pointer}
@@ -197,11 +216,13 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padd
 const $=(h)=>{const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild};
 const api=async(p,o)=>(await fetch(p,o)).json();
 let TAB='dashboard';
-const TABS=['dashboard','graph','query','reports'];
+const TABS=['dashboard','graph','timeline','query','reports'];
+const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function nav(){const n=document.getElementById('nav');n.innerHTML='';TABS.forEach(t=>{const b=document.createElement('button');b.textContent=t[0].toUpperCase()+t.slice(1);b.className=t===TAB?'on':'';b.onclick=()=>{TAB=t;render()};n.appendChild(b)})}
 async function render(){nav();const m=document.getElementById('main');m.innerHTML='<p class="hint">loading…</p>';
  if(TAB==='dashboard')return dashboard(m);
  if(TAB==='graph')return graph(m);
+ if(TAB==='timeline')return timeline(m);
  if(TAB==='query')return query(m);
  if(TAB==='reports')return reports(m);}
 async function head(){const s=await api('/api/summary');document.getElementById('hd').textContent=`${s.title} · canon ch${s.canon_chapter} · modules: ${s.modules.length?s.modules.join(','):'none'} · kuzu:${s.kuzu?'on':'off'}`;return s}
@@ -246,6 +267,22 @@ function draw(d){const svg=document.getElementById('gv');const W=svg.clientWidth
  let drag=null;svg.onpointerdown=ev=>{if(ev.target.dataset.i!=null){drag=+ev.target.dataset.i;svg.setPointerCapture(ev.pointerId)}};
  svg.onpointermove=ev=>{if(drag==null)return;const r=svg.getBoundingClientRect();N[drag].x=(ev.clientX-r.left)*(W/r.width);N[drag].y=(ev.clientY-r.top)*(H/r.height);moveNode(drag)};
  svg.onpointerup=()=>{drag=null};}
+async function timeline(m){m.innerHTML='';const d=await api('/api/timeline');
+ if(!d.items.length){m.innerHTML='<p class="hint">No epistemic states with chapter numbers to plot.</p>';return}
+ const ST={knows:'#0e9488',believes:'#3b6ea5','believes-false':'#c0632a',suspects:'#7a5cba','embargoed-until':'#8a97a5'};
+ const leg=$(`<div class="legend"></div>`);Object.entries(ST).forEach(([k,c])=>leg.appendChild($(`<span><i style="background:${c}"></i>${k}</span>`)));m.appendChild(leg);
+ const Hs=d.holders,maxc=Math.max(1,d.max_chapter),lane=46,L=170,T=32,R=26,B=16;
+ const W=Math.max(680,L+R+maxc*52),height=T+Hs.length*lane+B;
+ const x=c=>L+(maxc===1?0:(c-1)/(maxc-1))*(W-L-R),y=i=>T+i*lane+lane/2;
+ let s='';
+ Hs.forEach((h,i)=>{s+=`<line x1="${L}" y1="${y(i)}" x2="${W-R}" y2="${y(i)}" stroke="var(--line)"/><text x="${L-12}" y="${y(i)+4}" text-anchor="end" class="tlab">${esc(h)}</text>`});
+ for(let c=1;c<=maxc;c++){if(maxc>18&&c%2===0)continue;s+=`<line x1="${x(c)}" y1="${T-4}" x2="${x(c)}" y2="${height-B}" stroke="var(--line)" opacity=".4"/><text x="${x(c)}" y="${T-12}" text-anchor="middle" class="tlab">${c}</text>`}
+ const cnt={};d.items.forEach(it=>{const key=it.character+'|'+it.chapter,n=(cnt[key]=(cnt[key]||0)+1)-1,hi=Hs.indexOf(it.character);
+  const cx=x(it.chapter)+(n%3-1)*8,cy=y(hi)+(Math.floor(n/3))*10-((Math.floor(n/3))?4:0);
+  s+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6" fill="${ST[it.stance]||'#8a97a5'}" style="cursor:pointer" data-b="${encodeURIComponent(it.character+' — '+it.stance+' · ch'+it.chapter+': '+it.belief)}"><title>${esc(it.character+' — '+it.stance+' (ch'+it.chapter+')\n'+it.belief)}</title></circle>`});
+ const frame=$(`<div class="frame" style="overflow:auto"><svg viewBox="0 0 ${W} ${height}" style="min-width:${W}px;height:${height}px">${s}</svg></div>`);m.appendChild(frame);
+ const cap=$(`<p class="hint">Time runs left→right (chapter); each row is a character. Hover a dot for the belief, or click to pin it here.</p>`);m.appendChild(cap);
+ frame.querySelectorAll('circle').forEach(c=>{c.onclick=()=>{cap.textContent=decodeURIComponent(c.dataset.b)}});}
 async function query(m){m.innerHTML='';const s=await api('/api/summary');
  m.appendChild($(`<p class="hint">Ad-hoc Cypher over the compiled graph. Node tables: Entity, Proposition, Source, Evidence, OpenLoop, Holder. Rel tables: RELATES, EPISTEMIC, GOVERNED_BY, EVIDENCED_BY, SUPPORTS.</p>`));
  const ta=$(`<textarea>MATCH (h:Holder)-[e:EPISTEMIC]->(p:Proposition) RETURN h.id, e.mode, e.since_ch, p.id ORDER BY e.since_ch LIMIT 25</textarea>`);m.appendChild(ta);
