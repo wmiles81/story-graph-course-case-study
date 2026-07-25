@@ -185,3 +185,37 @@ def run_audit(graph, canon_ch=0, adjudicated=frozenset()):
     if not active:
         lines.append("No open continuity issues.")
     return "\n".join(lines), active
+
+
+# ---- Layer 5: revision-impact ---------------------------------------------
+
+def q_impact(conn, prop_id):
+    holders = _rows(conn,
+        "MATCH (h:Holder)-[e:EPISTEMIC]->(p:Proposition {id:$x}) "
+        "RETURN h.id, e.mode, e.since_ch ORDER BY e.since_ch", {"x": prop_id})
+    ev = _rows(conn,
+        "MATCH (ev:Evidence)-[:SUPPORTS]->(p:Proposition {id:$x}) "
+        "RETURN ev.id, ev.locator ORDER BY ev.locator", {"x": prop_id})
+    src = _rows(conn, "MATCH (p:Proposition {id:$x})-[:GOVERNED_BY]->(s:Source) RETURN s.id", {"x": prop_id})
+    return holders, ev, src
+
+
+def run_impact(graph, prop_id):
+    conn = open_graph(graph)
+    holders, ev, src = q_impact(conn, prop_id)
+    if not holders and not ev and not src:
+        return f"Proposition '{prop_id}' not found, or nothing depends on it."
+    lines = [f"IMPACT — changing or moving proposition '{prop_id}' touches:", "=" * 48]
+    lines.append(f"\nHolders whose knowledge depends on it ({len(holders)}):")
+    for h, mode, since in holders:
+        lines.append(f"  {h} — {mode} (since ch{since})")
+    lines.append(f"\nEvidence that establishes it ({len(ev)}):")
+    for eid, loc in ev:
+        lines.append(f"  {eid} @ {loc}")
+    if {m for _, m, _ in holders} >= {"knows", "believes-false"} or \
+       ("knows" in {m for _, m, _ in holders} and "believes-false" in {m for _, m, _ in holders}):
+        lines.append("\n! participates in dramatic irony (a holder knows it, another believes it false) — "
+                     "changing or moving it collapses that irony.")
+    if src:
+        lines.append(f"\nGoverned by: {', '.join(s[0] for s in src)}")
+    return "\n".join(lines)

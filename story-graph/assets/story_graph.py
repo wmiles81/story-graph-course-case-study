@@ -486,6 +486,44 @@ def audit_graph(graph_path, chapters_dir="", adjudicated_path=""):
     return out, report
 
 
+def impact_graph(graph_path, prop_id, chapters_dir=""):
+    report = validate(graph_path, chapters_dir=chapters_dir)
+    if report.errors:
+        return "", report
+    try:
+        import story_graph_query
+    except ImportError:
+        report.error("impact requires the 'kuzu' package (pip install kuzu)")
+        return "", report
+    graph = parse_graph(Path(graph_path).read_text(encoding="utf-8"))
+    return story_graph_query.run_impact(graph, prop_id), report
+
+
+def deviations(graph_path, chapters_dir):
+    """Canon claims whose manuscript evidence no longer matches the current prose
+    — the graph-vs-source check re-framed as revision drift. Stdlib only."""
+    graph = parse_graph(Path(graph_path).read_text(encoding="utf-8"))
+    src_type = {r.get("source-id"): r.get("type") for r in graph["sections"].get("Sources", [])}
+    span_prop = {}
+    for r in graph["sections"].get("Propositions", []):
+        for sid in _span_ids(r.get("span", "")):
+            span_prop.setdefault(sid, r.get("prop-id", "?"))
+    devs = []
+    for r in graph["sections"].get("Evidence", []):
+        sid, srcid = r.get("span-id", ""), r.get("source-id", "")
+        if src_type.get(srcid) != "manuscript":
+            continue
+        quote = (r.get("quote") or "").strip()
+        if not quote:
+            continue
+        chapter = _resolve_chapter(chapters_dir, r.get("locator", ""))
+        if chapter is None:
+            devs.append((sid, span_prop.get(sid, "?"), r.get("locator", ""), "chapter file not found"))
+        elif quote not in chapter.read_text(encoding="utf-8"):
+            devs.append((sid, span_prop.get(sid, "?"), chapter.name, "evidence no longer matches the prose"))
+    return devs
+
+
 def unratified(graph):
     """Load-bearing rows still marked `provisional` — the ratification queue."""
     out = []
@@ -575,6 +613,13 @@ def main(argv=None):
     au.add_argument("graph")
     au.add_argument("--chapters-dir", default="")
     au.add_argument("--adjudicated", default="")
+    im = sub.add_parser("impact")
+    im.add_argument("graph")
+    im.add_argument("prop")
+    im.add_argument("--chapters-dir", default="")
+    dv = sub.add_parser("deviations")
+    dv.add_argument("graph")
+    dv.add_argument("--chapters-dir", required=True)
     args = parser.parse_args(argv)
     if args.command == "validate":
         report = validate(args.graph, args.ontology, args.genres_dir, args.spe_dir, args.chapters_dir)
@@ -645,6 +690,23 @@ def main(argv=None):
             return 1
         print(out)
         return 0
+    if args.command == "impact":
+        out, report = impact_graph(args.graph, args.prop, args.chapters_dir)
+        if report.errors:
+            for e in report.errors:
+                print(f"ERROR: {e}")
+            return 1
+        print(out)
+        return 0
+    if args.command == "deviations":
+        devs = deviations(args.graph, args.chapters_dir)
+        if not devs:
+            print("No deviations — all manuscript evidence still matches the prose.")
+            return 0
+        print(f"DEVIATIONS — {len(devs)} canon claim(s) drifted from the current manuscript:")
+        for sid, prop, loc, reason in devs:
+            print(f"  [{loc}] {sid} (supports '{prop}') — {reason}")
+        return 1
     return 2
 
 
