@@ -468,6 +468,24 @@ def report_graph(graph_path, chapters_dir=""):
     return story_graph_query.run_report(graph, canon_ch=graph["canon_ch"]), report
 
 
+def audit_graph(graph_path, chapters_dir="", adjudicated_path=""):
+    report = validate(graph_path, chapters_dir=chapters_dir)
+    if report.errors:
+        return "", report
+    try:
+        import story_graph_query
+    except ImportError:
+        report.error("audit requires the 'kuzu' package (pip install kuzu)")
+        return "", report
+    graph = parse_graph(Path(graph_path).read_text(encoding="utf-8"))
+    adj = set()
+    if adjudicated_path and Path(adjudicated_path).is_file():
+        adj = {ln.strip() for ln in Path(adjudicated_path).read_text(encoding="utf-8").splitlines()
+               if ln.strip() and not ln.startswith("#")}
+    out, _issues = story_graph_query.run_audit(graph, graph["canon_ch"], adj)
+    return out, report
+
+
 def unratified(graph):
     """Load-bearing rows still marked `provisional` — the ratification queue."""
     out = []
@@ -553,6 +571,10 @@ def main(argv=None):
     fz.add_argument("--out", required=True)
     fz.add_argument("--force", action="store_true")
     fz.add_argument("--at", default="")
+    au = sub.add_parser("audit")
+    au.add_argument("graph")
+    au.add_argument("--chapters-dir", default="")
+    au.add_argument("--adjudicated", default="")
     args = parser.parse_args(argv)
     if args.command == "validate":
         report = validate(args.graph, args.ontology, args.genres_dir, args.spe_dir, args.chapters_dir)
@@ -615,6 +637,14 @@ def main(argv=None):
         print(f"RESULT: {'frozen -> ' + args.out if not report.errors else 'not frozen'}; "
               f"{len(report.errors)} error(s)")
         return 1 if report.errors else 0
+    if args.command == "audit":
+        out, report = audit_graph(args.graph, args.chapters_dir, args.adjudicated)
+        if report.errors:
+            for e in report.errors:
+                print(f"ERROR: {e}")
+            return 1
+        print(out)
+        return 0
     return 2
 
 

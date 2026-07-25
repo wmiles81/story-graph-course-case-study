@@ -2,6 +2,7 @@
 query/report. Imports kuzu (via the loader) — never reached by `validate`."""
 from __future__ import annotations
 
+import re
 import tempfile
 from pathlib import Path
 
@@ -111,3 +112,76 @@ def run_report(graph: dict, canon_ch=0):
         flag = "  [OVERDUE]" if _overdue(status, must, canon_ch) else ""
         out.append(f"  {oid} — {status} (by ch{must}){flag}")
     return "\n".join(out)
+
+
+# ---- Layer 4: continuity audit --------------------------------------------
+
+def _chnum(x):
+    m = re.search(r"(\d+)", str(x or ""))
+    return int(m.group(1)) if m else None
+
+
+def q_knows_before_evidence(conn):
+    """A character (not the reader) knows a proposition before the chapter its
+    own supporting evidence appears on — the classic knowledge-before-reveal bug."""
+    rows = _rows(conn,
+        "MATCH (h:Holder)-[e:EPISTEMIC {mode:'knows'}]->(p:Proposition)<-[:SUPPORTS]-(ev:Evidence) "
+        "WHERE h.id <> 'reader' RETURN h.id, p.id, e.since_ch, ev.locator")
+    issues = []
+    for holder, pid, since, loc in rows:
+        s, l = _chnum(since), _chnum(loc)
+        if s is not None and l is not None and s < l:
+            issues.append(("knows-before-evidence", f"{holder}:{pid}",
+                           f"{holder} knows '{pid}' at ch{s}, but its evidence is at ch{l}"))
+    return issues
+
+
+def q_orphan_propositions(conn):
+    """A proposition nobody knows/believes and that no evidence supports —
+    a claim that appears nowhere and connects to nothing."""
+    rows = _rows(conn,
+        "MATCH (p:Proposition) WHERE NOT (p)<-[:EPISTEMIC]-() AND NOT (:Evidence)-[:SUPPORTS]->(p) "
+        "RETURN p.id, p.statement")
+    return [("orphan-proposition", pid,
+             f"'{pid}' — no holder knows/believes it and no evidence supports it: {(stmt or '')[:60]}")
+            for pid, stmt in rows]
+
+
+def q_overdue_setups(conn, canon_ch):
+    rows = _rows(conn, "MATCH (o:OpenLoop) RETURN o.id, o.status, o.must_fire_by")
+    out = []
+    for oid, status, must in rows:
+        m = _chnum(must)
+        if status == "UNFIRED" and m is not None and m <= canon_ch:
+            out.append(("overdue-setup", oid,
+                        f"setup '{oid}' UNFIRED past must-fire-by ch{m} (canon at ch{canon_ch})"))
+    return out
+
+
+def run_audit(graph, canon_ch=0, adjudicated=frozenset()):
+    conn = open_graph(graph)
+    issues = (q_knows_before_evidence(conn) + q_overdue_setups(conn, canon_ch)
+              + q_orphan_propositions(conn))
+    active = [i for i in issues if f"{i[0]}:{i[1]}" not in adjudicated]
+    suppressed = len(issues) - len(active)
+    head = f"CONTINUITY AUDIT — {len(active)} open issue(s)"
+    if suppressed:
+        head += f", {suppressed} adjudicated (suppressed)"
+    lines = [head, "=" * 48]
+    grouped = {}
+    for i in active:
+        grouped.setdefault(i[0], []).append(i)
+    cap = 8
+    for det in ("knows-before-evidence", "overdue-setup", "orphan-proposition"):
+        group = grouped.get(det, [])
+        if not group:
+            continue
+        lines.append(f"\n{det} ({len(group)}):")
+        for _det, key, msg in group[:cap]:
+            lines.append(f"  {msg}")
+            lines.append(f"      key: {_det}:{key}")
+        if len(group) > cap:
+            lines.append(f"  … +{len(group) - cap} more (adjudicate resolved ones to suppress)")
+    if not active:
+        lines.append("No open continuity issues.")
+    return "\n".join(lines), active
