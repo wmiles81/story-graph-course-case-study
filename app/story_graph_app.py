@@ -263,10 +263,23 @@ def main(argv=None):
     a = p.parse_args(argv)
     load(a.graph, a.chapters_dir)
     kz = "kuzu ON" if STATE["conn"] else f"kuzu OFF ({STATE['kuzu_err'] or 'not installed'})"
+    try:
+        server = ThreadingHTTPServer((a.host, a.port), Handler)   # bind first, before any 'open' message
+    except OSError as e:
+        if getattr(e, "errno", None) in (48, 98, 10048):          # EADDRINUSE: mac / linux / windows
+            print(f"Port {a.port} is already in use — another server is running there.")
+            print(f"  See it:  lsof -nP -iTCP:{a.port} -sTCP:LISTEN")
+            print(f"  Fix it:  rerun with a free port,  --port {a.port + 1}   (or stop that process)")
+            return 1
+        raise
     print(f"Story Graph OS — {STATE['path']} — {kz}")
-    print(f"  open http://{a.host}:{a.port}")
-    ThreadingHTTPServer((a.host, a.port), Handler).serve_forever()
+    print(f"  open http://{a.host}:{a.port}   (Ctrl-C to stop)")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nstopped")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
