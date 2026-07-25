@@ -60,6 +60,24 @@ def api_summary():
     S = g["sections"]
     def n(name):
         return len(S.get(name, []))
+    commits = sum(1 for ln in g.get("_raw", {}).get("Canon Commit Log", [])
+                  if ln.strip().startswith("- "))
+    counts = {                                     # the full tracked inventory, in ontology order
+        "sources": n("Sources"),
+        "entities": n("Entities"),
+        "locations & distances": n("Locations & Distances"),
+        "relationships": n("Relationships"),
+        "propositions": n("Propositions"),
+        "epistemic states": n("Epistemic States"),
+        "open loops & setups": n("Open Loops & Setups"),
+        "evidence spans": n("Evidence"),
+        "timeline rows": n("Timeline"),
+        "logistics rows": n("Logistics"),
+        "canon commits": commits,
+        "local vocab": n("Local Vocabulary"),
+    }
+    if "spe" in g["modules"]:
+        counts["physics state"] = n("Physics State")
     return {
         "title": STATE["text"].splitlines()[0].lstrip("# ").strip() if STATE["text"] else "Story Graph",
         "path": STATE["path"],
@@ -67,11 +85,7 @@ def api_summary():
         "modules": g["modules"],
         "kuzu": STATE["conn"] is not None,
         "kuzu_err": STATE["kuzu_err"],
-        "counts": {
-            "entities": n("Entities"), "propositions": n("Propositions"),
-            "epistemic states": n("Epistemic States"), "evidence spans": n("Evidence"),
-            "open loops": n("Open Loops & Setups"), "sources": n("Sources"),
-        },
+        "counts": counts,
         "unratified": len(sg.unratified(g)),
     }
 
