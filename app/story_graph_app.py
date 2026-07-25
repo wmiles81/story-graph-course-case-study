@@ -152,6 +152,75 @@ def api_report(kind):
     return {"error": "unknown report"}
 
 
+CYPHER_SCHEMA = """NODE TABLES
+  Entity(id, type, status)            characters / objects / locations / factions
+  Proposition(id, statement, canon_status)   canon_status: true|false|undetermined|contested
+  Source(id, type, authority)         type: manuscript|bible|outline|editorial|draft|ghost-draft
+  Evidence(id, locator, quote)        locator like 'ch01'
+  OpenLoop(id, status, planted_ch, must_fire_by, expectation)   status: UNFIRED|FIRED
+  Holder(id)                          who holds a belief; includes the reserved 'reader'
+REL TABLES
+  (Entity)-[RELATES {edge, since_ch}]->(Entity)          edge: trusts, protects, deceives, loves, ...
+  (Holder)-[EPISTEMIC {mode, since_ch}]->(Proposition)   mode: knows, believes, believes-false, suspects, embargoed-until
+  (Proposition)-[GOVERNED_BY]->(Source)
+  (Evidence)-[SUPPORTS]->(Proposition)
+  (Evidence)-[EVIDENCED_BY]->(OpenLoop)
+NOTES
+  since_ch is a STRING chapter number; order numerically with CAST(x AS INT64).
+  Dramatic irony = the reader knows a proposition a character believes-false."""
+
+
+def api_schema():
+    return {"schema": CYPHER_SCHEMA}
+
+
+def api_ask(question):
+    """Natural-language question -> Claude -> a read-only Cypher query -> results.
+    Uses the official Anthropic SDK (optional, like kuzu). Model claude-opus-5;
+    override with ANTHROPIC_MODEL. Degrades with a clear message if unavailable."""
+    if not (question or "").strip():
+        return {"error": "Ask a question in plain English."}
+    if STATE["conn"] is None:
+        return {"error": "Cypher needs kuzu (pip install kuzu) and a compiled graph."}
+    try:
+        import anthropic
+    except ImportError:
+        return {"error": "Plain-English questions need the Anthropic SDK: `pip install anthropic` "
+                         "and set ANTHROPIC_API_KEY (or run `ant auth login`)."}
+    import os as _os
+    system = (
+        "You translate a question about a novel's canon 'story graph' into ONE read-only Kùzu "
+        "Cypher query. Use ONLY these tables and properties:\n\n" + CYPHER_SCHEMA +
+        "\n\nReturn a single MATCH query — never CREATE/MERGE/SET/DELETE. Prefer RETURNing "
+        "readable fields (entity/proposition ids and p.statement). Respond with ONLY a JSON "
+        'object and nothing else: {"cypher": "<the query>", "explanation": "<one sentence>"}.')
+    try:
+        client = anthropic.Anthropic()
+        msg = client.messages.create(
+            model=_os.environ.get("ANTHROPIC_MODEL", "claude-opus-5"),
+            max_tokens=2048, system=system,
+            messages=[{"role": "user", "content": question}],
+        )
+    except Exception as e:  # missing key, network, bad model, old SDK
+        return {"error": f"Anthropic call failed: {e}"}
+    text = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text").strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        text = text[text.find("{"):]
+    try:
+        obj = json.loads(text[text.find("{"): text.rfind("}") + 1])
+    except Exception:
+        return {"error": "the model did not return valid JSON", "raw": text[:400]}
+    cypher = (obj.get("cypher") or "").strip()
+    explanation = obj.get("explanation", "")
+    if any(w in cypher.lower() for w in (" create ", " merge ", " set ", " delete ", " drop ", "detach ")):
+        return {"cypher": cypher, "explanation": explanation, "error": "refusing to run a non-read-only query"}
+    result = api_cypher(cypher)
+    result["cypher"] = cypher
+    result["explanation"] = explanation
+    return result
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -173,6 +242,8 @@ class Handler(BaseHTTPRequestHandler):
         q = parse_qs(u.query)
         if u.path == "/":
             return self._send(PAGE, "text/html; charset=utf-8")
+        if u.path == "/api/schema":
+            return self._json(api_schema())
         if u.path == "/api/summary":
             return self._json(api_summary())
         if u.path == "/api/graph":
@@ -188,6 +259,8 @@ class Handler(BaseHTTPRequestHandler):
         payload = json.loads(self.rfile.read(length) or "{}")
         if self.path == "/api/cypher":
             return self._json(api_cypher(payload.get("cypher", "")))
+        if self.path == "/api/ask":
+            return self._json(api_ask(payload.get("question", "")))
         return self._json({"error": "not found"}, 404)
 
 
@@ -208,7 +281,8 @@ main{padding:18px 20px;max-width:1100px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.9rem 1rem}
 .card b{display:block;font:600 1.6rem 'Iowan Old Style',serif} .card span{color:var(--muted);font-size:.82rem}
 .frame{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-svg{display:block;width:100%;height:560px;touch-action:none}
+svg{display:block;touch-action:none}
+input[type=range]{accent-color:var(--accent)}
 circle{cursor:grab} text{font:11px ui-monospace,monospace;fill:var(--ink);pointer-events:none}
 .elab{fill:var(--muted);font-size:10px;text-anchor:middle}
 .tlab{font:11px ui-monospace,monospace;fill:var(--muted)}
@@ -230,7 +304,7 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padd
 const $=(h)=>{const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild};
 const api=async(p,o)=>(await fetch(p,o)).json();
 let TAB='dashboard';
-const TABS=['dashboard','graph','timeline','query','reports'];
+const TABS=['dashboard','graph','timeline','query','ask','reports'];
 const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function nav(){const n=document.getElementById('nav');n.innerHTML='';TABS.forEach(t=>{const b=document.createElement('button');b.textContent=t[0].toUpperCase()+t.slice(1);b.className=t===TAB?'on':'';b.onclick=()=>{TAB=t;render()};n.appendChild(b)})}
 async function render(){nav();const m=document.getElementById('main');m.innerHTML='<p class="hint">loading…</p>';
@@ -238,6 +312,7 @@ async function render(){nav();const m=document.getElementById('main');m.innerHTM
  if(TAB==='graph')return graph(m);
  if(TAB==='timeline')return timeline(m);
  if(TAB==='query')return query(m);
+ if(TAB==='ask')return ask(m);
  if(TAB==='reports')return reports(m);}
 async function head(){const s=await api('/api/summary');document.getElementById('hd').textContent=`${s.title} · canon ch${s.canon_chapter} · modules: ${s.modules.length?s.modules.join(','):'none'} · kuzu:${s.kuzu?'on':'off'}`;return s}
 async function dashboard(m){const s=await api('/api/summary');m.innerHTML='';const cards=document.createElement('div');cards.className='cards';
@@ -248,13 +323,16 @@ async function dashboard(m){const s=await api('/api/summary');m.innerHTML='';con
 async function graph(m){m.innerHTML='';
  const bar=$(`<div class="row"><input id="focus" placeholder="focus on a proposition id (blank = whole graph)" style="flex:1;font:13px ui-monospace,monospace;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.45rem .6rem"><button class="go" id="fbtn">Draw</button></div>`);m.appendChild(bar);
  const leg=$(`<div class="legend"></div>`);m.appendChild(leg);
- const frame=$(`<div class="frame"><svg id="gv"></svg></div>`);m.appendChild(frame);
+ const zrow=$(`<div class="row"><label class="hint" style="min-width:3rem">zoom</label><input id="zoom" type="range" min="100" max="500" value="100" style="flex:1"><span class="hint" id="zlab">fit</span></div>`);m.appendChild(zrow);
+ const frame=$(`<div class="frame" style="overflow:auto;max-height:72vh"><svg id="gv" style="width:100%;height:560px"></svg></div>`);m.appendChild(frame);
  const hint=$(`<p class="hint"></p>`);m.appendChild(hint);
+ const applyZoom=()=>{const z=+document.getElementById('zoom').value,gv=document.getElementById('gv');gv.style.width=z+'%';gv.style.height=(560*z/100)+'px';document.getElementById('zlab').textContent=z==100?'fit':z/100+'×'};
+ document.getElementById('zoom').oninput=applyZoom;
  async function go(){const p=document.getElementById('focus').value.trim();const d=await api('/api/graph?prop='+encodeURIComponent(p));
   leg.innerHTML='';[...new Set(d.nodes.map(n=>n.kind))].forEach(k=>{const c=(d.nodes.find(n=>n.kind===k)||{}).color;leg.appendChild($(`<span><i style="background:${c}"></i>${k}</span>`))});
-  hint.textContent=`${d.nodes.length} nodes · ${d.edges.length} edges${d.edges.length>24?' · edge labels hidden (dense) — focus on a proposition to see them':' · drag nodes to rearrange'}`;
+  hint.textContent=`${d.nodes.length} nodes · ${d.edges.length} edges · drag nodes to rearrange · slide zoom to read labels`;
   if(!d.nodes.length){hint.textContent='No such proposition. Leave the box blank for the whole graph.';return}
-  draw(d)}
+  applyZoom();draw(d)}
  document.getElementById('fbtn').onclick=go;
  document.getElementById('focus').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
  go();}
@@ -268,9 +346,8 @@ function draw(d){const svg=document.getElementById('gv');const W=svg.clientWidth
   for(const e of E){let a=N[e.s],b=N[e.t],dx=a.x-b.x,dy=a.y-b.y,dd=Math.hypot(dx,dy)||.01,f=dd*dd/k;a.fx-=dx/dd*f;a.fy-=dy/dd*f;b.fx+=dx/dd*f;b.fy+=dy/dd*f}
   for(const a of N){a.fx+=(W/2-a.x)*.03;a.fy+=(H/2-a.y)*.03;const dl=Math.hypot(a.fx,a.fy)||.01,t=Math.max(1.5,W*0.05*(1-it/300));a.x+=a.fx/dl*Math.min(dl,t);a.y+=a.fy/dl*Math.min(dl,t)}}
  const NS='http://www.w3.org/2000/svg';svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML='';
- const showLabels=E.length<=24;   // edge labels only make sense on a small/focused graph
  for(const e of E){const l=document.createElementNS(NS,'line');l.setAttribute('x1',N[e.s].x);l.setAttribute('y1',N[e.s].y);l.setAttribute('x2',N[e.t].x);l.setAttribute('y2',N[e.t].y);l.setAttribute('stroke','var(--line)');l.setAttribute('stroke-width','1.5');l.dataset.s=e.s;l.dataset.t=e.t;svg.appendChild(l)}
- if(showLabels)for(const e of E){if(!e.label)continue;const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');tx.setAttribute('x',(N[e.s].x+N[e.t].x)/2);tx.setAttribute('y',(N[e.s].y+N[e.t].y)/2-4);tx.textContent=e.label;tx.dataset.es=e.s;tx.dataset.et=e.t;svg.appendChild(tx)}
+ for(const e of E){if(!e.label)continue;const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');tx.setAttribute('x',(N[e.s].x+N[e.t].x)/2);tx.setAttribute('y',(N[e.s].y+N[e.t].y)/2-4);tx.textContent=e.label;tx.dataset.es=e.s;tx.dataset.et=e.t;svg.appendChild(tx)}
  N.forEach((n,i)=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',8);c.setAttribute('fill',n.color);c.dataset.i=i;svg.appendChild(c);
   const t=document.createElementNS(NS,'text');t.setAttribute('x',n.x+11);t.setAttribute('y',n.y+4);t.textContent=n.id;t.dataset.ti=i;svg.appendChild(t)});
  function moveNode(i){
@@ -297,6 +374,21 @@ async function timeline(m){m.innerHTML='';const d=await api('/api/timeline');
  const frame=$(`<div class="frame" style="overflow:auto"><svg viewBox="0 0 ${W} ${height}" style="min-width:${W}px;height:${height}px">${s}</svg></div>`);m.appendChild(frame);
  const cap=$(`<p class="hint">Time runs left→right (chapter); each row is a character. Hover a dot for the belief, or click to pin it here.</p>`);m.appendChild(cap);
  frame.querySelectorAll('circle').forEach(c=>{c.onclick=()=>{cap.textContent=decodeURIComponent(c.dataset.b)}});}
+async function ask(m){m.innerHTML='';
+ m.appendChild($(`<p class="hint">Ask in plain English — Claude turns it into a Cypher query, runs it, and shows both. The server needs <code>pip install anthropic</code> and an API key (ANTHROPIC_API_KEY or <code>ant auth login</code>).</p>`));
+ const ta=$(`<textarea placeholder="e.g. which propositions does the reader know that a character believes are false?">Which propositions does the reader know that a character believes are false?</textarea>`);m.appendChild(ta);
+ const row=$(`<div class="row"></div>`);const btn=$(`<button class="go">Ask</button>`);row.appendChild(btn);m.appendChild(row);
+ const out=$(`<div></div>`);m.appendChild(out);
+ const sch=await api('/api/schema');
+ m.appendChild($(`<details style="margin-top:1rem"><summary class="hint">Cypher rules — the schema the AI is given</summary><pre>${esc(sch.schema||'')}</pre></details>`));
+ btn.onclick=async()=>{out.innerHTML='<p class="hint">asking Claude…</p>';
+  const r=await api('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:ta.value})});
+  let h='';
+  if(r.cypher)h+=`<p class="hint"><b>Generated Cypher</b> — ${esc(r.explanation||'')}</p><pre>${esc(r.cypher)}</pre>`;
+  if(r.error){h+=`<p class="err">${esc(r.error)}</p>`+(r.raw?`<pre>${esc(r.raw)}</pre>`:'');out.innerHTML=h;return}
+  h+='<table><thead><tr>'+r.columns.map(c=>`<th>${esc(c)}</th>`).join('')+'</tr></thead><tbody>';
+  h+=r.rows.map(rw=>'<tr>'+rw.map(v=>`<td>${v==null?'':esc(String(v))}</td>`).join('')+'</tr>').join('');
+  h+='</tbody></table><p class="hint">'+r.rows.length+' row(s)</p>';out.innerHTML=h};}
 async function query(m){m.innerHTML='';const s=await api('/api/summary');
  m.appendChild($(`<p class="hint">Ad-hoc Cypher over the compiled graph. Node tables: Entity, Proposition, Source, Evidence, OpenLoop, Holder. Rel tables: RELATES, EPISTEMIC, GOVERNED_BY, EVIDENCED_BY, SUPPORTS.</p>`));
  const ta=$(`<textarea>MATCH (h:Holder)-[e:EPISTEMIC]->(p:Proposition) RETURN h.id, e.mode, e.since_ch, p.id ORDER BY e.since_ch LIMIT 25</textarea>`);m.appendChild(ta);

@@ -34,3 +34,11 @@ def test_app_cypher_and_bad_query(tmp_path):
     r = app.api_cypher("MATCH (p:Proposition) RETURN p.id")
     assert r.get("columns") == ["p.id"] and len(r["rows"]) == 1
     assert "error" in app.api_cypher("NONSENSE QUERY")
+
+
+def test_app_schema_and_ask_guards(tmp_path):
+    app = _app()
+    schema = app.api_schema()["schema"]
+    assert "Proposition" in schema and "EPISTEMIC" in schema and "SUPPORTS" in schema
+    # empty question is rejected before any SDK/kuzu need — deterministic
+    assert "plain English" in app.api_ask("")["error"]
