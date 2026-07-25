@@ -543,17 +543,24 @@ def _viz_model(graph, prop_id=""):
     return nodes, edges
 
 
-def _viz_layout(nodes, edges, w=960, h=680, iters=400, seed=7):
+def _viz_layout(nodes, edges, w=960, h=680, iters=600, seed=7, pad_l=56, pad_r=170, pad_v=48):
+    """Fruchterman-Reingold with centering gravity, settled WITHOUT edge-clamping
+    (clamping makes nodes hug the border), then scaled/translated to fit the
+    viewport with padding — extra on the right so labels don't clip."""
     import math
     import random
-    rnd = random.Random(seed)
-    pos = {n: [rnd.uniform(40, w - 40), rnd.uniform(40, h - 40)] for n in nodes}
-    if not nodes:
-        return pos
-    k = math.sqrt(w * h / len(nodes))
     ns = list(nodes)
+    if not ns:
+        return {}
+    rnd = random.Random(seed)
+    cx, cy = w / 2, h / 2
+    r0 = min(w, h) * 0.32
+    pos = {n: [cx + r0 * math.cos(2 * math.pi * i / len(ns)) + rnd.uniform(-6, 6),
+               cy + r0 * math.sin(2 * math.pi * i / len(ns)) + rnd.uniform(-6, 6)]
+           for i, n in enumerate(ns)}
+    k = 0.9 * math.sqrt(w * h / len(ns))
     for it in range(iters):
-        disp = {n: [0.0, 0.0] for n in nodes}
+        disp = {n: [0.0, 0.0] for n in ns}
         for i in range(len(ns)):
             for j in range(i + 1, len(ns)):
                 a, b = ns[i], ns[j]
@@ -570,11 +577,24 @@ def _viz_layout(nodes, edges, w=960, h=680, iters=400, seed=7):
             f = d * d / k
             disp[u][0] -= dx / d * f; disp[u][1] -= dy / d * f
             disp[v][0] += dx / d * f; disp[v][1] += dy / d * f
-        t = 0.1 * w * (1 - it / iters)
-        for n in nodes:
+        for n in ns:                      # centering gravity keeps isolated nodes in frame
+            disp[n][0] += (cx - pos[n][0]) * 0.03
+            disp[n][1] += (cy - pos[n][1]) * 0.03
+        t = max(1.5, w * 0.06 * (1 - it / iters))
+        for n in ns:
             dl = math.hypot(*disp[n]) or 0.01
-            pos[n][0] = min(w - 24, max(24, pos[n][0] + disp[n][0] / dl * min(dl, t)))
-            pos[n][1] = min(h - 24, max(24, pos[n][1] + disp[n][1] / dl * min(dl, t)))
+            pos[n][0] += disp[n][0] / dl * min(dl, t)
+            pos[n][1] += disp[n][1] / dl * min(dl, t)
+    xs = [p[0] for p in pos.values()]
+    ys = [p[1] for p in pos.values()]
+    sx = (w - pad_l - pad_r) / ((max(xs) - min(xs)) or 1)
+    sy = (h - 2 * pad_v) / ((max(ys) - min(ys)) or 1)
+    s = min(sx, sy)
+    ox = pad_l + ((w - pad_l - pad_r) - (max(xs) - min(xs)) * s) / 2
+    oy = pad_v + ((h - 2 * pad_v) - (max(ys) - min(ys)) * s) / 2
+    for n in pos:
+        pos[n][0] = ox + (pos[n][0] - min(xs)) * s
+        pos[n][1] = oy + (pos[n][1] - min(ys)) * s
     return pos
 
 
@@ -592,8 +612,11 @@ def _viz_html(title, nodes, edges, pos, w=960, h=680):
     for nid, kind in nodes.items():
         x, y = pos[nid]
         color = _VIZ_COLORS.get(kind, "#888")
-        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" fill="{color}"/>'
-                     f'<text x="{x + 9:.1f}" y="{y + 4:.1f}" class="nlab">{_html.escape(nid)}</text>')
+        if x > w * 0.66:
+            lbl = f'<text x="{x - 10:.1f}" y="{y + 4:.1f}" class="nlab" text-anchor="end">{_html.escape(nid)}</text>'
+        else:
+            lbl = f'<text x="{x + 10:.1f}" y="{y + 4:.1f}" class="nlab">{_html.escape(nid)}</text>'
+        parts.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="6" fill="{color}"/>{lbl}')
     legend = " ".join(
         f'<span><i style="background:{c}"></i>{_html.escape(k)}</span>'
         for k, c in _VIZ_COLORS.items())
