@@ -113,3 +113,54 @@ def test_ids_are_kebab_and_unique(tmp_path):
     d = legacy_dir(tmp_path, entities=ents, props=[], asserts=[], scenes=BASE_SCENES)
     md, report, stats = imp.build(d, "T")
     assert "| jonah-harrow | Character |" in md and "| jonah-harrow-2 | Character |" in md
+
+
+def _quotes_file(tmp_path, rows):
+    import csv
+    qp = tmp_path / "QUOTED.csv"
+    with open(qp, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["assertion_id", "proposition_id", "source_quote", "valid_from_scene"])
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+    return str(qp)
+
+
+def _chapters(tmp_path, ch1_body):
+    d = tmp_path / "chapters"
+    d.mkdir()
+    (d / "ch01.md").write_text("## Chapter 1\n\n" + ch1_body + "\n", encoding="utf-8")
+    return str(d)
+
+
+KNOWS = [{"assertion_id": "A-1", "proposition_id": "P-1", "subject_id": "Jonah", "predicate": "KNOWS",
+          "object_id_or_value": "", "truth_status": "true", "canonical_status": "verified",
+          "story_graph_destination": "Knowledge States", "valid_from_scene": "B09-C01-S01", "source_quote": ""}]
+PROP1 = [{"proposition_id": "P-1", "normalized_proposition": "Scrolls missing", "status": "active"}]
+
+
+def test_verified_quote_becomes_evidence_and_validates(tmp_path):
+    d = legacy_dir(tmp_path, entities=BASE_ENTS, props=PROP1, asserts=KNOWS, scenes=BASE_SCENES)
+    quote = "The gap was where the Scrolls should have been."
+    chdir = _chapters(tmp_path, quote)
+    qp = _quotes_file(tmp_path, [{"assertion_id": "A-1", "proposition_id": "P-1",
+                                  "source_quote": quote, "valid_from_scene": "B09-C01-S01"}])
+    md, report, stats = imp.build(d, "T", qp, chdir)
+    assert stats["evidence_spans"] == 1
+    assert f"| ev-p-1 | ms-book3 | ch01 | {quote} |" in md
+    assert "| p-1 | Scrolls missing | true | ms-book3 | ev-p-1 |" in md
+    g = tmp_path / "g.md"
+    g.write_text(md, encoding="utf-8")
+    rep = sg.validate(str(g), chapters_dir=chdir)
+    assert rep.errors == [], rep.errors  # the verbatim quote hard-verifies against ch01
+
+
+def test_unverifiable_quote_leaves_proposition_provisional(tmp_path):
+    d = legacy_dir(tmp_path, entities=BASE_ENTS, props=PROP1, asserts=KNOWS, scenes=BASE_SCENES)
+    chdir = _chapters(tmp_path, "Nothing relevant on this page.")
+    qp = _quotes_file(tmp_path, [{"assertion_id": "A-1", "proposition_id": "P-1",
+                                  "source_quote": "A paraphrase that is not in the prose.",
+                                  "valid_from_scene": "B09-C01-S01"}])
+    md, report, stats = imp.build(d, "T", qp, chdir)
+    assert stats["evidence_spans"] == 0
+    assert "| p-1 | Scrolls missing | true | ms-book3 | provisional |" in md

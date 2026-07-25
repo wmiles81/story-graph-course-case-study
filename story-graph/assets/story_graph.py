@@ -490,6 +490,8 @@ def main(argv=None):
     ip.add_argument("--out", required=True)
     ip.add_argument("--report", default="")
     ip.add_argument("--title", default="Imported Legacy Canon")
+    ip.add_argument("--quotes", default="")
+    ip.add_argument("--chapters-dir", default="")
     args = parser.parse_args(argv)
     if args.command == "validate":
         report = validate(args.graph, args.ontology, args.genres_dir, args.spe_dir, args.chapters_dir)
@@ -527,7 +529,7 @@ def main(argv=None):
         return 0
     if args.command == "import-legacy":
         import story_graph_import
-        md, coverage, stats = story_graph_import.build(args.legacy_dir, args.title)
+        md, coverage, stats = story_graph_import.build(args.legacy_dir, args.title, args.quotes, args.chapters_dir)
         Path(args.out).write_text(md, encoding="utf-8")
         if args.report:
             Path(args.report).write_text(coverage, encoding="utf-8")

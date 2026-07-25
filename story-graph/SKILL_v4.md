@@ -77,8 +77,7 @@ validate, in one invocation.
 | Detected | Mode | Do this |
 |---|---|---|
 | A worksheet (`*YFD-RAW*.md` or `master_story_document.md`) exists, no graph yet | **Seed** | Follow `reference/seed-from-worksheet.md` |
-| Legacy canon CSVs (entity / proposition / assertion registries) exist, no graph | **Import-legacy** | Run `import-legacy` (see *Importing legacy canon*), then Catch-up + Validate |
-| No worksheet, no legacy ledgers, no graph | **Reverse-engineer** | Follow `reference/reverse-engineer.md` |
+| No worksheet, no graph | **Reverse-engineer** | Follow `reference/reverse-engineer.md` |
 | A `Story-Graph.md` already exists | **Catch-up** | Follow `reference/catch-up-from-chapters.md` |
 | Always, as the last step | **Validate** | See *Validation* below |
 
@@ -194,7 +193,7 @@ converts that canon into a v2 `Story-Graph.md` in one pass, plus a coverage
 report of what it could not faithfully carry over.
 
 ```
-python3 "<SKILL_DIR>/assets/story_graph.py" import-legacy <legacy-dir> --out <Story-Graph.md> [--report <coverage.md>] [--title "..."] [--quotes <quoted-assertions.csv> --chapters-dir <chapters>]
+python3 "<SKILL_DIR>/assets/story_graph.py" import-legacy <legacy-dir> --out <Story-Graph.md> [--report <coverage.md>] [--title "..."]
 ```
 
 - Reads the legacy ledgers found in `<legacy-dir>` (stdlib only): entity

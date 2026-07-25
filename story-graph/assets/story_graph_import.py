@@ -76,7 +76,22 @@ def _looks_like_agent(s: str) -> bool:
     return bool(s) and len(s) <= 40 and bool(AGENT_RE.fullmatch(s))
 
 
-def build(legacy_dir: str, title: str):
+def _load_chapters(chapters_dir):
+    text = {}
+    if not chapters_dir:
+        return text
+    for p in Path(chapters_dir).glob("ch*.md"):
+        m = re.search(r"ch0*(\d+)", p.name)
+        if m:
+            text[int(m.group(1))] = p.read_text(encoding="utf-8")
+    return text
+
+
+def _quote_cell(q):
+    return (q or "").replace("|", "/").replace("\r", " ").replace("\n", " ").strip()
+
+
+def build(legacy_dir: str, title: str, quotes_path: str = "", chapters_dir: str = ""):
     ents = _read(_find(legacy_dir, "*ENTITY-REGISTRY*.csv"))
     props = _read(_find(legacy_dir, "*PROPOSITION-REGISTRY*.csv"))
     asserts = _read(_find(legacy_dir, "*ASSERTIONS*.csv"))
@@ -154,6 +169,32 @@ def build(legacy_dir: str, title: str):
     stats["entities_auto_registered"] = auto
     stats["entities_total"] = len(entity_rows)
 
+    # ---- Evidence: verified verbatim quotes (optional) -----------------
+    chapter_text = _load_chapters(chapters_dir)
+    quoted = _read(quotes_path) if quotes_path else []
+    evidence_rows, prop_span = [], {}
+    for r in quoted:
+        pid = r.get("proposition_id", "")
+        quote = (r.get("source_quote") or "").strip()
+        if not pid or not quote or pid in prop_span:
+            continue
+        c = chapter_of(r.get("valid_from_scene", ""))
+        loc = None
+        if c.isdigit() and int(c) in chapter_text and quote in chapter_text[int(c)]:
+            loc = int(c)
+        if loc is None:
+            loc = next((n for n, body in chapter_text.items() if quote in body), None)
+        if loc is None:
+            continue  # not verbatim on the page -> the proposition stays provisional
+        sid = f"ev-{slug(pid)}"
+        evidence_rows.append((sid, "ms-book3", f"ch{int(loc):02d}", _quote_cell(quote),
+                              "imported verbatim quote"))
+        prop_span[pid] = sid
+    stats["evidence_spans"] = len(evidence_rows)
+    if evidence_rows:
+        cov.append(f"EVIDENCE — {len(evidence_rows)} propositions backed by verified verbatim "
+                   "manuscript quotes; the remaining load-bearing rows stay provisional.")
+
     # ---- Propositions (canon-status derived from assertions) ------------
     truth_by_prop = {}
     for a in asserts:
@@ -175,7 +216,7 @@ def build(legacy_dir: str, title: str):
         kid = slug(lpid)
         prop_kid[lpid] = kid
         st = canon_status(lpid)
-        span = "provisional" if st in ("true", "false") else ""
+        span = prop_span.get(lpid) or ("provisional" if st in ("true", "false") else "")
         prop_rows.append((kid, cell(r.get("normalized_proposition", "")), st, "ms-book3", span))
     stats["propositions"] = len(prop_rows)
 
@@ -245,7 +286,7 @@ def build(legacy_dir: str, title: str):
     md = _render(title, entity_rows,
                  [("ms-book3", "manuscript", "4", "imported: source_class=manuscript, authority_level=4")],
                  prop_rows, epi_rows, loop_rows, log_rows, rel_rows, timeline_rows, commit_lines,
-                 local_vocab, max(chapters) if chapters else 0)
+                 evidence_rows, local_vocab, max(chapters) if chapters else 0)
     return md, _render_report(legacy_dir, stats, cov), stats
 
 
@@ -257,7 +298,7 @@ def _tbl(header, rows):
     return "\n".join(out)
 
 
-def _render(title, ents, srcs, props, epi, loops, logs, rels, timeline, commits, local_vocab, canon_ch):
+def _render(title, ents, srcs, props, epi, loops, logs, rels, timeline, commits, evidence, local_vocab, canon_ch):
     parts = [f"# Story Graph: {title}", "",
              _tbl("field | value", [("ontology-version", "2"), ("modules", "none"),
                                     ("current-canon-chapter", str(canon_ch))]), "",
@@ -269,7 +310,7 @@ def _render(title, ents, srcs, props, epi, loops, logs, rels, timeline, commits,
              "## Propositions", _tbl("prop-id | statement | canon-status | governing-source | span", props), "",
              "## Epistemic States", _tbl("prop-id | holder | mode | since-ch | span", epi), "",
              "## Open Loops & Setups", _tbl("id | planted-ch | expectation | must-fire-by | status | span", loops), "",
-             "## Evidence", _tbl("span-id | source-id | locator | quote | note", []), "",
+             "## Evidence", _tbl("span-id | source-id | locator | quote | note", evidence), "",
              "## Timeline", _tbl("ch | story-time | elapsed | note", timeline), "",
              "## Logistics", _tbl("ch | entity | location | condition | span | note", logs), "",
              "## Canon Commit Log", "\n".join(commits), ""]
@@ -300,8 +341,10 @@ def main(argv=None):
     p.add_argument("--out", required=True)
     p.add_argument("--report", default="")
     p.add_argument("--title", default="Imported Legacy Canon")
+    p.add_argument("--quotes", default="")
+    p.add_argument("--chapters-dir", default="")
     a = p.parse_args(argv)
-    md, report, stats = build(a.legacy_dir, a.title)
+    md, report, stats = build(a.legacy_dir, a.title, a.quotes, a.chapters_dir)
     Path(a.out).write_text(md, encoding="utf-8")
     if a.report:
         Path(a.report).write_text(report, encoding="utf-8")
