@@ -213,47 +213,6 @@ python3 "<SKILL_DIR>/assets/story_graph.py" import-legacy <legacy-dir> --out <St
   plus layers these ledgers never contained (events, plot threads, promise
   lifecycle). Always `validate` the output; `compile`/`query` it like any graph.
 
-## Canon lifecycle, audit & revision
-
-Once a graph is built and validating, these commands operate on it. `queue` and
-`deviations` are stdlib; `audit` and `impact` run Cypher over the compiled graph
-and need `pip install kuzu`. `freeze` writes a new stamped file and never mutates
-the source graph.
-
-**Ratification & freeze (canon lifecycle):**
-```
-python3 "<SKILL_DIR>/assets/story_graph.py" queue "<graph>"
-python3 "<SKILL_DIR>/assets/story_graph.py" freeze "<graph>" --version <CANON-ID> --out <frozen.md> [--force] [--at YYYY-MM-DD]
-```
-- `queue` — the ratification queue: every load-bearing row still marked
-  `provisional`, grouped by section. Work it toward empty (add evidence, or
-  accept a row by removing its `provisional` mark) before freezing.
-- `freeze` — validate, then stamp a versioned baseline (`canon-version` /
-  `frozen-at` in the header) into a NEW file. Refuses if provisional rows remain
-  unless `--force`. A frozen graph that still holds provisional rows warns on
-  `validate`.
-
-**Continuity audit:**
-```
-python3 "<SKILL_DIR>/assets/story_graph.py" audit "<graph>" [--chapters-dir <dir>] [--adjudicated <file>]
-```
-Reports continuity candidates, grouped: a character who `knows` a fact before its
-evidence chapter; an `UNFIRED` setup past its must-fire-by; and orphan
-propositions (no holder, no evidence). Each has a stable `key` — list keys in the
-`--adjudicated` sidecar to suppress issues you've explained.
-
-**Revision impact & drift:**
-```
-python3 "<SKILL_DIR>/assets/story_graph.py" impact "<graph>" <prop-id>
-python3 "<SKILL_DIR>/assets/story_graph.py" deviations "<graph>" --chapters-dir <dir>
-```
-- `impact` — what depends on a proposition: the holders whose knowledge rests on
-  it, the evidence establishing it, and whether it anchors dramatic irony
-  (moving or cutting it collapses that irony).
-- `deviations` — manuscript-verified Evidence quotes that no longer appear in
-  their chapter: canon claims the current prose has drifted from. Rewrite a scene
-  and its claims light up. Exits non-zero when drift is found.
-
 ## Genre modules (optional)
 
 If the host project declares genre modules (in a worksheet RDL or an existing
