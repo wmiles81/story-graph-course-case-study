@@ -210,12 +210,19 @@ async function dashboard(m){const s=await api('/api/summary');m.innerHTML='';con
  entries.forEach(([k,v])=>{cards.appendChild($(`<div class="card"><b>${v}</b><span>${k}</span></div>`))});
  m.appendChild(cards);
  m.appendChild($(`<p class="hint">Graph loaded from <code>${s.path}</code>. ${s.kuzu?'Kùzu is on — Cypher + audit available.':'Kùzu is off — Cypher/audit disabled ('+ (s.kuzu_err||'kuzu not installed') +').'}</p>`));}
-async function graph(m){const d=await api('/api/graph');m.innerHTML='';
- const leg=document.createElement('div');leg.className='legend';const kinds=[...new Set(d.nodes.map(n=>n.kind))];
- kinds.forEach(k=>{const c=(d.nodes.find(n=>n.kind===k)||{}).color;leg.appendChild($(`<span><i style="background:${c}"></i>${k}</span>`))});
- m.appendChild(leg);
- const frame=document.createElement('div');frame.className='frame';frame.innerHTML='<svg id="gv"></svg>';m.appendChild(frame);
- draw(d);}
+async function graph(m){m.innerHTML='';
+ const bar=$(`<div class="row"><input id="focus" placeholder="focus on a proposition id (blank = whole graph)" style="flex:1;font:13px ui-monospace,monospace;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.45rem .6rem"><button class="go" id="fbtn">Draw</button></div>`);m.appendChild(bar);
+ const leg=$(`<div class="legend"></div>`);m.appendChild(leg);
+ const frame=$(`<div class="frame"><svg id="gv"></svg></div>`);m.appendChild(frame);
+ const hint=$(`<p class="hint"></p>`);m.appendChild(hint);
+ async function go(){const p=document.getElementById('focus').value.trim();const d=await api('/api/graph?prop='+encodeURIComponent(p));
+  leg.innerHTML='';[...new Set(d.nodes.map(n=>n.kind))].forEach(k=>{const c=(d.nodes.find(n=>n.kind===k)||{}).color;leg.appendChild($(`<span><i style="background:${c}"></i>${k}</span>`))});
+  hint.textContent=`${d.nodes.length} nodes · ${d.edges.length} edges${d.edges.length>24?' · edge labels hidden (dense) — focus on a proposition to see them':' · drag nodes to rearrange'}`;
+  if(!d.nodes.length){hint.textContent='No such proposition. Leave the box blank for the whole graph.';return}
+  draw(d)}
+ document.getElementById('fbtn').onclick=go;
+ document.getElementById('focus').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+ go();}
 function draw(d){const svg=document.getElementById('gv');const W=svg.clientWidth||900,H=560;
  const N=d.nodes.map(n=>({...n,x:W/2+Math.cos(Math.random()*6.28)*180,y:H/2+Math.sin(Math.random()*6.28)*140,vx:0,vy:0}));
  const idx=Object.fromEntries(N.map((n,i)=>[n.id,i]));
@@ -226,15 +233,18 @@ function draw(d){const svg=document.getElementById('gv');const W=svg.clientWidth
   for(const e of E){let a=N[e.s],b=N[e.t],dx=a.x-b.x,dy=a.y-b.y,dd=Math.hypot(dx,dy)||.01,f=dd*dd/k;a.fx-=dx/dd*f;a.fy-=dy/dd*f;b.fx+=dx/dd*f;b.fy+=dy/dd*f}
   for(const a of N){a.fx+=(W/2-a.x)*.03;a.fy+=(H/2-a.y)*.03;const dl=Math.hypot(a.fx,a.fy)||.01,t=Math.max(1.5,W*0.05*(1-it/300));a.x+=a.fx/dl*Math.min(dl,t);a.y+=a.fy/dl*Math.min(dl,t)}}
  const NS='http://www.w3.org/2000/svg';svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML='';
- for(const e of E){const l=document.createElementNS(NS,'line');l.setAttribute('x1',N[e.s].x);l.setAttribute('y1',N[e.s].y);l.setAttribute('x2',N[e.t].x);l.setAttribute('y2',N[e.t].y);l.setAttribute('stroke','var(--line)');l.setAttribute('stroke-width','1.6');l.dataset.s=e.s;l.dataset.t=e.t;svg.appendChild(l);
-  if(e.label){const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');tx.setAttribute('x',(N[e.s].x+N[e.t].x)/2);tx.setAttribute('y',(N[e.s].y+N[e.t].y)/2-4);tx.textContent=e.label;tx.dataset.el=1;svg.appendChild(tx)}}
+ const showLabels=E.length<=24;   // edge labels only make sense on a small/focused graph
+ for(const e of E){const l=document.createElementNS(NS,'line');l.setAttribute('x1',N[e.s].x);l.setAttribute('y1',N[e.s].y);l.setAttribute('x2',N[e.t].x);l.setAttribute('y2',N[e.t].y);l.setAttribute('stroke','var(--line)');l.setAttribute('stroke-width','1.5');l.dataset.s=e.s;l.dataset.t=e.t;svg.appendChild(l)}
+ if(showLabels)for(const e of E){if(!e.label)continue;const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');tx.setAttribute('x',(N[e.s].x+N[e.t].x)/2);tx.setAttribute('y',(N[e.s].y+N[e.t].y)/2-4);tx.textContent=e.label;tx.dataset.es=e.s;tx.dataset.et=e.t;svg.appendChild(tx)}
  N.forEach((n,i)=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',8);c.setAttribute('fill',n.color);c.dataset.i=i;svg.appendChild(c);
   const t=document.createElementNS(NS,'text');t.setAttribute('x',n.x+11);t.setAttribute('y',n.y+4);t.textContent=n.id;t.dataset.ti=i;svg.appendChild(t)});
+ function moveNode(i){
+  svg.querySelectorAll('circle').forEach(c=>{if(+c.dataset.i===i){c.setAttribute('cx',N[i].x);c.setAttribute('cy',N[i].y)}});
+  svg.querySelectorAll('text[data-ti]').forEach(t=>{if(+t.dataset.ti===i){t.setAttribute('x',N[i].x+11);t.setAttribute('y',N[i].y+4)}});
+  svg.querySelectorAll('line').forEach(l=>{if(+l.dataset.s===i){l.setAttribute('x1',N[i].x);l.setAttribute('y1',N[i].y)}if(+l.dataset.t===i){l.setAttribute('x2',N[i].x);l.setAttribute('y2',N[i].y)}});
+  svg.querySelectorAll('text[data-es]').forEach(t=>{const s=+t.dataset.es,e=+t.dataset.et;if(s===i||e===i){t.setAttribute('x',(N[s].x+N[e].x)/2);t.setAttribute('y',(N[s].y+N[e].y)/2-4)}});}
  let drag=null;svg.onpointerdown=ev=>{if(ev.target.dataset.i!=null){drag=+ev.target.dataset.i;svg.setPointerCapture(ev.pointerId)}};
- svg.onpointermove=ev=>{if(drag==null)return;const r=svg.getBoundingClientRect(),sx=W/r.width,sy=H/r.height;N[drag].x=(ev.clientX-r.left)*sx;N[drag].y=(ev.clientY-r.top)*sy;
-  svg.querySelectorAll('circle').forEach(c=>{if(+c.dataset.i===drag){c.setAttribute('cx',N[drag].x);c.setAttribute('cy',N[drag].y)}});
-  svg.querySelectorAll('text[data-ti]').forEach(t=>{if(+t.dataset.ti===drag){t.setAttribute('x',N[drag].x+11);t.setAttribute('y',N[drag].y+4)}});
-  svg.querySelectorAll('line').forEach(l=>{if(+l.dataset.s===drag){l.setAttribute('x1',N[drag].x);l.setAttribute('y1',N[drag].y)}if(+l.dataset.t===drag){l.setAttribute('x2',N[drag].x);l.setAttribute('y2',N[drag].y)}})};
+ svg.onpointermove=ev=>{if(drag==null)return;const r=svg.getBoundingClientRect();N[drag].x=(ev.clientX-r.left)*(W/r.width);N[drag].y=(ev.clientY-r.top)*(H/r.height);moveNode(drag)};
  svg.onpointerup=()=>{drag=null};}
 async function query(m){m.innerHTML='';const s=await api('/api/summary');
  m.appendChild($(`<p class="hint">Ad-hoc Cypher over the compiled graph. Node tables: Entity, Proposition, Source, Evidence, OpenLoop, Holder. Rel tables: RELATES, EPISTEMIC, GOVERNED_BY, EVIDENCED_BY, SUPPORTS.</p>`));
