@@ -38,9 +38,11 @@ each uncommitted chapter in order and folds its deltas into the graph.
    - **Entities** — new entities introduced; status changes (e.g. `active` →
      `deceased`, `departed`).
    - **Physics State** (`spe` module only) — one row per moved vector/axis for
-     chapter `N` (see the v1 ontology's Physics State schema, carried forward
-     unchanged). If the host has an SPE anchor catalog, use catalog anchor
-     IDs; otherwise use best-effort free-form.
+     chapter `N` (see Ontology-v2's *Module: `spe`* Physics State schema). If the
+     host supplies an SPE anchor catalog (`--spe-dir`), use catalog anchor ids
+     from it — an unknown anchor is a validation ERROR; with no catalog the
+     anchors are best-effort free-form (a WARN). `intimacy-ladder` /
+     `door-closed` anchors are always free-form.
    - **Timeline** — a row for chapter `N`: `story-time`, `elapsed`, `note`.
    - **Logistics** — where tracked entities are and their condition. Any
      `condition` value that records a change needs a `span`.
