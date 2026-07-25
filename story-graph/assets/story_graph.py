@@ -417,6 +417,11 @@ def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""
     check_commit_log(graph, report)
     if "spe" in graph["modules"]:
         check_physics(graph, spe_dir, report)
+    if graph["header"].get("canon-version"):
+        prov = unratified(graph)
+        if prov:
+            report.warn(f"frozen canon '{graph['header']['canon-version']}' still contains "
+                        f"{len(prov)} provisional (unratified) row(s)")
     return report
 
 
@@ -463,6 +468,54 @@ def report_graph(graph_path, chapters_dir=""):
     return story_graph_query.run_report(graph, canon_ch=graph["canon_ch"]), report
 
 
+def unratified(graph):
+    """Load-bearing rows still marked `provisional` — the ratification queue."""
+    out = []
+    for sec in ("Propositions", "Epistemic States", "Open Loops & Setups", "Logistics"):
+        for r in graph["sections"].get(sec, []):
+            if not is_provisional(r):
+                continue
+            if sec == "Epistemic States":
+                lab = f"{r.get('prop-id','?')}/{r.get('holder','?')}"
+            elif sec == "Logistics":
+                lab = f"ch{r.get('ch','?')}/{r.get('entity','?')}"
+            else:
+                lab = r.get("prop-id") or r.get("id") or "?"
+            out.append((sec, lab))
+    return out
+
+
+def freeze_graph(graph_path, version, out_path, force=False, at=""):
+    """Stamp a versioned canon baseline. Validates first; refuses if any
+    provisional (unratified) rows remain unless --force. Writes the stamped
+    graph to out_path; the source graph is left untouched."""
+    report = validate(graph_path)
+    if report.errors:
+        report.error("refusing to freeze: fix validation ERRORs first")
+        return report
+    text = Path(graph_path).read_text(encoding="utf-8")
+    graph = parse_graph(text)
+    prov = unratified(graph)
+    if prov and not force:
+        report.error(f"refusing to freeze: {len(prov)} unratified (provisional) load-bearing row(s) "
+                     "remain — resolve them, or pass --force to freeze with them recorded as unresolved")
+        return report
+    if not at:
+        from datetime import date
+        at = date.today().isoformat()
+    stamped, done = [], False
+    for ln in text.splitlines():
+        stamped.append(ln)
+        if not done and re.match(r"\|\s*current-canon-chapter\s*\|", ln):
+            stamped.append(f"| canon-version | {version} |")
+            stamped.append(f"| frozen-at | {at} |")
+            done = True
+    stamped.append(f"- FROZEN {version} @ {at} (unresolved provisional rows: {len(prov)})")
+    Path(out_path).write_text("\n".join(stamped) + "\n", encoding="utf-8")
+    report.warn(f"froze '{version}' at {at}; unresolved provisional rows: {len(prov)}")
+    return report
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="story_graph")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -492,6 +545,14 @@ def main(argv=None):
     ip.add_argument("--title", default="Imported Legacy Canon")
     ip.add_argument("--quotes", default="")
     ip.add_argument("--chapters-dir", default="")
+    qq = sub.add_parser("queue")
+    qq.add_argument("graph")
+    fz = sub.add_parser("freeze")
+    fz.add_argument("graph")
+    fz.add_argument("--version", required=True)
+    fz.add_argument("--out", required=True)
+    fz.add_argument("--force", action="store_true")
+    fz.add_argument("--at", default="")
     args = parser.parse_args(argv)
     if args.command == "validate":
         report = validate(args.graph, args.ontology, args.genres_dir, args.spe_dir, args.chapters_dir)
@@ -535,6 +596,25 @@ def main(argv=None):
             Path(args.report).write_text(coverage, encoding="utf-8")
         print(f"RESULT: wrote {args.out}; " + ", ".join(f"{k}={v}" for k, v in stats.items()))
         return 0
+    if args.command == "queue":
+        graph = parse_graph(Path(args.graph).read_text(encoding="utf-8"))
+        rows = unratified(graph)
+        if not rows:
+            print("Ratification queue empty — no provisional load-bearing rows.")
+            return 0
+        print(f"Ratification queue — {len(rows)} unratified (provisional) row(s):")
+        for sec, lab in rows:
+            print(f"  [{sec}] {lab}")
+        return 0
+    if args.command == "freeze":
+        report = freeze_graph(args.graph, args.version, args.out, args.force, args.at)
+        for e in report.errors:
+            print(f"ERROR: {e}")
+        for w in report.warnings:
+            print(f"WARN: {w}")
+        print(f"RESULT: {'frozen -> ' + args.out if not report.errors else 'not frozen'}; "
+              f"{len(report.errors)} error(s)")
+        return 1 if report.errors else 0
     return 2
 
 
