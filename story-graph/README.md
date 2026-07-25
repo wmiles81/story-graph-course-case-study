@@ -33,6 +33,29 @@ from **who knows it**, **who believes the opposite**, **what the reader knows**,
 and **the passage that proves it** — so contradictions aren't manufactured by
 sloppy modelling, and a claim can always show its receipt.
 
+## Does it use AI?
+
+**The tool uses none.** `story_graph.py` and its siblings are deterministic
+Python plus an embedded graph database — no LLM calls, no network, no model.
+Every command (`validate`, `compile`, `query`, `audit`, `impact`, `visualize`,
+`import-legacy`, …) is rule-checking, graph traversal, and rendering: same input,
+same output, offline. (`kuzu` is a database, not AI.)
+
+**The skill is AI-operated.** `SKILL.md` is a structured prompt — it tells an
+agent how to *author* the graph from prose: inferring entities, propositions, and
+who-knows-what when reverse-engineering or catching up chapters, and resolving
+that "Evie" / "Ms. Hart" / "the prosecutor" are one person. Seeding from a
+worksheet is transcription; `import-legacy` is pure code with no AI at all.
+
+**The split is the safety model.** The AI *proposes* — and every inferred fact is
+marked `provisional` under an anti-invention rule. The deterministic code
+*verifies*: an inferred claim only sheds `provisional` when it cites a verbatim
+quote the validator can find in the actual chapter (`validate --chapters-dir`).
+An AI can hallucinate a belief; it cannot hallucinate a sentence that is
+genuinely on the page. **AI reads and proposes; the tool verifies against the
+manuscript and answers deterministically** — which is why the resulting graph is
+auditable and reproducible.
+
 ## What you can do with it
 
 Run `story_graph.py` (stdlib; `compile`/`query`/`audit`/`impact` also want `pip install kuzu`):
