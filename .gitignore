@@ -2,3 +2,9 @@
 __MACOSX/
 *.pyc
 __pycache__/
+
+# excluded from the remote
+series/
+.venv/
+venv/
+env/
