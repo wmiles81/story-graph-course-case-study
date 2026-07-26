@@ -233,18 +233,6 @@ python3 "<SKILL_DIR>/assets/story_graph.py" freeze "<graph>" --version <CANON-ID
   unless `--force`. A frozen graph that still holds provisional rows warns on
   `validate`.
 
-**Coverage (is the graph actually populated?):**
-```
-python3 "<SKILL_DIR>/assets/story_graph.py" coverage "<graph>"
-```
-Reports which ontology layers are populated and how deeply — rows per layer,
-what share of propositions have a holder, how many are held by 2+ holders
-(shared knowledge), dramatic-irony pairs, source-verified share, and how
-concentrated the edges are on one node — then FLAGS the gaps. Run it first on any
-inherited or imported graph: a graph can validate perfectly and still record
-claims with nobody's knowledge attached and no entity relationships, which no
-amount of querying will reveal. The flags name the fix (usually catch-up mode).
-
 **Continuity audit:**
 ```
 python3 "<SKILL_DIR>/assets/story_graph.py" audit "<graph>" [--chapters-dir <dir>] [--adjudicated <file>]

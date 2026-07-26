@@ -64,6 +64,7 @@ Run `story_graph.py` (stdlib; `compile`/`query`/`audit`/`impact` also want `pip 
   seed / reverse-engineer / catch-up / `import-legacy` modes in `reference/`.
 - **Query** — `query` (irony · knows · open-loops · receipts), `report`, and
   ad-hoc **Cypher** over the compiled graph.
+- **Diagnose** — `coverage` (which layers are populated, how deep, and what's missing).
 - **Ratify** — `queue` (what's still provisional) and `freeze` (stamp a versioned canon baseline).
 - **Audit & revise** — `audit` (continuity detectors), `impact` (what depends on a claim), `deviations` (where the prose has drifted from canon).
 - **Visualize** — `visualize` writes a self-contained node-link HTML page.

@@ -47,3 +47,25 @@ def test_freeze_clean_graph_succeeds_without_force(tmp_path):
     rep = sg.freeze_graph(str(g), "CANON-v1.0", str(out), at="2026-07-25")
     assert rep.errors == [] and out.exists()
     assert sg.validate(str(out)).errors == []
+
+
+def test_coverage_flags_thin_layers():
+    """Coverage must name the gaps a validating-but-shallow graph has, so they are
+    reported rather than discovered by squinting at a hairball."""
+    props = ("## Propositions\n| prop-id | statement | canon-status | governing-source | span |\n"
+             "|---|---|---|---|---|\n"
+             "| p1 | a | true | ms | provisional |\n| p2 | b | true | ms | provisional |\n"
+             "| p3 | c | true | ms | provisional |\n")
+    epi = ("## Epistemic States\n| prop-id | holder | mode | since-ch | span |\n|---|---|---|---|---|\n"
+           "| p1 | jonah | knows | 1 | provisional |\n")
+    out = sg.coverage_report(sg.parse_graph(make_graph(Propositions=props, **{"Epistemic States": epi})), "T")
+    assert "COVERAGE — T" in out
+    assert "1/3" in out                                # only one of three has a holder
+    assert "No believes-false states" in out          # irony impossible
+    assert "have no holder" in out                     # thin epistemic layer
+    assert "Relationships is effectively empty" in out or "Relationships" in out
+
+
+def test_coverage_clean_graph_has_fewer_flags():
+    out = sg.coverage_report(sg.parse_graph(MINIMAL_V2), "T")
+    assert "LAYER POPULATION" in out and "EPISTEMIC DEPTH" in out

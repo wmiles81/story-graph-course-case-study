@@ -688,6 +688,114 @@ def deviations(graph_path, chapters_dir):
     return devs
 
 
+def coverage_report(graph, title=""):
+    """Which layers of the ontology are actually populated, and how deeply.
+
+    A graph can validate cleanly and still be nearly useless: claims recorded but
+    nobody's knowledge attached, no entity relationships, no believes-false. This
+    is the diagnostic that says so, instead of leaving it to be discovered by
+    eyeballing a hairball. Stdlib only.
+    """
+    S = graph["sections"]
+    def rows(name):
+        return S.get(name, [])
+    n = {name: len(rows(name)) for name in
+         ("Sources", "Entities", "Locations & Distances", "Relationships", "Propositions",
+          "Epistemic States", "Open Loops & Setups", "Evidence", "Timeline", "Logistics",
+          "Local Vocabulary")}
+    commits = sum(1 for ln in graph.get("_raw", {}).get("Canon Commit Log", [])
+                  if ln.strip().startswith("- "))
+
+    props = [r.get("prop-id") for r in rows("Propositions") if r.get("prop-id")]
+    holders_of = {}
+    modes = {}
+    for r in rows("Epistemic States"):
+        pid, h, m = r.get("prop-id"), r.get("holder"), (r.get("mode") or "")
+        if pid and h:
+            holders_of.setdefault(pid, set()).add(h)
+            modes[m] = modes.get(m, 0) + 1
+    attached = len(holders_of)
+    shared = sum(1 for v in holders_of.values() if len(v) > 1)
+    all_holders = {h for v in holders_of.values() for h in v}
+    reader_knows = {r.get("prop-id") for r in rows("Epistemic States")
+                    if r.get("holder") == "reader" and r.get("mode") == "knows"}
+    disbelieved = {r.get("prop-id") for r in rows("Epistemic States")
+                   if r.get("mode") == "believes-false"}
+    irony = len(reader_knows & disbelieved)
+
+    verified = sum(1 for r in rows("Propositions")
+                   if _span_ids(r.get("span", "")) and not is_provisional(r))
+    provisional = len(unratified(graph))
+
+    # edge shape: how concentrated is the graph on one node?
+    deg = {}
+    for r in rows("Propositions"):
+        gs = r.get("governing-source")
+        if gs:
+            deg[gs] = deg.get(gs, 0) + 1
+    for r in rows("Epistemic States"):
+        for k in (r.get("holder"), r.get("prop-id")):
+            if k:
+                deg[k] = deg.get(k, 0) + 1
+    for r in rows("Relationships"):
+        for k in (r.get("from"), r.get("to")):
+            if k:
+                deg[k] = deg.get(k, 0) + 1
+    total_edges = sum(1 for r in rows("Propositions") if r.get("governing-source")) \
+        + n["Epistemic States"] + n["Relationships"]
+    hub, hub_deg = (max(deg.items(), key=lambda kv: kv[1]) if deg else ("—", 0))
+
+    def pct(a, b):
+        return f"{(100 * a // b) if b else 0}%"
+
+    L = [f"COVERAGE — {title or 'story graph'} (canon ch{graph['canon_ch']})",
+         "=" * 56, "LAYER POPULATION"]
+    for name in ("Sources", "Entities", "Locations & Distances", "Relationships", "Propositions",
+                 "Epistemic States", "Open Loops & Setups", "Evidence", "Timeline", "Logistics"):
+        mark = "   <- empty" if n[name] == 0 else ""
+        L.append(f"  {name:<24}{n[name]:>5}{mark}")
+    L.append(f"  {'Canon commits':<24}{commits:>5}")
+
+    L += ["", "EPISTEMIC DEPTH",
+          f"  propositions with a holder   {attached:>4}/{len(props)}  ({pct(attached, len(props))})",
+          f"  held by 2+ holders (shared)  {shared:>4}",
+          f"  distinct holders             {len(all_holders):>4}",
+          f"  dramatic irony pairs         {irony:>4}",
+          "  modes: " + (", ".join(f"{k}={v}" for k, v in sorted(modes.items())) or "none")]
+
+    L += ["", "EVIDENCE & RATIFICATION",
+          f"  source-verified propositions {verified:>4}/{len(props)}  ({pct(verified, len(props))})",
+          f"  provisional load-bearing rows{provisional:>5}"]
+
+    L += ["", "SHAPE",
+          f"  busiest node  {hub}  {hub_deg} edges of {total_edges} ({pct(hub_deg, total_edges)})"]
+
+    flags = []
+    if n["Entities"] >= 5 and n["Relationships"] <= max(2, n["Entities"] // 20):
+        flags.append(f"Relationships is effectively empty ({n['Relationships']} edge(s) across "
+                     f"{n['Entities']} entities) — entity relationships cannot appear in queries.")
+    if props and attached * 100 // len(props) < 50:
+        flags.append(f"{100 - (attached * 100 // len(props))}% of propositions have no holder — "
+                     "who-knows-what is largely unrecorded.")
+    if not disbelieved:
+        flags.append("No believes-false states — dramatic irony cannot be derived.")
+    if props and verified * 100 // len(props) < 25:
+        flags.append(f"Only {pct(verified, len(props))} of propositions cite a verified source span.")
+    if total_edges and hub_deg * 100 // total_edges > 60:
+        flags.append(f"{pct(hub_deg, total_edges)} of all edges land on one node ({hub}) — the graph "
+                     "is hub-dominated, so real structure is hard to see; filter that edge type out.")
+    if n["Locations & Distances"] == 0 and n["Entities"]:
+        flags.append("No locations/distances — travel-time logistics cannot be checked.")
+    if flags:
+        L += ["", "FLAGS"]
+        L += [f"  ! {f}" for f in flags]
+        L += ["  -> populate thin layers with the catch-up mode "
+              "(reference/catch-up-from-chapters.md)."]
+    else:
+        L += ["", "No coverage gaps flagged."]
+    return "\n".join(L)
+
+
 def unratified(graph):
     """Load-bearing rows still marked `provisional` — the ratification queue."""
     out = []
@@ -765,6 +873,8 @@ def main(argv=None):
     ip.add_argument("--title", default="Imported Legacy Canon")
     ip.add_argument("--quotes", default="")
     ip.add_argument("--chapters-dir", default="")
+    cv = sub.add_parser("coverage")
+    cv.add_argument("graph")
     qq = sub.add_parser("queue")
     qq.add_argument("graph")
     fz = sub.add_parser("freeze")
@@ -830,6 +940,11 @@ def main(argv=None):
         if args.report:
             Path(args.report).write_text(coverage, encoding="utf-8")
         print(f"RESULT: wrote {args.out}; " + ", ".join(f"{k}={v}" for k, v in stats.items()))
+        return 0
+    if args.command == "coverage":
+        text = Path(args.graph).read_text(encoding="utf-8")
+        title = text.splitlines()[0].lstrip("# ").strip() if text.strip() else ""
+        print(coverage_report(parse_graph(text), title))
         return 0
     if args.command == "queue":
         graph = parse_graph(Path(args.graph).read_text(encoding="utf-8"))

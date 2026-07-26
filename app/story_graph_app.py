@@ -310,6 +310,9 @@ def api_cypher(cypher):
 
 def api_report(kind):
     g, path, ch = STATE["graph"], STATE["path"], STATE["chapters_dir"]
+    if kind == "coverage":
+        title = STATE["text"].splitlines()[0].lstrip("# ").strip() if STATE["text"] else ""
+        return {"text": sg.coverage_report(g, title)}
     if kind == "queue":
         rows = sg.unratified(g)
         return {"text": "Ratification queue is empty." if not rows else
@@ -655,6 +658,10 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padd
 circle.gmatch{stroke:var(--accent);stroke-width:2px}
 circle.ghover{stroke:var(--ink);stroke-width:2px}
 .gpanel{position:absolute;top:10px;right:10px;width:230px;max-height:calc(100% - 20px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;box-shadow:0 6px 24px rgba(0,0,0,.3);font-size:13px}
+.gchips{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;padding:.1rem .6rem .5rem}
+.gchip{font:11px ui-monospace,monospace;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:999px;padding:.2rem .6rem;cursor:pointer}
+.gchip.off{opacity:.45;text-decoration:line-through}
+.gchip.reset{border-color:var(--accent);color:var(--accent)}
 .setwin{width:min(860px,100%)}
 .setwin table{font:12.5px ui-monospace,monospace} .setwin td{vertical-align:top}
 .setwin td:nth-child(4){font:13px/1.4 'Iowan Old Style',Palatino,Georgia,serif;min-width:16rem}
@@ -781,9 +788,30 @@ async function graph(m){m.innerHTML='';
 // element attributes — never re-simulate — so interaction stays smooth even at ~200 nodes.
 // `full` (internal, threaded through recursive calls) is the true root dataset, so "Focus" on a
 // neighbourhood can always offer a "Show all" back to the original graph, however deep the focus.
+let GHIDE=new Set();   // edge types switched off in the graph view (persists across redraws)
 function draw(d,mount,full){full=full||d;mount.innerHTML='';
+ // Edge-type filter: a hub edge type (e.g. 120 governed-by edges into one source)
+ // swamps the layout, so allow switching types off. Nodes left with no visible
+ // edge drop out, which collapses the view onto the layer you care about.
+ const unfiltered=d;
+ const etypes={};(unfiltered.edges||[]).forEach(e=>{const k=e.label||'(unlabelled)';etypes[k]=(etypes[k]||0)+1});
+ if(GHIDE.size){
+  const eg=(d.edges||[]).filter(e=>!GHIDE.has(e.label||'(unlabelled)'));
+  const keep=new Set();eg.forEach(e=>{keep.add(e.from);keep.add(e.to)});
+  d={nodes:(d.nodes||[]).filter(n=>keep.has(n.id)),edges:eg};
+ }
  const wrap=$(`<div class="frame gwrap"><div class="gtools"><input class="gsearch" placeholder="search nodes…" aria-label="Search nodes"><span class="gcount hint" aria-live="polite"></span><span style="flex:1"></span>${full!==d?'<button class="ghost" id="gall">Show all</button>':''}<button class="ghost" id="gzo" title="Zoom out">−</button><button class="ghost" id="gzi" title="Zoom in">+</button><button class="ghost" id="gzf" title="Fit to view">Fit</button></div><div class="gstage"><svg tabindex="0" role="img" aria-label="Story graph with ${d.nodes.length} nodes"></svg><div class="gpanel" hidden></div></div></div>`);
  mount.appendChild(wrap);
+ if(Object.keys(etypes).length>1){
+  const chips=$(`<div class="gchips"><span class="hint">edges:</span></div>`);
+  Object.entries(etypes).sort((a,b)=>b[1]-a[1]).forEach(([k,cnt])=>{
+   const off=GHIDE.has(k);
+   const b=$(`<button class="gchip${off?' off':''}" title="${off?'Show':'Hide'} ${esc(k)} edges (${cnt})">${esc(k)} ${cnt}</button>`);
+   b.onclick=()=>{off?GHIDE.delete(k):GHIDE.add(k);draw(unfiltered,mount,full)};
+   chips.appendChild(b)});
+  if(GHIDE.size){const r=$(`<button class="gchip reset">reset</button>`);r.onclick=()=>{GHIDE.clear();draw(unfiltered,mount,full)};chips.appendChild(r)}
+  wrap.insertBefore(chips,wrap.querySelector('.gstage'));
+ }
  const svg=wrap.querySelector('svg'),stage=wrap.querySelector('.gstage'),panel=wrap.querySelector('.gpanel');
  const sinput=wrap.querySelector('.gsearch'),countEl=wrap.querySelector('.gcount');
  const NS='http://www.w3.org/2000/svg',W=stage.clientWidth||900,H=560;
@@ -1097,7 +1125,7 @@ async function query(m){m.innerHTML='';const s=await api('/api/summary');
   h+=r.rows.map(row=>'<tr>'+row.map(v=>`<td>${v==null?'':String(v)}</td>`).join('')+'</tr>').join('');
   h+='</tbody></table><p class="hint">'+r.rows.length+' row(s)</p>';out.innerHTML=h};}
 async function reports(m){m.innerHTML='';const bar=$(`<div class="row"></div>`);
- ['report','audit','deviations','queue'].forEach(k=>{const b=$(`<button class="ghost">${k}</button>`);b.onclick=async()=>{pre.textContent='running…';const r=await api('/api/report?kind='+k);pre.textContent=r.text||r.error||''};bar.appendChild(b)});
+ ['coverage','report','audit','deviations','queue'].forEach(k=>{const b=$(`<button class="ghost">${k}</button>`);b.onclick=async()=>{pre.textContent='running…';const r=await api('/api/report?kind='+k);pre.textContent=r.text||r.error||''};bar.appendChild(b)});
  m.appendChild(bar);const pre=$(`<pre>Pick a report above.</pre>`);m.appendChild(pre);}
 // ---- Settings modal (adapted from the Novel Machine authoring UI) ----
 const A11Y_KEY='sgos.a11y';
