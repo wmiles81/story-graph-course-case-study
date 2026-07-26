@@ -80,3 +80,36 @@ def test_inline_frontend_js_is_syntactically_valid(tmp_path):
     js.write_text(m.group(1), encoding="utf-8")
     r = subprocess.run([node, "--check", str(js)], capture_output=True, text=True)
     assert r.returncode == 0, f"inline JS syntax error:\n{r.stderr}"
+
+
+def test_ask_repairs_invalid_cypher_once(tmp_path):
+    """An invalid generated query must be fed back to the model once and repaired,
+    not surfaced as a raw binder error (the user hit exactly this)."""
+    pytest.importorskip("kuzu")
+    import json as _json
+    app = _app()
+    app._env_path = lambda: tmp_path / ".env"
+    g = tmp_path / "g.md"
+    props = ("## Propositions\n| prop-id | statement | canon-status | governing-source | span |\n"
+             "|---|---|---|---|---|\n| p1 | x | true | ms | provisional |\n")
+    epi = ("## Epistemic States\n| prop-id | holder | mode | since-ch | span |\n|---|---|---|---|---|\n"
+           "| p1 | reader | knows | 1 | provisional |\n")
+    g.write_text(make_graph(Propositions=props, **{"Epistemic States": epi}), encoding="utf-8")
+    app.load(str(g))
+    app.STATE.update(provider="ollama", model="fake")
+
+    bad = ("MATCH (h:Holder)-[e:EPISTEMIC]->(p:Proposition) RETURN DISTINCT p.id AS pid "
+           "ORDER BY CAST(e.since_ch AS INT64)")          # e is out of scope after DISTINCT
+    good = "MATCH (h:Holder)-[e:EPISTEMIC]->(p:Proposition) RETURN h.id AS holder, p.id AS pid"
+    calls = []
+
+    def fake_chat(provider, model, system, user, max_tokens=2048):
+        calls.append(user)
+        return _json.dumps({"cypher": bad if len(calls) == 1 else good, "explanation": "s"})
+
+    app._chat = fake_chat
+    r = app.api_ask("who knows what?")
+    assert len(calls) == 2, "should retry exactly once"
+    assert "Engine error" in calls[1], "the retry must include the engine's error"
+    assert r.get("repaired") is True and "error" not in r
+    assert r["rows"] and r["columns"] == ["holder", "pid"]

@@ -314,6 +314,11 @@ REL TABLES
 NOTES
   since_ch is a STRING chapter number; order numerically with CAST(x AS INT64).
   Dramatic irony = the reader knows a proposition a character believes-false.
+  ORDER BY may only reference names you RETURNed (aliases) — after RETURN DISTINCT the
+  pattern variables are OUT OF SCOPE, so `RETURN DISTINCT p.statement AS s, e.since_ch AS ch
+  ORDER BY CAST(ch AS INT64)` is right and `ORDER BY CAST(e.since_ch AS INT64)` is an error.
+  Keep it simple: prefer one MATCH pattern; avoid variable-length patterns like [:RELATES*0..1]
+  and avoid comma-joined extra patterns unless the question truly needs them.
   All ids are lowercase kebab-case slugs — entities like 'jonah-harrow' / 'margot-vance',
   the reserved holder 'reader', propositions like 'p-b03-000007'. When the user names
   someone loosely ("Jonah", "Margot"), NEVER use equality on a display name — match the
@@ -342,23 +347,56 @@ def api_ask(question):
         "\n\nReturn a single MATCH query — never CREATE/MERGE/SET/DELETE. Prefer RETURNing "
         "readable fields (entity/proposition ids and p.statement). Respond with ONLY a JSON "
         'object and nothing else: {"cypher": "<the query>", "explanation": "<one sentence>"}.')
-    try:
-        text = _chat(provider, model, system, question).strip()
-    except Exception as e:
-        label = (_PROV.get(provider) or {}).get("label", provider)
-        return {"error": f"{label} call failed: {e}"}
-    if text.startswith("```"):
-        text = text.strip("`")
-        text = text[text.find("{"):]
-    try:
-        obj = json.loads(text[text.find("{"): text.rfind("}") + 1])
-    except Exception:
-        return {"error": "the model did not return valid JSON", "raw": text[:400]}
+    def round_trip(user_msg):
+        """Ask the model for {cypher, explanation}; returns (obj, error_string)."""
+        try:
+            text = _chat(provider, model, system, user_msg).strip()
+        except Exception as e:
+            label = (_PROV.get(provider) or {}).get("label", provider)
+            return None, f"{label} call failed: {e}"
+        if text.startswith("```"):
+            text = text.strip("`")
+            text = text[text.find("{"):]
+        try:
+            return json.loads(text[text.find("{"): text.rfind("}") + 1]), None
+        except Exception:
+            return None, "the model did not return valid JSON: " + text[:200]
+
+    WRITE_RE = r"\b(create|merge|set|delete|drop|detach|copy|alter|install|load)\b"
+    obj, err = round_trip(question)
+    if err:
+        return {"error": err}
     cypher = (obj.get("cypher") or "").strip()
     explanation = obj.get("explanation", "")
-    if re.search(r"\b(create|merge|set|delete|drop|detach|copy|alter|install|load)\b", cypher, re.I):
-        return {"cypher": cypher, "explanation": explanation, "error": "refusing to run a non-read-only query"}
+    if re.search(WRITE_RE, cypher, re.I):
+        return {"cypher": cypher, "explanation": explanation,
+                "error": "refusing to run a non-read-only query"}
     result = api_cypher(cypher)
+
+    # One self-repair attempt: hand the failing query + the engine's error back to
+    # the model. Invalid-Cypher errors are common and a raw binder message is
+    # useless to the reader, so try to fix it before surfacing anything.
+    if result.get("error"):
+        first_cypher, first_error = cypher, result["error"]
+        obj2, err2 = round_trip(
+            f"{question}\n\nYour previous query failed. Fix it and return the corrected JSON.\n"
+            f"Query:\n{first_cypher}\n\nEngine error:\n{first_error}")
+        if not err2:
+            c2 = (obj2.get("cypher") or "").strip()
+            if c2 and not re.search(WRITE_RE, c2, re.I):
+                r2 = api_cypher(c2)
+                if not r2.get("error"):
+                    r2["cypher"] = c2
+                    r2["explanation"] = obj2.get("explanation", explanation)
+                    r2["repaired"] = True
+                    r2["first_error"] = first_error
+                    r2["first_cypher"] = first_cypher
+                    return r2
+                result = r2
+                cypher, explanation = c2, obj2.get("explanation", explanation)
+        result["first_error"] = first_error
+        result["first_cypher"] = first_cypher
+
     result["cypher"] = cypher
     result["explanation"] = explanation
     return result
@@ -923,7 +961,22 @@ function askRender(out){
  out.innerHTML='';const r=ASK.r;
  if(!r)return;
  if(r.cypher)out.appendChild($(`<p class="hint"><b>Generated Cypher</b> — ${esc(r.explanation||'')}</p>`)),out.appendChild($(`<pre>${esc(r.cypher)}</pre>`));
- if(r.error){out.appendChild($(`<p class="err">${esc(r.error)}</p>`));if(r.raw)out.appendChild($(`<pre>${esc(r.raw)}</pre>`));return}
+ if(r.error){
+  const invalid=/binder|parser|exception|syntax/i.test(r.error);
+  out.appendChild($(`<p class="err">${invalid?'The generated query was not valid for this graph.':esc(r.error)}</p>`));
+  if(invalid)out.appendChild($(`<p class="hint">The engine said: <code>${esc(r.error)}</code>${r.first_error?' · an automatic repair attempt also failed':''}</p>`));
+  if(r.first_error&&r.first_cypher)out.appendChild($(`<details><summary class="hint">first attempt</summary><pre>${esc(r.first_cypher)}</pre><p class="hint">${esc(r.first_error)}</p></details>`));
+  if(r.raw)out.appendChild($(`<pre>${esc(r.raw)}</pre>`));
+  const esc_row=$(`<div class="row"></div>`);
+  const eb=$(`<button class="ghost">Edit in Query tab</button>`);
+  eb.onclick=()=>{QUERY_PREFILL=r.cypher||r.first_cypher||'';TAB='query';render()};
+  const rb=$(`<button class="ghost">Try again</button>`);
+  rb.onclick=()=>{const b=[...document.querySelectorAll('#main button')].find(x=>x.textContent==='Ask');if(b)b.click()};
+  if(r.cypher||r.first_cypher)esc_row.appendChild(eb);
+  esc_row.appendChild(rb);out.appendChild(esc_row);
+  out.appendChild($(`<p class="hint">Tip: naming the tables helps — e.g. "which Holders have an EPISTEMIC edge to a Proposition, with the mode and since_ch".</p>`));
+  return}
+ if(r.repaired)out.appendChild($(`<p class="hint">↻ the first query failed (<code>${esc(r.first_error||'')}</code>) and was repaired automatically.</p>`));
  // view toggle
  const bar=$(`<div class="row"></div>`);
  [['table','Table'],['graph','Graph']].forEach(([k,l])=>{const b=$(`<button class="${ASK.view===k?'go':'ghost'}">${l}</button>`);b.onclick=()=>{ASK.view=k;askRender(out)};bar.appendChild(b)});
@@ -970,9 +1023,12 @@ async function ask(m){m.innerHTML='';
   const r=await api('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:ta.value})},95000);
   ASK.r=r;ASK.mode='auto';ASK.src=0;ASK.tgt=-1;ASK.lbl=-1;   // reset mapping for the new result shape
   askRender(out)};}
+let QUERY_PREFILL='';
 async function query(m){m.innerHTML='';const s=await api('/api/summary');
  m.appendChild($(`<p class="hint">Ad-hoc Cypher over the compiled graph. Node tables: Entity, Proposition, Source, Evidence, OpenLoop, Holder. Rel tables: RELATES, EPISTEMIC, GOVERNED_BY, EVIDENCED_BY, SUPPORTS.</p>`));
- const ta=$(`<textarea>MATCH (h:Holder)-[e:EPISTEMIC]->(p:Proposition) RETURN h.id, e.mode, e.since_ch, p.id ORDER BY e.since_ch LIMIT 25</textarea>`);m.appendChild(ta);
+ const ta=$(`<textarea>MATCH (h:Holder)-[e:EPISTEMIC]->(p:Proposition) RETURN h.id, e.mode, e.since_ch, p.id ORDER BY e.since_ch LIMIT 25</textarea>`);
+ if(QUERY_PREFILL){ta.value=QUERY_PREFILL;QUERY_PREFILL=''}
+ m.appendChild(ta);
  const rowdiv=$(`<div class="row"></div>`);const btn=$(`<button class="go">Run</button>`);rowdiv.appendChild(btn);m.appendChild(rowdiv);
  const out=$(`<div></div>`);m.appendChild(out);
  if(!s.kuzu){out.innerHTML='<p class="err">Kùzu is off — install it (pip install kuzu) and restart to enable the console.</p>';btn.disabled=true;return}
