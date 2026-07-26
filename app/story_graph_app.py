@@ -852,7 +852,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   E.forEach((e,ei)=>{const key=Math.min(e.s,e.t)+':'+Math.max(e.s,e.t);
    seen[key]=(seen[key]||0);out[ei]=seen[key]++;});
   return out})();
- function elabPos(ei){const e=E[ei];
+ function elabPos(ei,tOverride){const e=E[ei];
   const lo=Math.min(e.s,e.t),hi=Math.max(e.s,e.t),A=N[lo],B=N[hi];
   const slot=_pairSlot[ei], dirBack=(e.s!==lo);
   const dx=B.x-A.x, dy=B.y-A.y, len=Math.hypot(dx,dy)||1;
@@ -862,7 +862,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   // gap grows with the drawn line and works at any orientation), on the canonical
   // A->B basis so the flip doesn't cancel it; plus a small constant perpendicular
   // nudge to lift the text off the line.
-  const t=0.5+((dirBack?1:-1)*(0.20+0.07*slot));
+  const t=(tOverride==null)?0.5+((dirBack?1:-1)*(0.20+0.07*slot)):tOverride;
   const perp=((dirBack?1:-1)*(1+slot))*8*inv;
   return {x:A.x+dx*t - dy/len*perp,
           y:A.y+dy*t + dx/len*perp - 3*inv};}
@@ -953,25 +953,31 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  let _declutterPending=false;
  function _rects(a,b){return Math.min(a.right,b.right)-Math.max(a.left,b.left)>1 &&
                              Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1}
+ // A label only means something while it sits on its own line, so collisions are
+ // resolved by SLIDING ALONG the edge — never by drifting off it. If no position on
+ // the edge is free, the label is hidden (hover/selection brings it back).
+ const _CANDS=[null,0.34,0.66,0.22,0.78,0.5];
  function declutter(){
   const items=[];
   for(let ei=0;ei<E.length;ei++){const t=elabels[ei];
    if(!t)continue;
-   if(t.dataset.hidByClash){t.style.display='';delete t.dataset.hidByClash}   // re-test each pass
+   if(t.dataset.hidByClash){t.style.display='';delete t.dataset.hidByClash}
    if(t.style.display==='none')continue;
-   items.push({t,r:t.getBoundingClientRect()});}
-  if(!items.length||items.length>70)return;      // dense views already hide labels via LOD
+   const q=elabPos(ei);t.setAttribute('x',q.x);t.setAttribute('y',q.y);      // reset to its own edge
+   items.push({ei,t,r:t.getBoundingClientRect()});}
+  if(!items.length||items.length>70)return;
   items.sort((a,b)=>a.r.top-b.r.top||a.r.left-b.r.left);
   const placed=[];
   for(const it of items){
-   let ok=false;
-   for(let attempt=0;attempt<3&&!ok;attempt++){
-    if(!placed.some(p=>_rects(it.r,p))){ok=true;break}
-    it.t.setAttribute('y',(+it.t.getAttribute('y'))+13*inv);   // shift a line down
+   let done=false;
+   for(const cand of _CANDS){
+    const q=elabPos(it.ei,cand);
+    it.t.setAttribute('x',q.x);it.t.setAttribute('y',q.y);
     it.r=it.t.getBoundingClientRect();
+    if(!placed.some(p=>_rects(it.r,p))){placed.push(it.r);done=true;break}
    }
-   if(ok||!placed.some(p=>_rects(it.r,p))){placed.push(it.r)}
-   else {it.t.style.display='none';it.t.dataset.hidByClash='1'}   // give up: hide, keep on hover
+   if(!done){const q=elabPos(it.ei);it.t.setAttribute('x',q.x);it.t.setAttribute('y',q.y);
+    it.t.style.display='none';it.t.dataset.hidByClash='1'}
   }}
  function scheduleDeclutter(){if(_declutterPending)return;_declutterPending=true;
   requestAnimationFrame(()=>{_declutterPending=false;declutter()})}
