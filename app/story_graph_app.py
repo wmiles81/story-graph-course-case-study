@@ -568,17 +568,41 @@ async function timeline(m){m.innerHTML='';const d=await api('/api/timeline');
  const cap=$(`<p class="hint">Time runs left→right (chapter); each row is a character. Hover a dot for the belief, or click to pin it here.</p>`);m.appendChild(cap);
  frame.querySelectorAll('circle').forEach(c=>{c.onclick=()=>{cap.textContent=decodeURIComponent(c.dataset.b)}});}
 // Ask state survives tab switches — question, last result, chosen view + column mapping.
-let ASK={q:'',r:null,view:'table',src:0,tgt:-1,lbl:-1};
+let ASK={q:'',r:null,view:'table',mode:'auto',src:0,tgt:-1,lbl:-1};
 const ASK_PAL=['#0b7d84','#8a5cf6','#b4531f','#0e7c86','#94708a','#5a3fa6'];
+// Columns whose values annotate an edge rather than being a node in their own right.
+function askLabelCols(r){
+ const n=r.columns.length, rows=r.rows, out=new Set();
+ r.columns.forEach((c,i)=>{
+  if(/mode|edge|type|label|rel\b|relation|trend|status|since|_ch\b|chapter/i.test(c)){out.add(i);return}
+  const vals=new Set(rows.map(rw=>String(rw[i]??'')));           // low-cardinality repeats read as labels
+  if(rows.length>=4&&vals.size<=Math.max(2,Math.floor(rows.length/3)))out.add(i);});
+ if(n-out.size<2){out.clear();}                                   // need at least two node columns
+ return out;
+}
 function askGraphData(r){
- const n=r.columns.length;
- const src=Math.min(ASK.src,n-1), tgt=(ASK.tgt<0?n-1:Math.min(ASK.tgt,n-1)), lbl=ASK.lbl;
- const nodes={},edges=[];
- r.rows.forEach(rw=>{
-  const a=rw[src]==null?'':String(rw[src]), b=rw[tgt]==null?'':String(rw[tgt]);
-  if(a&&!(a in nodes))nodes[a]={id:a,kind:r.columns[src],color:ASK_PAL[src%ASK_PAL.length]};
-  if(b&&b!==a&&!(b in nodes))nodes[b]={id:b,kind:r.columns[tgt],color:ASK_PAL[tgt%ASK_PAL.length]};
-  if(a&&b&&a!==b)edges.push({from:a,to:b,label:(lbl>=0&&lbl<n)?String(rw[lbl]??''):''});});
+ const n=r.columns.length, nodes={},edges=[],seen=new Set();
+ const addNode=(v,i)=>{if(v&&!(v in nodes))nodes[v]={id:v,kind:r.columns[i],color:ASK_PAL[i%ASK_PAL.length]}};
+ const addEdge=(a,b,lab)=>{const k=a+''+b+''+lab;if(a&&b&&a!==b&&!seen.has(k)){seen.add(k);edges.push({from:a,to:b,label:lab})}};
+ if(ASK.mode==='auto'&&n>=2){
+  // Full-row graph: chain every node column left→right; label columns annotate the next edge.
+  const lblCols=askLabelCols(r);
+  r.rows.forEach(rw=>{
+   let prev=null,previ=-1,pend='';
+   r.columns.forEach((c,i)=>{
+    const v=rw[i]==null?'':String(rw[i]);
+    if(lblCols.has(i)){pend=pend?pend+' · '+v:v;return}
+    addNode(v,i);
+    if(prev)addEdge(prev,v,pend);
+    pend='';prev=v;previ=i;});
+  });
+ }else{
+  const src=Math.min(ASK.src,n-1), tgt=(ASK.tgt<0?n-1:Math.min(ASK.tgt,n-1)), lbl=ASK.lbl;
+  r.rows.forEach(rw=>{
+   const a=rw[src]==null?'':String(rw[src]), b=rw[tgt]==null?'':String(rw[tgt]);
+   addNode(a,src);if(b!==a)addNode(b,tgt);
+   addEdge(a,b,(lbl>=0&&lbl<n)?String(rw[lbl]??''):'');});
+ }
  return {nodes:Object.values(nodes),edges};
 }
 function askRender(out){
@@ -597,16 +621,21 @@ function askRender(out){
   out.appendChild($(`<p class="hint">${r.rows.length} row(s)</p>`));
   return;
  }
- // graph view: pick which columns are source → target (+ optional edge label)
+ // graph view: full-row auto graph by default; Custom exposes source → target (+ edge label) pickers
  if(!r.rows.length){out.appendChild($(`<p class="hint">No rows to draw.</p>`));return}
  const map=$(`<div class="row" style="flex-wrap:wrap;gap:.5rem"></div>`);
- const mk=(label,field,allowNone)=>{const sel=$(`<select class="sm-field"></select>`);
-  if(allowNone){const o=document.createElement('option');o.value='-1';o.textContent='(none)';sel.appendChild(o)}
-  r.columns.forEach((c,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=c;sel.appendChild(o)});
-  const cur=field==='tgt'&&ASK.tgt<0?r.columns.length-1:ASK[field];
-  sel.value=String(cur);sel.onchange=()=>{ASK[field]=+sel.value;askRender(out)};
-  const w=$(`<span class="hint" style="display:inline-flex;align-items:center;gap:.35rem">${label}</span>`);w.appendChild(sel);return w};
- map.appendChild(mk('nodes from','src',false));map.appendChild(mk('→','tgt',false));map.appendChild(mk('edge label','lbl',true));
+ [['auto','Full row'],['custom','Custom']].forEach(([k,l])=>{const b=$(`<button class="${ASK.mode===k?'go':'ghost'}">${l}</button>`);b.onclick=()=>{ASK.mode=k;askRender(out)};map.appendChild(b)});
+ if(ASK.mode==='custom'){
+  const mk=(label,field,allowNone)=>{const sel=$(`<select class="sm-field"></select>`);
+   if(allowNone){const o=document.createElement('option');o.value='-1';o.textContent='(none)';sel.appendChild(o)}
+   r.columns.forEach((c,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=c;sel.appendChild(o)});
+   const cur=field==='tgt'&&ASK.tgt<0?r.columns.length-1:ASK[field];
+   sel.value=String(cur);sel.onchange=()=>{ASK[field]=+sel.value;askRender(out)};
+   const w=$(`<span class="hint" style="display:inline-flex;align-items:center;gap:.35rem">${label}</span>`);w.appendChild(sel);return w};
+  map.appendChild(mk('nodes from','src',false));map.appendChild(mk('→','tgt',false));map.appendChild(mk('edge label','lbl',true));
+ }else{
+  map.appendChild($(`<span class="hint">every column becomes nodes, chained left→right; label-like columns (mode, since-ch…) annotate the edges</span>`));
+ }
  out.appendChild(map);
  const d=askGraphData(r);
  out.appendChild($(`<div class="frame" style="overflow:auto;max-height:64vh"><svg id="gv" style="width:100%;height:520px"></svg></div>`));
@@ -623,7 +652,7 @@ async function ask(m){m.innerHTML='';
  m.appendChild($(`<details style="margin-top:1rem"><summary class="hint">Cypher rules — the schema the AI is given</summary><pre>${esc(sch.schema||'')}</pre></details>`));
  btn.onclick=async()=>{ASK.q=ta.value;out.innerHTML='<p class="hint">asking…</p>';
   const r=await api('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:ta.value})});
-  ASK.r=r;ASK.src=0;ASK.tgt=-1;ASK.lbl=-1;   // reset mapping for the new result shape
+  ASK.r=r;ASK.mode='auto';ASK.src=0;ASK.tgt=-1;ASK.lbl=-1;   // reset mapping for the new result shape
   askRender(out)};}
 async function query(m){m.innerHTML='';const s=await api('/api/summary');
  m.appendChild($(`<p class="hint">Ad-hoc Cypher over the compiled graph. Node tables: Entity, Proposition, Source, Evidence, OpenLoop, Holder. Rel tables: RELATES, EPISTEMIC, GOVERNED_BY, EVIDENCED_BY, SUPPORTS.</p>`));
