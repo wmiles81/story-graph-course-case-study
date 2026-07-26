@@ -28,7 +28,10 @@ ASSETS = APP_DIR.parent / "story-graph" / "assets"
 sys.path.insert(0, str(ASSETS))
 import story_graph as sg  # noqa: E402
 
-STATE = {"path": None, "text": "", "graph": None, "chapters_dir": "", "conn": None, "kuzu_err": ""}
+STATE = {"path": None, "text": "", "graph": None, "chapters_dir": "", "conn": None, "kuzu_err": "",
+         "model": "", "api_key": ""}  # AI model + in-memory key for the Ask tab (never written to disk)
+
+CLAUDE_MODELS = ["claude-opus-5", "claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5", "claude-fable-5"]
 
 
 def _jsonable(v):
@@ -188,6 +191,7 @@ def api_ask(question):
         return {"error": "Plain-English questions need the Anthropic SDK: `pip install anthropic` "
                          "and set ANTHROPIC_API_KEY (or run `ant auth login`)."}
     import os as _os
+    model = STATE.get("model") or _os.environ.get("ANTHROPIC_MODEL") or "claude-opus-5"
     system = (
         "You translate a question about a novel's canon 'story graph' into ONE read-only Kùzu "
         "Cypher query. Use ONLY these tables and properties:\n\n" + CYPHER_SCHEMA +
@@ -195,10 +199,9 @@ def api_ask(question):
         "readable fields (entity/proposition ids and p.statement). Respond with ONLY a JSON "
         'object and nothing else: {"cypher": "<the query>", "explanation": "<one sentence>"}.')
     try:
-        client = anthropic.Anthropic()
+        client = anthropic.Anthropic(api_key=STATE["api_key"]) if STATE.get("api_key") else anthropic.Anthropic()
         msg = client.messages.create(
-            model=_os.environ.get("ANTHROPIC_MODEL", "claude-opus-5"),
-            max_tokens=2048, system=system,
+            model=model, max_tokens=2048, system=system,
             messages=[{"role": "user", "content": question}],
         )
     except Exception as e:  # missing key, network, bad model, old SDK
@@ -219,6 +222,48 @@ def api_ask(question):
     result["cypher"] = cypher
     result["explanation"] = explanation
     return result
+
+
+def _anthropic_available():
+    try:
+        import anthropic  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
+def api_settings_get():
+    import os as _os
+    return {
+        "model": STATE.get("model") or _os.environ.get("ANTHROPIC_MODEL") or "claude-opus-5",
+        "models": CLAUDE_MODELS,
+        "key_set": bool(STATE.get("api_key")) or bool(_os.environ.get("ANTHROPIC_API_KEY")),
+        "key_source": "app" if STATE.get("api_key") else ("env" if _os.environ.get("ANTHROPIC_API_KEY") else ""),
+        "anthropic": _anthropic_available(),
+        "kuzu": STATE["conn"] is not None,
+    }
+
+
+def api_settings_put(patch):
+    if "model" in patch:
+        STATE["model"] = (patch.get("model") or "").strip()
+    if "api_key" in patch:  # held in memory only; never written to disk
+        STATE["api_key"] = (patch.get("api_key") or "").strip()
+    return api_settings_get()
+
+
+def api_testkey():
+    import os as _os
+    if not _anthropic_available():
+        return {"ok": False, "detail": "Anthropic SDK not installed — pip install anthropic."}
+    import anthropic
+    model = STATE.get("model") or _os.environ.get("ANTHROPIC_MODEL") or "claude-opus-5"
+    try:
+        client = anthropic.Anthropic(api_key=STATE["api_key"]) if STATE.get("api_key") else anthropic.Anthropic()
+        client.messages.create(model=model, max_tokens=8, messages=[{"role": "user", "content": "ping"}])
+        return {"ok": True, "detail": f"reached {model}"}
+    except Exception as e:
+        return {"ok": False, "detail": str(e)[:200]}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -244,6 +289,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(PAGE, "text/html; charset=utf-8")
         if u.path == "/api/schema":
             return self._json(api_schema())
+        if u.path == "/api/settings":
+            return self._json(api_settings_get())
         if u.path == "/api/summary":
             return self._json(api_summary())
         if u.path == "/api/graph":
@@ -261,6 +308,10 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_cypher(payload.get("cypher", "")))
         if self.path == "/api/ask":
             return self._json(api_ask(payload.get("question", "")))
+        if self.path == "/api/settings":
+            return self._json(api_settings_put(payload))
+        if self.path == "/api/testkey":
+            return self._json(api_testkey())
         return self._json({"error": "not found"}, 404)
 
 
@@ -296,8 +347,34 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padd
 .err{color:var(--irony)} .hint{color:var(--muted);font-size:.85rem}
 .legend{display:flex;flex-wrap:wrap;gap:.4rem 1rem;padding:.6rem 1rem;font:11px ui-monospace,monospace;color:var(--muted)}
 .legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:3px;margin-right:.35rem;vertical-align:-1px}
+#gear{margin-left:auto;font:13px system-ui;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:.4rem .7rem;cursor:pointer}
+.sm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;z-index:50}
+.sm-modal{background:var(--bg);border:1px solid var(--line);border-radius:14px;width:min(680px,100%);max-height:86vh;overflow:auto;box-shadow:0 12px 48px rgba(0,0,0,.45)}
+.sm-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+.sm-title-label{font:600 1.05rem 'Iowan Old Style',Georgia,serif} .sm-title-sub{color:var(--muted);font-size:.8rem;margin-left:.5rem}
+.sm-close{background:none;border:0;color:var(--muted);font-size:1.4rem;line-height:1;cursor:pointer}
+.sm-tabs{display:flex;gap:2px;padding:8px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.sm-tab{font:13px system-ui;background:none;border:1px solid transparent;color:var(--muted);padding:.4rem .8rem;border-radius:8px;cursor:pointer}
+.sm-tab.on{background:var(--panel);border-color:var(--line);color:var(--ink)}
+.sm-body{padding:16px 20px}
+.sm-row{display:flex;flex-direction:column;gap:.25rem;padding:.75rem 0;border-bottom:1px solid var(--line)}
+.sm-row-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.sm-label{font-weight:600} .sm-sub{color:var(--muted);font-size:.82rem}
+.sm-seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.sm-seg button{background:var(--panel);border:0;border-left:1px solid var(--line);color:var(--muted);padding:.35rem .7rem;cursor:pointer;font:13px system-ui}
+.sm-seg button:first-child{border-left:0} .sm-seg button.on{background:var(--accent);color:#fff}
+.sm-switch{display:inline-flex;align-items:center;gap:.5rem;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:.25rem .65rem;cursor:pointer;color:var(--muted);font:12px system-ui}
+.sm-switch.on{color:var(--ink);border-color:var(--accent)}
+.sm-switch i{width:.8rem;height:.8rem;border-radius:50%;background:var(--muted)} .sm-switch.on i{background:var(--accent)}
+.sm-field{font:13px ui-monospace,monospace;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.5rem .6rem}
+.sm-ok{color:var(--truth)} .sm-bad{color:var(--irony)}
+body{zoom:var(--a11y-scale,1);letter-spacing:var(--a11y-ls,normal);line-height:var(--a11y-lh,1.55)}
+body.a11y-contrast{--bg:#000;--ink:#fff;--muted:#dcdcdc;--line:#7c7c7c;--panel:#0d0d0d}
+body.a11y-dyslexia,body.a11y-dyslexia *{font-family:'OpenDyslexic','Comic Sans MS',Verdana,Tahoma,sans-serif!important;letter-spacing:.02em}
+body.a11y-motion *{transition:none!important;animation:none!important}
+body.a11y-minfont .hint,body.a11y-minfont .tlab,body.a11y-minfont .elab,body.a11y-minfont .nlab,body.a11y-minfont .meta{font-size:12px!important}
 </style></head><body>
-<header><h1>Story Graph OS</h1><span class="meta" id="hd"></span></header>
+<header><h1>Story Graph OS</h1><span class="meta" id="hd"></span><button id="gear" title="Settings (display, AI model)">⚙️ Settings</button></header>
 <nav id="nav"></nav>
 <main id="main"></main>
 <script>
@@ -403,6 +480,68 @@ async function query(m){m.innerHTML='';const s=await api('/api/summary');
 async function reports(m){m.innerHTML='';const bar=$(`<div class="row"></div>`);
  ['report','audit','deviations','queue'].forEach(k=>{const b=$(`<button class="ghost">${k}</button>`);b.onclick=async()=>{pre.textContent='running…';const r=await api('/api/report?kind='+k);pre.textContent=r.text||r.error||''};bar.appendChild(b)});
  m.appendChild(bar);const pre=$(`<pre>Pick a report above.</pre>`);m.appendChild(pre);}
+// ---- Settings modal (adapted from the Novel Machine authoring UI) ----
+const A11Y_KEY='sgos.a11y';
+const a11yRead=()=>{try{return JSON.parse(localStorage.getItem(A11Y_KEY))||{}}catch(_){return{}}};
+const a11ySave=a=>localStorage.setItem(A11Y_KEY,JSON.stringify(a));
+function a11yApply(a){const r=document.documentElement,b=document.body;
+ r.style.setProperty('--a11y-scale',({s:.9,m:1,l:1.15,xl:1.35})[a.textSize||'m']);
+ r.style.setProperty('--a11y-ls',({normal:'normal',wide:'.03em',xwide:'.06em'})[a.letterSpacing||'normal']);
+ r.style.setProperty('--a11y-lh',({normal:'1.55',relaxed:'1.75',loose:'2'})[a.lineHeight||'normal']);
+ b.classList.toggle('a11y-contrast',a.contrast==='high');
+ b.classList.toggle('a11y-dyslexia',!!a.dyslexia);
+ b.classList.toggle('a11y-motion',!!a.reduceMotion);
+ b.classList.toggle('a11y-minfont',!!a.minFont);}
+let SETTINGS_TAB='display';
+function openSettings(){
+ const ov=$(`<div class="sm-overlay"></div>`),modal=$(`<div class="sm-modal"></div>`);ov.appendChild(modal);
+ const close=()=>{ov.remove();document.removeEventListener('keydown',onKey)};
+ const onKey=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',onKey);
+ ov.addEventListener('mousedown',e=>{if(e.target===ov)close()});
+ modal.innerHTML=`<div class="sm-head"><div><span class="sm-title-label">Settings</span><span class="sm-title-sub">display &amp; AI model</span></div><button class="sm-close" title="Close (Esc)">×</button></div><div class="sm-tabs"></div><div class="sm-body"></div>`;
+ modal.querySelector('.sm-close').onclick=close;
+ const tabs=modal.querySelector('.sm-tabs'),body=modal.querySelector('.sm-body');
+ const T=[['display','Display'],['model','AI Model'],['about','About']];
+ const paint=()=>{tabs.innerHTML='';T.forEach(([k,l])=>{const btn=$(`<button class="sm-tab${k===SETTINGS_TAB?' on':''}">${l}</button>`);btn.onclick=()=>{SETTINGS_TAB=k;paint()};tabs.appendChild(btn)});
+  body.innerHTML='';(SETTINGS_TAB==='display'?smDisplay:SETTINGS_TAB==='model'?smModel:smAbout)(body)};
+ document.body.appendChild(ov);paint();
+}
+function smDisplay(body){const a=a11yRead();
+ const commit=p=>{Object.assign(a,p);a11yApply(a);a11ySave(a);smDisplay(body)};
+ const seg=(f,opts,def)=>{const s=$(`<div class="sm-seg"></div>`);opts.forEach(([id,lbl])=>{const btn=$(`<button class="${(a[f]||def)===id?'on':''}">${lbl}</button>`);btn.onclick=()=>commit({[f]:id});s.appendChild(btn)});return s};
+ const toggle=f=>{const on=!!a[f],btn=$(`<button class="sm-switch${on?' on':''}"><i></i>${on?'On':'Off'}</button>`);btn.onclick=()=>commit({[f]:!on});return btn};
+ const row=(label,sub,ctrl)=>{const r=$(`<div class="sm-row"><div class="sm-row-head"><span class="sm-label">${label}</span></div>${sub?`<span class="sm-sub">${sub}</span>`:''}</div>`);r.querySelector('.sm-row-head').appendChild(ctrl);return r};
+ body.appendChild($(`<p class="hint">Display &amp; reading preferences. Applied immediately and saved on this device.</p>`));
+ body.appendChild(row('Contrast','High contrast maximizes text/background separation.',seg('contrast',[['normal','Normal'],['high','High']],'normal')));
+ body.appendChild(row('Text size','Scales the whole interface.',seg('textSize',[['s','S'],['m','M'],['l','L'],['xl','XL']],'m')));
+ body.appendChild(row('Letter spacing','Extra space between letters can aid readability.',seg('letterSpacing',[['normal','Normal'],['wide','Wide'],['xwide','Extra']],'normal')));
+ body.appendChild(row('Line height','More space between lines of text.',seg('lineHeight',[['normal','Normal'],['relaxed','Relaxed'],['loose','Loose']],'normal')));
+ body.appendChild(row('Readable font','A legible sans (OpenDyslexic if the font is installed).',toggle('dyslexia')));
+ body.appendChild(row('Reduce motion','Minimize animations and transitions.',toggle('reduceMotion')));
+ body.appendChild(row('Minimum text size','Keep interface text at least 12px.',toggle('minFont')));
+}
+async function smModel(body){
+ body.appendChild($(`<p class="hint">The AI behind the Ask tab. The key is held in memory for this session only — never written to disk.</p>`));
+ const s=await api('/api/settings');
+ const mrow=$(`<div class="sm-row"><div class="sm-row-head"><span class="sm-label">Model</span></div><span class="sm-sub">Anthropic model for plain-English → Cypher.</span></div>`);
+ const sel=$(`<select class="sm-field"></select>`);s.models.forEach(mm=>{const o=document.createElement('option');o.value=mm;o.textContent=mm;if(mm===s.model)o.selected=true;sel.appendChild(o)});
+ sel.onchange=()=>api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:sel.value})});
+ mrow.querySelector('.sm-row-head').appendChild(sel);body.appendChild(mrow);
+ const krow=$(`<div class="sm-row"><div class="sm-row-head"><span class="sm-label">API key</span><span class="sm-sub">${s.key_set?('active · '+s.key_source):'not set'}</span></div></div>`);body.appendChild(krow);
+ const kwrap=$(`<div class="row"></div>`),kin=$(`<input class="sm-field" style="flex:1" type="password" placeholder="${s.key_set?'•••• (blank keeps current)':'sk-ant-…'}" autocomplete="off">`);
+ const ksave=$(`<button class="go">Save</button>`),ktest=$(`<button class="ghost">Test</button>`),stat=$(`<span class="sm-sub"></span>`);
+ kwrap.appendChild(kin);kwrap.appendChild(ksave);kwrap.appendChild(ktest);krow.appendChild(kwrap);krow.appendChild(stat);
+ ksave.onclick=async()=>{if(!kin.value.trim())return;stat.textContent='saving…';await api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:kin.value.trim()})});kin.value='';stat.innerHTML='<span class="sm-ok">✓ saved (memory only)</span>'};
+ ktest.onclick=async()=>{stat.textContent='testing…';const r=await api('/api/testkey',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});stat.innerHTML=r.ok?`<span class="sm-ok">✓ ${esc(r.detail)}</span>`:`<span class="sm-bad">✗ ${esc(r.detail)}</span>`};
+ if(!s.anthropic)body.appendChild($(`<p class="hint"><span class="sm-bad">The Anthropic SDK isn't installed on the server</span> — run <code>pip install anthropic</code> to enable the Ask tab.</p>`));
+}
+async function smAbout(body){const s=await api('/api/summary');
+ body.appendChild($(`<p class="hint">Story Graph OS — a local browser face over the story-graph engine.</p>`));
+ body.appendChild($(`<pre>graph:   ${esc(s.path||'')}\ncanon:   chapter ${s.canon_chapter}\nmodules: ${s.modules.join(', ')||'none'}\nkuzu:    ${s.kuzu?'on':'off'}</pre>`));
+ body.appendChild($(`<p class="hint">Settings dialog adapted from the Novel Machine authoring UI — its full accessibility controls plus provider/model configuration mapped to this app's single Anthropic use. That app's novel-pipeline routing (per-agent flows, OpenRouter corpus) has no analog here.</p>`));
+}
+a11yApply(a11yRead());
+document.getElementById('gear').onclick=openSettings;
 head().then(render);
 </script></body></html>"""
 

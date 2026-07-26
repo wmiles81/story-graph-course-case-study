@@ -45,6 +45,25 @@ few seconds on a large graph (e.g. a full-book import); small graphs are instant
   and the results. Needs `anthropic` + a key (see Run).
 - **Reports** — run `report`, `audit`, `deviations`, `queue` and read the output.
 
+## Settings (⚙️ top-right)
+
+A settings dialog adapted from the Novel Machine authoring UI. Esc or click
+outside to close.
+
+- **Display** — accessibility & reading preferences, applied instantly and saved
+  in the browser (`localStorage`): contrast, text size (whole-UI scale), letter
+  spacing, line height, a readable-font toggle (OpenDyslexic if installed),
+  reduce-motion, and a 12px minimum-text-size floor.
+- **AI Model** — configure the Ask tab's Anthropic model (dropdown) and API key.
+  The key is held **in memory for the session only — never written to disk**;
+  `Test` sends a one-token ping to confirm it reaches the model. Falls back to
+  `ANTHROPIC_API_KEY` / `ant auth login` when no key is entered.
+- **About** — the loaded graph, canon chapter, modules, and Kùzu status.
+
+(The source dialog also has novel-pipeline Flows and an OpenRouter Corpus tab;
+those route a 30-agent authoring pipeline and have no analog in a story-graph
+tool, so they're intentionally not carried over.)
+
 ## Boundaries
 
 Binds to `127.0.0.1` only; no auth, no multi-user, no write-back to the graph
