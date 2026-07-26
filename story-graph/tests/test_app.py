@@ -62,3 +62,21 @@ def test_app_settings_providers_roundtrip(tmp_path):
     assert "models" in app.api_models("ollama")
     assert "ok" in app.api_testkey("ollama")
     assert app.api_models("bogus")["error"] == "unknown provider"
+
+
+def test_inline_frontend_js_is_syntactically_valid(tmp_path):
+    """The whole UI is one inline <script>; a syntax error there kills the entire
+    app silently (blank page, no tabs). Catch it in CI rather than in the browser."""
+    import re, shutil, subprocess
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available to syntax-check the inline JS")
+    src = APP.read_text(encoding="utf-8")
+    i = src.index('PAGE = r"""')
+    page = src[i + len('PAGE = r"""'): src.index('"""', i + 12)]
+    m = re.search(r"<script>(.*)</script>", page, re.S)
+    assert m, "no inline <script> found in PAGE"
+    js = tmp_path / "page.js"
+    js.write_text(m.group(1), encoding="utf-8")
+    r = subprocess.run([node, "--check", str(js)], capture_output=True, text=True)
+    assert r.returncode == 0, f"inline JS syntax error:\n{r.stderr}"

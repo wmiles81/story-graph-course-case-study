@@ -561,7 +561,6 @@ main{padding:18px 20px;max-width:1100px}
 .card b{display:block;font:600 1.6rem 'Iowan Old Style',serif} .card span{color:var(--muted);font-size:.82rem}
 .frame{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 svg{display:block;touch-action:none}
-input[type=range]{accent-color:var(--accent)}
 circle{cursor:grab} text{font:11px ui-monospace,monospace;fill:var(--ink);pointer-events:none}
 .elab{fill:var(--muted);font-size:10px;text-anchor:middle}
 .tlab{font:11px ui-monospace,monospace;fill:var(--muted)}
@@ -575,6 +574,28 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padd
 .err{color:var(--irony)} .hint{color:var(--muted);font-size:.85rem}
 .legend{display:flex;flex-wrap:wrap;gap:.4rem 1rem;padding:.6rem 1rem;font:11px ui-monospace,monospace;color:var(--muted)}
 .legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:3px;margin-right:.35rem;vertical-align:-1px}
+.gwrap{position:relative}
+.gtools{display:flex;gap:.5rem;align-items:center;padding:.5rem .6rem;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.gtools .ghost{padding:.3rem .6rem}
+.gsearch{flex:1;min-width:140px;font:13px ui-monospace,monospace;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem}
+.gstage{position:relative;overflow:hidden}
+.gstage svg{width:100%;height:100%;cursor:grab;touch-action:none}
+.gstage svg:active{cursor:grabbing}
+circle.gmatch{stroke:var(--accent);stroke-width:2px}
+circle.ghover{stroke:var(--ink);stroke-width:2px}
+.gpanel{position:absolute;top:10px;right:10px;width:230px;max-height:calc(100% - 20px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;box-shadow:0 6px 24px rgba(0,0,0,.3);font-size:13px}
+.gpanel-id{font:600 13px ui-monospace,monospace;word-break:break-all;padding-right:1.2rem}
+.gpanel-count{color:var(--muted);font-size:11px;border-top:1px solid var(--line);padding-top:.35rem;margin-top:.2rem}
+.gpanel-list{display:flex;flex-direction:column;margin:.25rem 0}
+.gpanel-focus{width:100%;margin-top:.4rem;background:var(--accent);color:#fff;border:0;border-radius:7px;padding:.35rem;font:12px system-ui;cursor:pointer}
+.gpanel-x{position:absolute;top:4px;right:8px}
+.gpanel-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+.gpanel-head b{font:600 13px ui-monospace,monospace;word-break:break-all}
+.gpanel-x{background:none;border:0;color:var(--muted);font-size:1.3rem;line-height:1;cursor:pointer;padding:0 .2rem}
+.gpanel-kind{color:var(--muted);font-size:.78rem;margin:.15rem 0 .6rem;text-transform:uppercase;letter-spacing:.03em}
+.gpanel-nbrs{display:flex;flex-direction:column;gap:.3rem;margin-top:.3rem}
+.gpanel-link{color:var(--accent);text-decoration:none;font:12.5px ui-monospace,monospace;cursor:pointer}
+.gpanel-link:hover{text-decoration:underline}
 #offline{position:fixed;left:0;right:0;bottom:0;background:var(--irony,#b4531f);color:#fff;padding:.6rem 1rem;font:13px system-ui;display:flex;gap:.75rem;align-items:center;justify-content:center;z-index:99}
 #offline button{background:#fff;border:0;border-radius:6px;padding:.25rem .6rem;cursor:pointer}
 #stalebar{background:var(--panel);border:1px solid var(--irony);border-radius:10px;padding:.6rem 1rem}
@@ -670,47 +691,175 @@ async function dashboard(m){const s=await api('/api/summary');m.innerHTML='';con
 async function graph(m){m.innerHTML='';
  const bar=$(`<div class="row"><input id="focus" placeholder="focus on a proposition id (blank = whole graph)" style="flex:1;font:13px ui-monospace,monospace;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.45rem .6rem"><button class="go" id="fbtn">Draw</button></div>`);m.appendChild(bar);
  const leg=$(`<div class="legend"></div>`);m.appendChild(leg);
- const zrow=$(`<div class="row"><label class="hint" style="min-width:3rem">zoom</label><input id="zoom" type="range" min="100" max="500" value="100" style="flex:1"><span class="hint" id="zlab">fit</span></div>`);m.appendChild(zrow);
- const frame=$(`<div class="frame" style="overflow:auto;max-height:72vh"><svg id="gv" style="width:100%;height:560px"></svg></div>`);m.appendChild(frame);
  const hint=$(`<p class="hint"></p>`);m.appendChild(hint);
- const applyZoom=()=>{const z=+document.getElementById('zoom').value,gv=document.getElementById('gv');gv.style.width=z+'%';gv.style.height=(560*z/100)+'px';document.getElementById('zlab').textContent=z==100?'fit':z/100+'×'};
- document.getElementById('zoom').oninput=applyZoom;
+ const mount=$(`<div></div>`);m.appendChild(mount);
  async function go(){const p=document.getElementById('focus').value.trim();const d=await api('/api/graph?prop='+encodeURIComponent(p));
   leg.innerHTML='';[...new Set(d.nodes.map(n=>n.kind))].forEach(k=>{const c=(d.nodes.find(n=>n.kind===k)||{}).color;leg.appendChild($(`<span><i style="background:${c}"></i>${k}</span>`))});
-  hint.textContent=`${d.nodes.length} nodes · ${d.edges.length} edges · drag nodes to rearrange · slide zoom to read labels`;
-  if(!d.nodes.length){hint.textContent='No such proposition. Leave the box blank for the whole graph.';return}
-  applyZoom();draw(d)}
+  if(!d.nodes.length){hint.textContent='No such proposition. Leave the box blank for the whole graph.';mount.innerHTML='';return}
+  hint.textContent=`${d.nodes.length} nodes · ${d.edges.length} edges · drag a node to move it · drag empty space to pan · wheel to zoom · click a node for details`;
+  draw(d,mount)}
  document.getElementById('fbtn').onclick=go;
  document.getElementById('focus').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
  go();}
-function draw(d){const svg=document.getElementById('gv');const W=svg.clientWidth||900,H=560;
- const N=d.nodes.map(n=>({...n,x:W/2+Math.cos(Math.random()*6.28)*180,y:H/2+Math.sin(Math.random()*6.28)*140,vx:0,vy:0}));
+// Graph renderer: the force layout runs once per dataset (d={nodes,edges}). Everything drawn lives
+// inside one <g>; wheel/pan/hover/search/select afterward only ever touch that <g>'s transform or
+// element attributes — never re-simulate — so interaction stays smooth even at ~200 nodes.
+// `full` (internal, threaded through recursive calls) is the true root dataset, so "Focus" on a
+// neighbourhood can always offer a "Show all" back to the original graph, however deep the focus.
+function draw(d,mount,full){full=full||d;mount.innerHTML='';
+ const wrap=$(`<div class="frame gwrap"><div class="gtools"><input class="gsearch" placeholder="search nodes…" aria-label="Search nodes"><span class="gcount hint" aria-live="polite"></span><span style="flex:1"></span>${full!==d?'<button class="ghost" id="gall">Show all</button>':''}<button class="ghost" id="gzo" title="Zoom out">−</button><button class="ghost" id="gzi" title="Zoom in">+</button><button class="ghost" id="gzf" title="Fit to view">Fit</button></div><div class="gstage"><svg tabindex="0" role="img" aria-label="Story graph with ${d.nodes.length} nodes"></svg><div class="gpanel" hidden></div></div></div>`);
+ mount.appendChild(wrap);
+ const svg=wrap.querySelector('svg'),stage=wrap.querySelector('.gstage'),panel=wrap.querySelector('.gpanel');
+ const sinput=wrap.querySelector('.gsearch'),countEl=wrap.querySelector('.gcount');
+ const NS='http://www.w3.org/2000/svg',W=stage.clientWidth||900,H=560;
+ stage.style.height=H+'px';svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+
+ const N=d.nodes.map(n=>({...n,x:W/2+Math.cos(Math.random()*6.28)*180,y:H/2+Math.sin(Math.random()*6.28)*140}));
  const idx=Object.fromEntries(N.map((n,i)=>[n.id,i]));
  const E=d.edges.filter(e=>e.from in idx&&e.to in idx).map(e=>({s:idx[e.from],t:idx[e.to],label:e.label}));
+ const neigh=N.map(()=>new Set());E.forEach(e=>{neigh[e.s].add(e.t);neigh[e.t].add(e.s)});
  const k=0.9*Math.sqrt(W*H/Math.max(1,N.length));
  for(let it=0;it<300;it++){for(const a of N){a.fx=0;a.fy=0}
   for(let i=0;i<N.length;i++)for(let j=i+1;j<N.length;j++){let dx=N[i].x-N[j].x,dy=N[i].y-N[j].y,dd=Math.hypot(dx,dy)||.01,f=k*k/dd;N[i].fx+=dx/dd*f;N[i].fy+=dy/dd*f;N[j].fx-=dx/dd*f;N[j].fy-=dy/dd*f}
   for(const e of E){let a=N[e.s],b=N[e.t],dx=a.x-b.x,dy=a.y-b.y,dd=Math.hypot(dx,dy)||.01,f=dd*dd/k;a.fx-=dx/dd*f;a.fy-=dy/dd*f;b.fx+=dx/dd*f;b.fy+=dy/dd*f}
   for(const a of N){a.fx+=(W/2-a.x)*.03;a.fy+=(H/2-a.y)*.03;const dl=Math.hypot(a.fx,a.fy)||.01,t=Math.max(1.5,W*0.05*(1-it/300));a.x+=a.fx/dl*Math.min(dl,t);a.y+=a.fy/dl*Math.min(dl,t)}}
- // Fit to viewBox: disconnected components repel each other far outside the frame — normalize back in.
- if(N.length){const xs=N.map(n=>n.x),ys=N.map(n=>n.y);
-  const mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys);
-  const padL=24,padR=150,padV=28;
-  const s=Math.min((W-padL-padR)/((mxx-mnx)||1),(H-2*padV)/((mxy-mny)||1));
-  N.forEach(n=>{n.x=padL+(n.x-mnx)*s;n.y=padV+(n.y-mny)*s});}
- const NS='http://www.w3.org/2000/svg';svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML='';
- for(const e of E){const l=document.createElementNS(NS,'line');l.setAttribute('x1',N[e.s].x);l.setAttribute('y1',N[e.s].y);l.setAttribute('x2',N[e.t].x);l.setAttribute('y2',N[e.t].y);l.setAttribute('stroke','var(--line)');l.setAttribute('stroke-width','1.5');l.dataset.s=e.s;l.dataset.t=e.t;svg.appendChild(l)}
- for(const e of E){if(!e.label)continue;const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');tx.setAttribute('x',(N[e.s].x+N[e.t].x)/2);tx.setAttribute('y',(N[e.s].y+N[e.t].y)/2-4);tx.textContent=e.label;tx.dataset.es=e.s;tx.dataset.et=e.t;svg.appendChild(tx)}
- N.forEach((n,i)=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',8);c.setAttribute('fill',n.color);c.dataset.i=i;svg.appendChild(c);
-  const t=document.createElementNS(NS,'text');t.setAttribute('x',n.x+11);t.setAttribute('y',n.y+4);t.textContent=n.id;t.dataset.ti=i;svg.appendChild(t)});
- function moveNode(i){
-  svg.querySelectorAll('circle').forEach(c=>{if(+c.dataset.i===i){c.setAttribute('cx',N[i].x);c.setAttribute('cy',N[i].y)}});
-  svg.querySelectorAll('text[data-ti]').forEach(t=>{if(+t.dataset.ti===i){t.setAttribute('x',N[i].x+11);t.setAttribute('y',N[i].y+4)}});
-  svg.querySelectorAll('line').forEach(l=>{if(+l.dataset.s===i){l.setAttribute('x1',N[i].x);l.setAttribute('y1',N[i].y)}if(+l.dataset.t===i){l.setAttribute('x2',N[i].x);l.setAttribute('y2',N[i].y)}});
-  svg.querySelectorAll('text[data-es]').forEach(t=>{const s=+t.dataset.es,e=+t.dataset.et;if(s===i||e===i){t.setAttribute('x',(N[s].x+N[e].x)/2);t.setAttribute('y',(N[s].y+N[e].y)/2-4)}});}
- let drag=null;svg.onpointerdown=ev=>{if(ev.target.dataset.i!=null){drag=+ev.target.dataset.i;svg.setPointerCapture(ev.pointerId)}};
- svg.onpointermove=ev=>{if(drag==null)return;const r=svg.getBoundingClientRect();N[drag].x=(ev.clientX-r.left)*(W/r.width);N[drag].y=(ev.clientY-r.top)*(H/r.height);moveNode(drag)};
- svg.onpointerup=()=>{drag=null};}
+
+ // Pan/zoom state lives only in this transform — "fit" (below) picks k/x/y to frame whatever the
+ // layout produced, however far disconnected components have spread, instead of distorting node
+ // coordinates to force them into a fixed box.
+ const view={x:0,y:0,k:1},MINK=.12,MAXK=8;
+ let hoverIdx=-1,selIdx=-1;const srch={active:false,matches:new Set()};
+
+ const g=document.createElementNS(NS,'g');svg.appendChild(g);
+ const linesG=document.createElementNS(NS,'g'),elabG=document.createElementNS(NS,'g'),nodesG=document.createElementNS(NS,'g'),nlabG=document.createElementNS(NS,'g');
+ g.appendChild(linesG);g.appendChild(elabG);g.appendChild(nodesG);g.appendChild(nlabG);
+ const ring=document.createElementNS(NS,'circle');ring.setAttribute('r',13);ring.setAttribute('fill','none');ring.setAttribute('stroke','var(--accent)');ring.setAttribute('stroke-width','2.5');ring.setAttribute('vector-effect','non-scaling-stroke');ring.style.display='none';ring.style.pointerEvents='none';g.appendChild(ring);
+
+ const lines=[],elabels=[],circles=[],nlabels=[];
+ E.forEach((e,ei)=>{const l=document.createElementNS(NS,'line');l.setAttribute('x1',N[e.s].x);l.setAttribute('y1',N[e.s].y);l.setAttribute('x2',N[e.t].x);l.setAttribute('y2',N[e.t].y);l.setAttribute('stroke','var(--line)');l.setAttribute('stroke-width','1.5');l.setAttribute('vector-effect','non-scaling-stroke');linesG.appendChild(l);lines[ei]=l;
+  if(e.label){const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');tx.setAttribute('x',(N[e.s].x+N[e.t].x)/2);tx.setAttribute('y',(N[e.s].y+N[e.t].y)/2-4);tx.textContent=e.label;elabG.appendChild(tx);elabels[ei]=tx}else elabels[ei]=null});
+ N.forEach((n,i)=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',8);c.setAttribute('fill',n.color);c.dataset.i=i;
+  const ti=document.createElementNS(NS,'title');ti.textContent=`${n.id} (${n.kind})`;c.appendChild(ti);
+  c.addEventListener('pointerenter',()=>{hoverIdx=i;paintDim();updateLOD()});
+  c.addEventListener('pointerleave',()=>{hoverIdx=-1;paintDim();updateLOD()});
+  nodesG.appendChild(c);circles[i]=c;
+  const t=document.createElementNS(NS,'text');t.setAttribute('class','nlab');t.setAttribute('x',n.x+11);t.setAttribute('y',n.y+4);t.textContent=n.id;nlabG.appendChild(t);nlabels[i]=t});
+
+ // ── node details: click a node for its kind + neighbours, with Focus ──
+ const closePanel=()=>{panel.style.display='none';selIdx=-1;ring.style.display='none';paintDim();updateLOD()};
+ function selectNode(i){selIdx=i;const n=N[i];
+  ring.setAttribute('cx',N[i].x);ring.setAttribute('cy',N[i].y);ring.style.display='';
+  const nb=[];E.forEach(e=>{if(e.s===i)nb.push([N[e.t].id,e.t,e.label,'→']);else if(e.t===i)nb.push([N[e.s].id,e.s,e.label,'←'])});
+  panel.innerHTML=`<button class="gpanel-x" title="Close (Esc)">×</button>`+
+   `<div class="gpanel-id">${esc(n.id)}</div><div class="gpanel-kind">${esc(n.kind||'')}</div>`+
+   `<div class="gpanel-count">${nb.length} neighbour${nb.length===1?'':'s'}</div>`;
+  panel.querySelector('.gpanel-x').onclick=closePanel;
+  const list=document.createElement('div');list.className='gpanel-list';
+  nb.slice(0,60).forEach(([id,idx,lab,dir])=>{const b=document.createElement('button');b.className='gpanel-link';
+   b.textContent=dir+' '+id+(lab?'  ·  '+lab:'');b.onclick=()=>selectNode(idx);list.appendChild(b)});
+  panel.appendChild(list);
+  if(nb.length){const f=document.createElement('button');f.className='gpanel-focus';f.textContent='Focus on this node';
+   f.onclick=()=>{const keep=new Set([i]);E.forEach(e=>{if(e.s===i)keep.add(e.t);if(e.t===i)keep.add(e.s)});
+    const nodes=[...keep].map(k=>({id:N[k].id,kind:N[k].kind,color:N[k].color}));
+    const edges=E.filter(e=>keep.has(e.s)&&keep.has(e.t)).map(e=>({from:N[e.s].id,to:N[e.t].id,label:e.label}));
+    draw({nodes,edges},mount,full)};
+   panel.appendChild(f)}
+  panel.style.display='block';paintDim();updateLOD();}
+ circles.forEach((c,i)=>c.addEventListener('click',ev=>{ev.stopPropagation();if(!c.dataset.moved)selectNode(i);delete c.dataset.moved}));
+ svg.addEventListener('click',ev=>{if(ev.target===svg)closePanel()});
+ mount.addEventListener('keydown',ev=>{if(ev.key==='Escape')closePanel()});
+ document.addEventListener('keydown',function onEsc(ev){if(ev.key==='Escape'&&document.body.contains(panel))closePanel();
+  else if(!document.body.contains(panel))document.removeEventListener('keydown',onEsc)});
+
+ function moveNode(i){circles[i].setAttribute('cx',N[i].x);circles[i].setAttribute('cy',N[i].y);
+  nlabels[i].setAttribute('x',N[i].x+11);nlabels[i].setAttribute('y',N[i].y+4);
+  if(i===selIdx){ring.setAttribute('cx',N[i].x);ring.setAttribute('cy',N[i].y)}
+  E.forEach((e,ei)=>{if(e.s===i){lines[ei].setAttribute('x1',N[i].x);lines[ei].setAttribute('y1',N[i].y)}
+   if(e.t===i){lines[ei].setAttribute('x2',N[i].x);lines[ei].setAttribute('y2',N[i].y)}
+   if((e.s===i||e.t===i)&&elabels[ei]){elabels[ei].setAttribute('x',(N[e.s].x+N[e.t].x)/2);elabels[ei].setAttribute('y',(N[e.s].y+N[e.t].y)/2-4)}})}
+
+ // Hover/search dim everything except what's relevant — "the rest" gets quieter, nothing disappears.
+ function paintDim(){N.forEach((n,i)=>{const inc=hoverIdx>=0&&(i===hoverIdx||neigh[hoverIdx].has(i));
+   const op=hoverIdx>=0?(inc?1:.18):(srch.active?(srch.matches.has(i)?1:.15):1);
+   circles[i].style.opacity=op;nlabels[i].style.opacity=op;
+   circles[i].classList.toggle('gmatch',srch.active&&srch.matches.has(i));
+   circles[i].classList.toggle('ghover',i===hoverIdx)});
+  E.forEach((e,ei)=>{const inc=hoverIdx>=0&&(e.s===hoverIdx||e.t===hoverIdx);
+   const op=hoverIdx>=0?(inc?1:.12):(srch.active?((srch.matches.has(e.s)||srch.matches.has(e.t))?.85:.08):1);
+   lines[ei].style.opacity=op;if(elabels[ei])elabels[ei].style.opacity=op})}
+ // Level-of-detail: labels are mush at ~200 nodes, so they're opt-in — small graphs, high zoom, or
+ // the thing you're actually pointing at (plus its neighbours) always get to show their label.
+ function updateLOD(){const smallN=N.length<=40,zin=view.k>=1.6;
+  N.forEach((n,i)=>{const show=smallN||zin||i===hoverIdx||i===selIdx||(hoverIdx>=0&&neigh[hoverIdx].has(i))||(selIdx>=0&&neigh[selIdx].has(i))||(srch.active&&srch.matches.has(i));
+   nlabels[i].style.display=show?'':'none'});
+  const smallE=E.length<=25,zinE=view.k>=2.2;
+  E.forEach((e,ei)=>{if(!elabels[ei])return;const show=smallE||zinE||(hoverIdx>=0&&(e.s===hoverIdx||e.t===hoverIdx))||(selIdx>=0&&(e.s===selIdx||e.t===selIdx));
+   elabels[ei].style.display=show?'':'none'})}
+ function applyTransform(){g.setAttribute('transform',`translate(${view.x},${view.y}) scale(${view.k})`);updateLOD()}
+ function fitView(){if(!N.length){view.x=0;view.y=0;view.k=1;return applyTransform()}
+  const xs=N.map(n=>n.x),ys=N.map(n=>n.y),mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys),pad=40;
+  view.k=Math.max(MINK,Math.min(MAXK,Math.min((W-2*pad)/(mxx-mnx||1),(H-2*pad)/(mxy-mny||1))));
+  view.x=W/2-(mnx+mxx)/2*view.k;view.y=H/2-(mny+mxy)/2*view.k;applyTransform()}
+ function zoomAt(sx,sy,factor){const wx=(sx-view.x)/view.k,wy=(sy-view.y)/view.k;
+  view.k=Math.max(MINK,Math.min(MAXK,view.k*factor));view.x=sx-wx*view.k;view.y=sy-wy*view.k;applyTransform()}
+
+ function setSelected(i){selIdx=i;
+  if(i<0){panel.hidden=true;ring.style.display='none';updateLOD();return}
+  ring.style.display='';ring.setAttribute('cx',N[i].x);ring.setAttribute('cy',N[i].y);
+  const nbrs=[...neigh[i]].map(j=>N[j]).sort((a,b)=>a.id<b.id?-1:1);
+  panel.hidden=false;panel.innerHTML='';
+  const head=$(`<div class="gpanel-head"><b>${esc(N[i].id)}</b><button class="gpanel-x" title="Close (Esc)">×</button></div>`);
+  head.querySelector('.gpanel-x').onclick=()=>setSelected(-1);panel.appendChild(head);
+  panel.appendChild($(`<div class="gpanel-kind">${esc(N[i].kind)}</div>`));
+  const foc=$(`<button class="ghost">Focus</button>`);foc.onclick=()=>focusOn(i);panel.appendChild(foc);
+  panel.appendChild($(`<div class="hint" style="margin:.6rem 0 .3rem">${nbrs.length} neighbour${nbrs.length===1?'':'s'}</div>`));
+  const list=$(`<div class="gpanel-nbrs"></div>`);panel.appendChild(list);
+  nbrs.forEach(nb=>{const a=$(`<a class="gpanel-link">${esc(nb.id)}</a>`);a.onclick=()=>setSelected(idx[nb.id]);list.appendChild(a)});
+  updateLOD()}
+ function focusOn(i){const keep=new Set([i,...neigh[i]]);
+  const subN=[...keep].map(j=>({id:N[j].id,kind:N[j].kind,color:N[j].color}));
+  const subE=E.filter(e=>keep.has(e.s)&&keep.has(e.t)).map(e=>({from:N[e.s].id,to:N[e.t].id,label:e.label}));
+  draw({nodes:subN,edges:subE},mount,full)}
+
+ function runSearch(q){q=q.trim().toLowerCase();
+  if(!q){srch.active=false;srch.matches=new Set();countEl.textContent=''}
+  else{srch.active=true;srch.matches=new Set(N.map((n,i)=>i).filter(i=>N[i].id.toLowerCase().includes(q)));
+   countEl.textContent=srch.matches.size+' match'+(srch.matches.size===1?'':'es')}
+  paintDim();updateLOD()}
+ sinput.addEventListener('input',()=>runSearch(sinput.value));
+ sinput.addEventListener('keydown',e=>{if(e.key==='Enter'){const first=[...srch.matches][0];
+  if(first!=null){view.x=W/2-N[first].x*view.k;view.y=H/2-N[first].y*view.k;applyTransform();setSelected(first)}}});
+ wrap.addEventListener('keydown',e=>{if(e.key==='Escape')setSelected(-1)});
+
+ wrap.querySelector('#gzo').onclick=()=>zoomAt(W/2,H/2,1/1.4);
+ wrap.querySelector('#gzi').onclick=()=>zoomAt(W/2,H/2,1.4);
+ wrap.querySelector('#gzf').onclick=fitView;
+ const allBtn=wrap.querySelector('#gall');if(allBtn)allBtn.onclick=()=>draw(full,mount);
+
+ // Wheel (and trackpad pinch, which arrives as wheel+ctrlKey) zooms toward the cursor; the transform
+ // is the only thing that changes, so this never touches the layout.
+ svg.addEventListener('wheel',ev=>{ev.preventDefault();
+  const r=svg.getBoundingClientRect(),sx=(ev.clientX-r.left)*(W/r.width),sy=(ev.clientY-r.top)*(H/r.height);
+  zoomAt(sx,sy,Math.exp(-Math.max(-80,Math.min(80,ev.deltaY))*.0025))},{passive:false});
+
+ // A pointerdown on a node drags that node (unchanged from before); anywhere else starts a pan.
+ // pointerup decides click-vs-drag from `moved`, not from re-reading ev.target — once pointer capture
+ // is set, ev.target on later events is the svg itself, not whatever is visually underneath it.
+ let dragI=null,panStart=null,downPt=null,moved=false;
+ svg.addEventListener('pointerdown',ev=>{downPt={x:ev.clientX,y:ev.clientY};moved=false;
+  const hit=(ev.target.dataset&&ev.target.dataset.i!=null)?+ev.target.dataset.i:null;
+  dragI=hit;if(hit==null)panStart={x:ev.clientX,y:ev.clientY,vx:view.x,vy:view.y};
+  try{svg.setPointerCapture(ev.pointerId)}catch(_){}});
+ svg.addEventListener('pointermove',ev=>{if(downPt&&!moved&&Math.hypot(ev.clientX-downPt.x,ev.clientY-downPt.y)>4)moved=true;
+  const r=svg.getBoundingClientRect();
+  if(dragI!=null){const sx=(ev.clientX-r.left)*(W/r.width),sy=(ev.clientY-r.top)*(H/r.height);
+   N[dragI].x=(sx-view.x)/view.k;N[dragI].y=(sy-view.y)/view.k;moveNode(dragI)}
+  else if(panStart){view.x=panStart.vx+(ev.clientX-panStart.x)*(W/r.width);view.y=panStart.vy+(ev.clientY-panStart.y)*(H/r.height);applyTransform()}});
+ svg.addEventListener('pointerup',()=>{if(!moved)setSelected(dragI!=null?dragI:-1);
+  dragI=null;panStart=null;downPt=null});
+ svg.addEventListener('pointercancel',()=>{dragI=null;panStart=null;downPt=null});
+
+ fitView();}
 async function timeline(m){m.innerHTML='';const d=await api('/api/timeline');
  if(!d.items.length){m.innerHTML='<p class="hint">No epistemic states with chapter numbers to plot.</p>';return}
  const ST={knows:'#0e9488',believes:'#3b6ea5','believes-false':'#c0632a',suspects:'#7a5cba','embargoed-until':'#8a97a5'};
@@ -803,9 +952,9 @@ function askRender(out){
  }
  out.appendChild(map);
  const d=askGraphData(r);
- out.appendChild($(`<div class="frame" style="overflow:auto;max-height:64vh"><svg id="gv" style="width:100%;height:520px"></svg></div>`));
- out.appendChild($(`<p class="hint">${d.nodes.length} nodes · ${d.edges.length} edges · drag nodes to rearrange</p>`));
- draw(d);
+ const mount=$(`<div></div>`);out.appendChild(mount);
+ out.appendChild($(`<p class="hint">${d.nodes.length} nodes · ${d.edges.length} edges · drag a node to move it · drag empty space to pan · wheel to zoom · click a node for details</p>`));
+ draw(d,mount);
 }
 async function ask(m){m.innerHTML='';
  m.appendChild($(`<p class="hint">Ask in plain English — the model you set in <b>⚙️ Settings → AI Model</b> (OpenRouter, or a local Ollama / LM Studio server) turns it into a Cypher query, runs it, and shows both. Results stay until your next question; flip to <b>Graph</b> to see them as a node-link.</p>`));
