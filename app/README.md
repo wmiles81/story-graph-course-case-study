@@ -17,10 +17,11 @@ python3 app/story_graph_app.py <Story-Graph.md> [--chapters-dir <dir>] [--port 8
 - **`pip install kuzu`** is optional but recommended — it powers the ad-hoc
   Cypher console and the `report`/`audit` panels. Without it the app still runs
   (Dashboard, Graph, `deviations`, `queue`) and says the Cypher tab is disabled.
-- **`pip install anthropic`** (+ `ANTHROPIC_API_KEY`, or `ant auth login`) is
-  optional — it powers the **Ask** tab (plain-English → Cypher). Without it the
-  Ask tab shows a message; nothing else is affected. Uses `claude-opus-5` by
-  default (override with the `ANTHROPIC_MODEL` env var).
+- The **Ask** tab (plain-English → Cypher) is **provider-neutral and needs no
+  SDK** — it speaks the OpenAI-compatible chat API over stdlib HTTP. Point it at a
+  **local** server (Ollama on `:11434`, LM Studio on `:1234` — no key) or at
+  **OpenRouter** (paste a key). Configure provider + model in ⚙️ Settings → AI
+  Model. `OPENROUTER_API_KEY` in the environment is picked up automatically.
 - Pass `--chapters-dir` to enable the `deviations` report (graph-vs-source drift).
 
 First load compiles the graph into a throwaway Kùzu database, so startup takes a
@@ -39,10 +40,11 @@ few seconds on a large graph (e.g. a full-book import); small graphs are instant
 - **Query** — an ad-hoc **Cypher** console over the compiled graph. Node tables:
   `Entity, Proposition, Source, Evidence, OpenLoop, Holder`. Rel tables:
   `RELATES, EPISTEMIC, GOVERNED_BY, EVIDENCED_BY, SUPPORTS`.
-- **Ask** — for people without Cypher: type a question in plain English, Claude
-  turns it into a read-only Cypher query (the schema above is given to the model
-  and shown in a collapsible panel), runs it, and shows both the generated query
-  and the results. Needs `anthropic` + a key (see Run).
+- **Ask** — for people without Cypher: type a question in plain English, the model
+  you picked (local or OpenRouter) turns it into a read-only Cypher query (the
+  schema above is given to the model and shown in a collapsible panel), runs it,
+  and shows both the generated query and the results. Configure the provider/model
+  in Settings.
 - **Reports** — run `report`, `audit`, `deviations`, `queue` and read the output.
 
 ## Settings (⚙️ top-right)
@@ -54,10 +56,11 @@ outside to close.
   in the browser (`localStorage`): contrast, text size (whole-UI scale), letter
   spacing, line height, a readable-font toggle (OpenDyslexic if installed),
   reduce-motion, and a 12px minimum-text-size floor.
-- **AI Model** — configure the Ask tab's Anthropic model (dropdown) and API key.
-  The key is held **in memory for the session only — never written to disk**;
-  `Test` sends a one-token ping to confirm it reaches the model. Falls back to
-  `ANTHROPIC_API_KEY` / `ant auth login` when no key is entered.
+- **AI Model** — provider-neutral config for the Ask tab: pick a **provider**
+  (OpenRouter · Ollama · LM Studio — the dot shows local reachability), then a
+  **model** (Browse the provider's live catalogue, or type an id for a local
+  model), and `Test` the connection. Cloud keys are held **in memory for the
+  session only — never written to disk**; local providers need no key.
 - **About** — the loaded graph, canon chapter, modules, and Kùzu status.
 
 (The source dialog also has novel-pipeline Flows and an OpenRouter Corpus tab;
@@ -71,4 +74,6 @@ Binds to `127.0.0.1` only; no auth, no multi-user, no write-back to the graph
 canon in the `Story-Graph.md` file with the skill; restart the app to see it.
 The generated Cypher is validated read-only before running. One network
 exception: the **Ask** tab sends your question and the graph *schema* (table
-names, not your data) to the Anthropic API; every other tab is fully local.
+names, not your data) to your chosen provider. Point it at a local Ollama / LM
+Studio server and even that stays on your machine; OpenRouter is the only cloud
+hop, and only if you choose it.

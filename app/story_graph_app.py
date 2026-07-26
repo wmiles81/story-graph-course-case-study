@@ -29,9 +29,55 @@ sys.path.insert(0, str(ASSETS))
 import story_graph as sg  # noqa: E402
 
 STATE = {"path": None, "text": "", "graph": None, "chapters_dir": "", "conn": None, "kuzu_err": "",
-         "model": "", "api_key": ""}  # AI model + in-memory key for the Ask tab (never written to disk)
+         "provider": "", "model": "", "keys": {}}  # Ask-tab AI: provider/model + in-memory keys (never written to disk)
 
-CLAUDE_MODELS = ["claude-opus-5", "claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5", "claude-fable-5"]
+# Provider-neutral, OpenAI-compatible endpoints. Local servers need no key; cloud reads env or an in-memory key.
+PROVIDERS = [
+    {"name": "openrouter", "label": "OpenRouter", "base": "https://openrouter.ai/api/v1", "env": "OPENROUTER_API_KEY", "local": False},
+    {"name": "ollama", "label": "Ollama (local)", "base": "http://localhost:11434/v1", "env": "", "local": True},
+    {"name": "lmstudio", "label": "LM Studio (local)", "base": "http://localhost:1234/v1", "env": "", "local": True},
+]
+_PROV = {p["name"]: p for p in PROVIDERS}
+
+
+def _provider_key(name):
+    import os as _os
+    p = _PROV.get(name) or {}
+    return STATE.get("keys", {}).get(name) or (_os.environ.get(p.get("env", "")) if p.get("env") else "")
+
+
+def _oai(base, path, key, payload=None, timeout=60):
+    """One OpenAI-compatible request (GET /models or POST /chat/completions)."""
+    import urllib.request
+    headers = {"Content-Type": "application/json"}
+    if key:
+        headers["Authorization"] = "Bearer " + key
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = urllib.request.Request(base.rstrip("/") + path, data=data, headers=headers,
+                                 method="POST" if data is not None else "GET")
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def _chat(provider, model, system, user, max_tokens=2048):
+    p = _PROV[provider]
+    payload = {"model": model, "max_tokens": max_tokens,
+               "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+    d = _oai(p["base"], "/chat/completions", _provider_key(provider), payload, timeout=90)
+    return d["choices"][0]["message"]["content"]
+
+
+def _reachable(name):
+    p = _PROV.get(name)
+    if not p:
+        return False
+    if not p["local"]:
+        return bool(_provider_key(name))
+    try:
+        _oai(p["base"], "/models", "", None, timeout=1.5)
+        return True
+    except Exception:
+        return False
 
 
 def _jsonable(v):
@@ -185,13 +231,10 @@ def api_ask(question):
         return {"error": "Ask a question in plain English."}
     if STATE["conn"] is None:
         return {"error": "Cypher needs kuzu (pip install kuzu) and a compiled graph."}
-    try:
-        import anthropic
-    except ImportError:
-        return {"error": "Plain-English questions need the Anthropic SDK: `pip install anthropic` "
-                         "and set ANTHROPIC_API_KEY (or run `ant auth login`)."}
-    import os as _os
-    model = STATE.get("model") or _os.environ.get("ANTHROPIC_MODEL") or "claude-opus-5"
+    provider, model = STATE.get("provider"), STATE.get("model")
+    if not provider or not model:
+        return {"error": "Pick a provider and model in ⚙️ Settings → AI Model "
+                         "(OpenRouter, or a local Ollama / LM Studio server)."}
     system = (
         "You translate a question about a novel's canon 'story graph' into ONE read-only Kùzu "
         "Cypher query. Use ONLY these tables and properties:\n\n" + CYPHER_SCHEMA +
@@ -199,14 +242,10 @@ def api_ask(question):
         "readable fields (entity/proposition ids and p.statement). Respond with ONLY a JSON "
         'object and nothing else: {"cypher": "<the query>", "explanation": "<one sentence>"}.')
     try:
-        client = anthropic.Anthropic(api_key=STATE["api_key"]) if STATE.get("api_key") else anthropic.Anthropic()
-        msg = client.messages.create(
-            model=model, max_tokens=2048, system=system,
-            messages=[{"role": "user", "content": question}],
-        )
-    except Exception as e:  # missing key, network, bad model, old SDK
-        return {"error": f"Anthropic call failed: {e}"}
-    text = "".join(getattr(b, "text", "") for b in msg.content if getattr(b, "type", "") == "text").strip()
+        text = _chat(provider, model, system, question).strip()
+    except Exception as e:
+        label = (_PROV.get(provider) or {}).get("label", provider)
+        return {"error": f"{label} call failed: {e}"}
     if text.startswith("```"):
         text = text.strip("`")
         text = text[text.find("{"):]
@@ -224,44 +263,48 @@ def api_ask(question):
     return result
 
 
-def _anthropic_available():
-    try:
-        import anthropic  # noqa: F401
-        return True
-    except ImportError:
-        return False
-
-
 def api_settings_get():
-    import os as _os
-    return {
-        "model": STATE.get("model") or _os.environ.get("ANTHROPIC_MODEL") or "claude-opus-5",
-        "models": CLAUDE_MODELS,
-        "key_set": bool(STATE.get("api_key")) or bool(_os.environ.get("ANTHROPIC_API_KEY")),
-        "key_source": "app" if STATE.get("api_key") else ("env" if _os.environ.get("ANTHROPIC_API_KEY") else ""),
-        "anthropic": _anthropic_available(),
-        "kuzu": STATE["conn"] is not None,
-    }
+    provs = [{"name": p["name"], "label": p["label"], "local": p["local"],
+              "key_set": bool(_provider_key(p["name"])), "reachable": _reachable(p["name"])}
+             for p in PROVIDERS]
+    return {"provider": STATE.get("provider") or "", "model": STATE.get("model") or "",
+            "providers": provs, "kuzu": STATE["conn"] is not None}
 
 
 def api_settings_put(patch):
+    if "provider" in patch:
+        STATE["provider"] = (patch.get("provider") or "").strip()
     if "model" in patch:
         STATE["model"] = (patch.get("model") or "").strip()
     if "api_key" in patch:  # held in memory only; never written to disk
-        STATE["api_key"] = (patch.get("api_key") or "").strip()
+        prov = (patch.get("provider") or STATE.get("provider") or "").strip()
+        if prov:
+            STATE.setdefault("keys", {})[prov] = (patch.get("api_key") or "").strip()
     return api_settings_get()
 
 
-def api_testkey():
-    import os as _os
-    if not _anthropic_available():
-        return {"ok": False, "detail": "Anthropic SDK not installed — pip install anthropic."}
-    import anthropic
-    model = STATE.get("model") or _os.environ.get("ANTHROPIC_MODEL") or "claude-opus-5"
+def api_models(provider):
+    p = _PROV.get(provider)
+    if not p:
+        return {"error": "unknown provider", "models": []}
+    if not p["local"] and not _provider_key(provider):
+        return {"error": f"Add a key for {p['label']} first.", "models": []}
     try:
-        client = anthropic.Anthropic(api_key=STATE["api_key"]) if STATE.get("api_key") else anthropic.Anthropic()
-        client.messages.create(model=model, max_tokens=8, messages=[{"role": "user", "content": "ping"}])
-        return {"ok": True, "detail": f"reached {model}"}
+        d = _oai(p["base"], "/models", _provider_key(provider), None, timeout=20)
+        ids = sorted({m.get("id") for m in (d.get("data") or []) if m.get("id")})
+        return {"models": ids}
+    except Exception as e:
+        return {"error": str(e)[:200], "models": []}
+
+
+def api_testkey(provider=None):
+    prov = provider or STATE.get("provider")
+    p = _PROV.get(prov)
+    if not p:
+        return {"ok": False, "detail": "Pick a provider first."}
+    try:
+        d = _oai(p["base"], "/models", _provider_key(prov), None, timeout=15)
+        return {"ok": True, "detail": f"{p['label']} reachable · {len(d.get('data') or [])} models"}
     except Exception as e:
         return {"ok": False, "detail": str(e)[:200]}
 
@@ -291,6 +334,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_schema())
         if u.path == "/api/settings":
             return self._json(api_settings_get())
+        if u.path == "/api/models":
+            return self._json(api_models(q.get("provider", [""])[0]))
         if u.path == "/api/summary":
             return self._json(api_summary())
         if u.path == "/api/graph":
@@ -311,7 +356,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/settings":
             return self._json(api_settings_put(payload))
         if self.path == "/api/testkey":
-            return self._json(api_testkey())
+            return self._json(api_testkey(payload.get("provider")))
         return self._json({"error": "not found"}, 404)
 
 
@@ -452,7 +497,7 @@ async function timeline(m){m.innerHTML='';const d=await api('/api/timeline');
  const cap=$(`<p class="hint">Time runs left→right (chapter); each row is a character. Hover a dot for the belief, or click to pin it here.</p>`);m.appendChild(cap);
  frame.querySelectorAll('circle').forEach(c=>{c.onclick=()=>{cap.textContent=decodeURIComponent(c.dataset.b)}});}
 async function ask(m){m.innerHTML='';
- m.appendChild($(`<p class="hint">Ask in plain English — Claude turns it into a Cypher query, runs it, and shows both. The server needs <code>pip install anthropic</code> and an API key (ANTHROPIC_API_KEY or <code>ant auth login</code>).</p>`));
+ m.appendChild($(`<p class="hint">Ask in plain English — the model you set in <b>⚙️ Settings → AI Model</b> (OpenRouter, or a local Ollama / LM Studio server) turns it into a Cypher query, runs it, and shows both. No API key needed for local models.</p>`));
  const ta=$(`<textarea placeholder="e.g. which propositions does the reader know that a character believes are false?">Which propositions does the reader know that a character believes are false?</textarea>`);m.appendChild(ta);
  const row=$(`<div class="row"></div>`);const btn=$(`<button class="go">Ask</button>`);row.appendChild(btn);m.appendChild(row);
  const out=$(`<div></div>`);m.appendChild(out);
@@ -521,24 +566,48 @@ function smDisplay(body){const a=a11yRead();
  body.appendChild(row('Minimum text size','Keep interface text at least 12px.',toggle('minFont')));
 }
 async function smModel(body){
- body.appendChild($(`<p class="hint">The AI behind the Ask tab. The key is held in memory for this session only — never written to disk.</p>`));
  const s=await api('/api/settings');
- const mrow=$(`<div class="sm-row"><div class="sm-row-head"><span class="sm-label">Model</span></div><span class="sm-sub">Anthropic model for plain-English → Cypher.</span></div>`);
- const sel=$(`<select class="sm-field"></select>`);s.models.forEach(mm=>{const o=document.createElement('option');o.value=mm;o.textContent=mm;if(mm===s.model)o.selected=true;sel.appendChild(o)});
- sel.onchange=()=>api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:sel.value})});
- mrow.querySelector('.sm-row-head').appendChild(sel);body.appendChild(mrow);
- const krow=$(`<div class="sm-row"><div class="sm-row-head"><span class="sm-label">API key</span><span class="sm-sub">${s.key_set?('active · '+s.key_source):'not set'}</span></div></div>`);body.appendChild(krow);
- const kwrap=$(`<div class="row"></div>`),kin=$(`<input class="sm-field" style="flex:1" type="password" placeholder="${s.key_set?'•••• (blank keeps current)':'sk-ant-…'}" autocomplete="off">`);
- const ksave=$(`<button class="go">Save</button>`),ktest=$(`<button class="ghost">Test</button>`),stat=$(`<span class="sm-sub"></span>`);
- kwrap.appendChild(kin);kwrap.appendChild(ksave);kwrap.appendChild(ktest);krow.appendChild(kwrap);krow.appendChild(stat);
- ksave.onclick=async()=>{if(!kin.value.trim())return;stat.textContent='saving…';await api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:kin.value.trim()})});kin.value='';stat.innerHTML='<span class="sm-ok">✓ saved (memory only)</span>'};
- ktest.onclick=async()=>{stat.textContent='testing…';const r=await api('/api/testkey',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});stat.innerHTML=r.ok?`<span class="sm-ok">✓ ${esc(r.detail)}</span>`:`<span class="sm-bad">✗ ${esc(r.detail)}</span>`};
- if(!s.anthropic)body.appendChild($(`<p class="hint"><span class="sm-bad">The Anthropic SDK isn't installed on the server</span> — run <code>pip install anthropic</code> to enable the Ask tab.</p>`));
+ const post=(patch)=>api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)});
+ body.appendChild($(`<p class="hint">The AI behind the <b>Ask</b> tab. Pick a provider, then a model. Keys are held in memory for this session only — never written to disk. Local providers (Ollama, LM Studio) need no key — the dot shows reachability.</p>`));
+ // provider
+ const prow=$(`<div class="sm-row"><div class="sm-row-head"><span class="sm-label">Provider</span></div></div>`);
+ const psel=$(`<select class="sm-field"></select>`);
+ const o0=document.createElement('option');o0.value='';o0.textContent='— provider —';psel.appendChild(o0);
+ s.providers.forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=p.label+(p.local?(p.reachable?' ●':' ○'):(p.key_set?' ✓':''));if(p.name===s.provider)o.selected=true;psel.appendChild(o)});
+ psel.onchange=async()=>{await post({provider:psel.value,model:''});smModel(body)};
+ prow.querySelector('.sm-row-head').appendChild(psel);body.appendChild(prow);
+ const cur=s.providers.find(p=>p.name===s.provider);
+ // key (cloud only)
+ if(cur && !cur.local){
+  const krow=$(`<div class="sm-row"><div class="sm-row-head"><span class="sm-label">${cur.label} key</span><span class="sm-sub">${cur.key_set?'active':'not set'}</span></div></div>`);
+  const kw=$(`<div class="row"></div>`),kin=$(`<input class="sm-field" style="flex:1" type="password" placeholder="${cur.key_set?'•••• (blank keeps current)':'API key'}" autocomplete="off">`);
+  const ksave=$(`<button class="go">Save</button>`),kstat=$(`<span class="sm-sub"></span>`);
+  kw.appendChild(kin);kw.appendChild(ksave);krow.appendChild(kw);krow.appendChild(kstat);
+  ksave.onclick=async()=>{if(!kin.value.trim())return;kstat.textContent='saving…';await post({provider:cur.name,api_key:kin.value.trim()});smModel(body)};
+  body.appendChild(krow);
+ }
+ // model
+ const mrow=$(`<div class="sm-row"><div class="sm-row-head"><span class="sm-label">Model</span><span class="sm-sub" id="mstat">${s.model?'current: '+esc(s.model):'none set'}</span></div></div>`);
+ const mw=$(`<div class="row"></div>`),mfield=$(`<input class="sm-field" style="flex:1" placeholder="model id (or Browse)" value="${esc(s.model||'')}">`);
+ const mbrowse=$(`<button class="ghost">Browse…</button>`),mset=$(`<button class="go">Set</button>`),mtest=$(`<button class="ghost">Test</button>`);
+ mw.appendChild(mfield);mw.appendChild(mbrowse);mw.appendChild(mset);mw.appendChild(mtest);mrow.appendChild(mw);
+ const mlist=$(`<div></div>`);mrow.appendChild(mlist);body.appendChild(mrow);
+ const mstat=mrow.querySelector('#mstat');
+ mset.onclick=async()=>{await post({provider:s.provider,model:mfield.value.trim()});mstat.innerHTML='<span class="sm-ok">✓ set</span>'};
+ mtest.onclick=async()=>{mstat.textContent='testing…';const r=await api('/api/testkey',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({provider:s.provider})});mstat.innerHTML=r.ok?`<span class="sm-ok">✓ ${esc(r.detail)}</span>`:`<span class="sm-bad">✗ ${esc(r.detail)}</span>`};
+ mbrowse.onclick=async()=>{if(!s.provider){mstat.innerHTML='<span class="sm-bad">pick a provider first</span>';return}
+  mlist.innerHTML='<p class="hint">loading models…</p>';const r=await api('/api/models?provider='+encodeURIComponent(s.provider));
+  if(r.error){mlist.innerHTML=`<p class="hint"><span class="sm-bad">${esc(r.error)}</span></p>`;return}
+  const box=$(`<div style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:.5rem"></div>`);
+  const filt=$(`<input class="sm-field" style="width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0" placeholder="filter ${r.models.length} models…">`);box.appendChild(filt);
+  const ul=$(`<div></div>`);box.appendChild(ul);
+  const paint=(qq)=>{ul.innerHTML='';r.models.filter(mm=>!qq||mm.toLowerCase().includes(qq)).slice(0,400).forEach(mm=>{const b=$(`<button class="ghost" style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;font:12px ui-monospace,monospace">${esc(mm)}</button>`);b.onclick=async()=>{mfield.value=mm;await post({provider:s.provider,model:mm});mstat.innerHTML='<span class="sm-ok">✓ '+esc(mm)+'</span>';mlist.innerHTML=''};ul.appendChild(b)})};
+  filt.oninput=()=>paint(filt.value.trim().toLowerCase());paint('');mlist.innerHTML='';mlist.appendChild(box)};
 }
 async function smAbout(body){const s=await api('/api/summary');
  body.appendChild($(`<p class="hint">Story Graph OS — a local browser face over the story-graph engine.</p>`));
  body.appendChild($(`<pre>graph:   ${esc(s.path||'')}\ncanon:   chapter ${s.canon_chapter}\nmodules: ${s.modules.join(', ')||'none'}\nkuzu:    ${s.kuzu?'on':'off'}</pre>`));
- body.appendChild($(`<p class="hint">Settings dialog adapted from the Novel Machine authoring UI — its full accessibility controls plus provider/model configuration mapped to this app's single Anthropic use. That app's novel-pipeline routing (per-agent flows, OpenRouter corpus) has no analog here.</p>`));
+ body.appendChild($(`<p class="hint">Settings dialog adapted from the Novel Machine authoring UI — its accessibility controls plus provider-neutral, OpenAI-compatible model routing (OpenRouter + local Ollama / LM Studio). That app's per-agent novel-pipeline Flows have no analog here.</p>`));
 }
 a11yApply(a11yRead());
 document.getElementById('gear').onclick=openSettings;

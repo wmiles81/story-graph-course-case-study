@@ -44,12 +44,17 @@ def test_app_schema_and_ask_guards(tmp_path):
     assert "plain English" in app.api_ask("")["error"]
 
 
-def test_app_settings_roundtrip():
+def test_app_settings_providers_roundtrip():
     app = _app()
     s = app.api_settings_get()
-    assert s["model"] and isinstance(s["models"], list) and "kuzu" in s and "anthropic" in s
-    app.api_settings_put({"model": "claude-sonnet-5"})
-    assert app.api_settings_get()["model"] == "claude-sonnet-5"
-    app.api_settings_put({"api_key": "sk-ant-x"})
-    assert app.api_settings_get()["key_set"] and app.api_settings_get()["key_source"] == "app"
-    assert "ok" in app.api_testkey()  # degrades to {ok:False,...} without the SDK
+    names = {p["name"] for p in s["providers"]}
+    assert {"openrouter", "ollama", "lmstudio"} <= names and "kuzu" in s
+    app.api_settings_put({"provider": "openrouter", "model": "anthropic/claude-3.5-sonnet"})
+    s2 = app.api_settings_get()
+    assert s2["provider"] == "openrouter" and s2["model"] == "anthropic/claude-3.5-sonnet"
+    app.api_settings_put({"provider": "openrouter", "api_key": "sk-or-x"})
+    assert any(p["name"] == "openrouter" and p["key_set"] for p in app.api_settings_get()["providers"])
+    # local provider probe fails fast (nothing listening) — both return dicts, no exception
+    assert "models" in app.api_models("ollama")
+    assert "ok" in app.api_testkey("ollama")
+    assert app.api_models("bogus")["error"] == "unknown provider"
