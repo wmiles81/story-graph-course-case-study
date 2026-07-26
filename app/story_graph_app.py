@@ -26,6 +26,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 DB_LOCK = threading.Lock()   # one kuzu Connection shared by all request threads
+READY = threading.Event()    # set once the initial load() finishes; gates request handling during startup
 
 APP_DIR = Path(__file__).resolve().parent
 ASSETS = APP_DIR.parent / "story-graph" / "assets"
@@ -33,7 +34,9 @@ sys.path.insert(0, str(ASSETS))
 import story_graph as sg  # noqa: E402
 
 STATE = {"path": None, "text": "", "graph": None, "chapters_dir": "", "conn": None, "kuzu_err": "",
-         "provider": "", "model": "", "keys": {}}  # Ask-tab AI: provider/model + in-memory keys (never written to disk)
+         "provider": "", "model": "", "keys": {}, "mtime": None}
+# keys: Ask-tab AI provider/model + in-memory keys (never written to disk).
+# mtime: on-disk graph file's mtime as of the last load() — used for staleness polling.
 
 # Provider-neutral, OpenAI-compatible endpoints. Local servers need no key; cloud reads env or an in-memory key.
 PROVIDERS = [
@@ -155,6 +158,7 @@ def load(graph_path, chapters_dir=""):
     STATE["path"] = graph_path
     STATE["chapters_dir"] = chapters_dir
     STATE["text"] = Path(graph_path).read_text(encoding="utf-8")
+    STATE["mtime"] = Path(graph_path).stat().st_mtime
     STATE["graph"] = sg.parse_graph(STATE["text"])
     STATE["conn"] = None
     STATE["kuzu_err"] = ""
@@ -202,6 +206,33 @@ def api_summary():
         "counts": counts,
         "unratified": len(sg.unratified(g)),
     }
+
+
+def api_status():
+    """Cheap staleness probe (os.stat only, no re-parse) so the frontend can poll:
+    stale = the on-disk graph file's mtime no longer matches what we last loaded."""
+    path = STATE.get("path")
+    mtime = STATE.get("mtime")
+    if not path:
+        return {"stale": False, "mtime": mtime}
+    try:
+        cur = Path(path).stat().st_mtime
+    except OSError:
+        return {"stale": False, "mtime": mtime}
+    return {"stale": mtime is not None and cur != mtime, "mtime": mtime}
+
+
+def api_reload():
+    """Re-parse the graph file from disk and rebuild the kuzu projection. Wrapped so
+    a bad edit (parse error, missing file) can't crash the server: on failure this
+    returns {"error": ...} instead of raising. Takes DB_LOCK so a concurrent Cypher
+    query can't run against a kuzu connection that's being swapped out mid-reload."""
+    try:
+        with DB_LOCK:
+            load(STATE["path"], STATE["chapters_dir"])
+    except Exception as e:
+        return {"error": f"reload failed: {e}"}
+    return api_summary()
 
 
 def api_graph(prop=""):
@@ -406,6 +437,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if not self._local_only():
                 return
+            if not READY.is_set():
+                return self._starting()
             self._get()
         except Exception as e:
             try:
@@ -431,6 +464,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_models(q.get("provider", [""])[0]))
         if u.path == "/api/summary":
             return self._json(api_summary())
+        if u.path == "/api/status":
+            return self._json(api_status())
         if u.path == "/api/graph":
             return self._json(api_graph(q.get("prop", [""])[0]))
         if u.path == "/api/timeline":
@@ -438,6 +473,20 @@ class Handler(BaseHTTPRequestHandler):
         if u.path == "/api/report":
             return self._json(api_report(q.get("kind", ["report"])[0]))
         return self._json({"error": "not found"}, 404)
+
+    def _starting(self):
+        """While load() is still compiling the graph in a background thread: answer
+        every request with a friendly 'starting up' reply instead of routing into
+        _get() (which depends on STATE being fully populated)."""
+        from urllib.parse import urlparse
+        path = urlparse(self.path).path
+        if path == "/favicon.ico":
+            self.send_response(204)
+            self.end_headers()
+            return
+        if path.startswith("/api/"):
+            return self._json({"error": "starting up", "starting": True}, 503)
+        return self._send(STARTING_PAGE, "text/html; charset=utf-8")
 
     def _local_only(self):
         """Reject cross-origin / DNS-rebinding requests: this server is for this
@@ -455,6 +504,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._local_only():
             return
+        if not READY.is_set():
+            return self._json({"error": "starting up", "starting": True}, 503)
         try:
             length = int(self.headers.get("Content-Length") or 0)
             payload = json.loads(self.rfile.read(length) or "{}")
@@ -476,7 +527,20 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_settings_put(payload))
         if self.path == "/api/testkey":
             return self._json(api_testkey(payload.get("provider")))
+        if self.path == "/api/reload":
+            return self._json(api_reload())
         return self._json({"error": "not found"}, 404)
+
+
+STARTING_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta http-equiv="refresh" content="2">
+<title>Story Graph OS — starting…</title>
+<style>
+:root{--bg:#eef1f5;--ink:#151c26;--muted:#586573}
+@media(prefers-color-scheme:dark){:root{--bg:#0c121a;--ink:#e7edf4;--muted:#93a1b3}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,-apple-system,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh}
+div{text-align:center} p.hint{color:var(--muted);font-size:.85rem}
+</style></head><body><div><p>Compiling the story graph…</p><p class="hint">This page refreshes automatically every 2 seconds.</p></div></body></html>"""
 
 
 PAGE = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -513,6 +577,7 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padd
 .legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:3px;margin-right:.35rem;vertical-align:-1px}
 #offline{position:fixed;left:0;right:0;bottom:0;background:var(--irony,#b4531f);color:#fff;padding:.6rem 1rem;font:13px system-ui;display:flex;gap:.75rem;align-items:center;justify-content:center;z-index:99}
 #offline button{background:#fff;border:0;border-radius:6px;padding:.25rem .6rem;cursor:pointer}
+#stalebar{background:var(--panel);border:1px solid var(--irony);border-radius:10px;padding:.6rem 1rem}
 #gear{margin-left:auto;font:13px system-ui;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:.4rem .7rem;cursor:pointer}
 .sm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;z-index:50}
 .sm-modal{background:var(--bg);border:1px solid var(--line);border-radius:14px;width:min(680px,100%);max-height:86vh;overflow:auto;box-shadow:0 12px 48px rgba(0,0,0,.45)}
@@ -547,26 +612,48 @@ body.a11y-minfont .hint,body.a11y-minfont .tlab,body.a11y-minfont .elab,body.a11
 const $=(h)=>{const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild};
 // Never throws: every failure comes back as {error} so a caller can render it
 // instead of leaving a tab stuck on "loading…" (a restarted backend used to do exactly that).
-const api=async(p,o)=>{
+const api=async(p,o,timeoutMs)=>{
+ const ac=new AbortController();
+ const to=setTimeout(()=>ac.abort(),timeoutMs||45000);
  try{
-  const res=await fetch(p,o);
+  const res=await fetch(p,{...o,signal:ac.signal});
   let d=null;
   try{ d=await res.json() }catch(_){ d=null }
   if(!res.ok)return {error:(d&&d.error)||`server error ${res.status}`,_http:res.status};
   if(d===null)return {error:'server sent a malformed response'};
   banner(false);return d;
  }catch(e){
+  if(e.name==='AbortError')return {error:'timed out waiting for a response. Try again.',_timeout:true};
   banner(true);
   return {error:'Cannot reach the server — it may have been restarted. Reload the page.',_offline:true};
+ }finally{
+  clearTimeout(to);
  }};
 function banner(show){let b=document.getElementById('offline');
  if(show&&!b){b=$(`<div id="offline">Backend unreachable — the server may have restarted. <button class="ghost" onclick="location.reload()">Reload</button></div>`);document.body.appendChild(b)}
  else if(!show&&b)b.remove();}
+// Polls /api/status every 5s; shows a dismissible bar atop #main when the graph file
+// on disk changed since we loaded it, with a button to POST /api/reload.
+let STALE_DISMISSED=false;
+async function staleCheck(){
+ const s=await api('/api/status');if(s.error)return;
+ const bar=document.getElementById('stalebar');
+ if(!s.stale){if(bar)bar.remove();STALE_DISMISSED=false;return}
+ if(STALE_DISMISSED||bar)return;
+ const b=$(`<div id="stalebar" class="row"><span>The graph file changed on disk.</span><button class="go">Reload graph</button><button class="ghost">Dismiss</button></div>`);
+ const main=document.getElementById('main');main.insertBefore(b,main.firstChild);
+ const [rbtn,dbtn]=b.querySelectorAll('button');
+ rbtn.onclick=async()=>{rbtn.textContent='reloading…';rbtn.disabled=true;
+  const r=await api('/api/reload',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+  if(r.error){rbtn.textContent='Reload graph';rbtn.disabled=false;b.querySelector('span').textContent='Reload failed: '+r.error;return}
+  b.remove();STALE_DISMISSED=false;await head();await render();};
+ dbtn.onclick=()=>{b.remove();STALE_DISMISSED=true};
+}
 let TAB='dashboard';
 const TABS=['dashboard','graph','timeline','query','ask','reports'];
 // Escapes quotes too — values from the provider catalog land in HTML attributes (value="…").
 const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-function nav(){const n=document.getElementById('nav');n.innerHTML='';TABS.forEach(t=>{const b=document.createElement('button');b.textContent=t[0].toUpperCase()+t.slice(1);b.className=t===TAB?'on':'';b.onclick=()=>{TAB=t;render()};n.appendChild(b)})}
+function nav(){const n=document.getElementById('nav');n.innerHTML='';TABS.forEach(t=>{const b=document.createElement('button');b.textContent=t[0].toUpperCase()+t.slice(1);b.className=t===TAB?'on':'';b.onclick=()=>{TAB=t;render().then(staleCheck)};n.appendChild(b)})}
 async function render(){nav();const m=document.getElementById('main');m.innerHTML='<p class="hint">loading…</p>';
  if(TAB==='dashboard')return dashboard(m);
  if(TAB==='graph')return graph(m);
@@ -729,7 +816,9 @@ async function ask(m){m.innerHTML='';
  const sch=await api('/api/schema');
  m.appendChild($(`<details style="margin-top:1rem"><summary class="hint">Cypher rules — the schema the AI is given</summary><pre>${esc(sch.schema||'')}</pre></details>`));
  btn.onclick=async()=>{ASK.q=ta.value;out.innerHTML='<p class="hint">asking…</p>';
-  const r=await api('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:ta.value})});
+  // 95s: comfortably past the backend's own 90s provider-call timeout (_chat/_oai), so a slow
+  // but successful provider round-trip doesn't get reported as "timed out" by the frontend first.
+  const r=await api('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:ta.value})},95000);
   ASK.r=r;ASK.mode='auto';ASK.src=0;ASK.tgt=-1;ASK.lbl=-1;   // reset mapping for the new result shape
   askRender(out)};}
 async function query(m){m.innerHTML='';const s=await api('/api/summary');
@@ -832,7 +921,8 @@ async function smAbout(body){const s=await api('/api/summary');
 }
 a11yApply(a11yRead());
 document.getElementById('gear').onclick=openSettings;
-head().then(render);
+head().then(render).then(staleCheck);
+setInterval(staleCheck,5000);
 </script></body></html>"""
 
 
@@ -843,8 +933,6 @@ def main(argv=None):
     p.add_argument("--port", type=int, default=8765)
     p.add_argument("--host", default="127.0.0.1")
     a = p.parse_args(argv)
-    load(a.graph, a.chapters_dir)
-    kz = "kuzu ON" if STATE["conn"] else f"kuzu OFF ({STATE['kuzu_err'] or 'not installed'})"
     try:
         server = ThreadingHTTPServer((a.host, a.port), Handler)   # bind first, before any 'open' message
     except OSError as e:
@@ -854,8 +942,19 @@ def main(argv=None):
             print(f"  Fix it:  rerun with a free port,  --port {a.port + 1}   (or stop that process)")
             return 1
         raise
-    print(f"Story Graph OS — {STATE['path']} — {kz}")
-    print(f"  open http://{a.host}:{a.port}   (Ctrl-C to stop)")
+    print(f"Story Graph OS — loading {a.graph} …")
+    print(f"  open http://{a.host}:{a.port}   (Ctrl-C to stop; page auto-refreshes until the graph finishes compiling)")
+
+    def _load_then_ready():
+        # Runs while the socket is already listening (bound above), so requests that
+        # arrive during the slow compile get a friendly "starting up" reply instead
+        # of a connection refusal — see READY / Handler._starting().
+        load(a.graph, a.chapters_dir)
+        kz = "kuzu ON" if STATE["conn"] else f"kuzu OFF ({STATE['kuzu_err'] or 'not installed'})"
+        print(f"Story Graph OS ready — {STATE['path']} — {kz}")
+        READY.set()
+
+    threading.Thread(target=_load_then_ready, daemon=True).start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
