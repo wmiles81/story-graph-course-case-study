@@ -330,6 +330,10 @@ class Handler(BaseHTTPRequestHandler):
         q = parse_qs(u.query)
         if u.path == "/":
             return self._send(PAGE, "text/html; charset=utf-8")
+        if u.path == "/favicon.ico":
+            self.send_response(204)
+            self.end_headers()
+            return
         if u.path == "/api/schema":
             return self._json(api_schema())
         if u.path == "/api/settings":
