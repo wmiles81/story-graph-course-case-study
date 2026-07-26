@@ -578,12 +578,17 @@ let ASK={q:'',r:null,view:'table',mode:'auto',src:0,tgt:-1,lbl:-1};
 const ASK_PAL=['#0b7d84','#8a5cf6','#b4531f','#0e7c86','#94708a','#5a3fa6'];
 // Columns whose values annotate an edge rather than being a node in their own right.
 function askLabelCols(r){
- const n=r.columns.length, rows=r.rows, out=new Set();
+ const n=r.columns.length, rows=r.rows;
+ const byName=new Set(), byCard=new Set();
  r.columns.forEach((c,i)=>{
-  if(/mode|edge|type|label|rel\b|relation|trend|status|since|_ch\b|chapter/i.test(c)){out.add(i);return}
-  const vals=new Set(rows.map(rw=>String(rw[i]??'')));           // low-cardinality repeats read as labels
-  if(rows.length>=4&&vals.size<=Math.max(2,Math.floor(rows.length/3)))out.add(i);});
- if(n-out.size<2){out.clear();}                                   // need at least two node columns
+  const idish=/(^|\.|_)id$/i.test(c)||/statement|name|title/i.test(c);   // ids & text are always nodes
+  if(!idish&&/mode|edge|type|label|rel\b|relation|trend|status|since|_ch\b|chapter/i.test(c)){byName.add(i);return}
+  if(idish)return;
+  const vals=new Set(rows.map(rw=>String(rw[i]??'')));                    // low-cardinality repeats read as labels
+  if(rows.length>=4&&vals.size<=Math.max(2,Math.floor(rows.length/3)))byCard.add(i);});
+ let out=new Set([...byName,...byCard]);
+ if(n-out.size<2)out=new Set(byName);      // too aggressive: keep only name-based labels
+ if(n-out.size<2)out=new Set();            // still not two node columns: draw everything
  return out;
 }
 function askGraphData(r){
