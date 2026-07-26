@@ -46,6 +46,23 @@ def _provider_key(name):
     return STATE.get("keys", {}).get(name) or (_os.environ.get(p.get("env", "")) if p.get("env") else "")
 
 
+_SSL_CTX = None
+
+
+def _ssl_ctx():
+    """A verifying SSL context that works on macOS python.org builds (which ship
+    no CA bundle) by using certifi's when available."""
+    global _SSL_CTX
+    if _SSL_CTX is None:
+        import ssl
+        try:
+            import certifi
+            _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+        except Exception:
+            _SSL_CTX = ssl.create_default_context()
+    return _SSL_CTX
+
+
 def _oai(base, path, key, payload=None, timeout=60):
     """One OpenAI-compatible request (GET /models or POST /chat/completions)."""
     import urllib.request
@@ -55,7 +72,7 @@ def _oai(base, path, key, payload=None, timeout=60):
     data = json.dumps(payload).encode("utf-8") if payload is not None else None
     req = urllib.request.Request(base.rstrip("/") + path, data=data, headers=headers,
                                  method="POST" if data is not None else "GET")
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with urllib.request.urlopen(req, timeout=timeout, context=_ssl_ctx()) as r:  # context ignored for http://
         return json.loads(r.read().decode("utf-8"))
 
 
