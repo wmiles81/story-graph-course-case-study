@@ -789,6 +789,7 @@ async function graph(m){m.innerHTML='';
 // `full` (internal, threaded through recursive calls) is the true root dataset, so "Focus" on a
 // neighbourhood can always offer a "Show all" back to the original graph, however deep the focus.
 let GHIDE=new Set();   // edge types switched off in the graph view (persists across redraws)
+const GPOS=new Map();  // id -> {x,y,pin} — a node you drag stays where you put it across redraws
 function draw(d,mount,full){full=full||d;mount.innerHTML='';
  // Edge-type filter: a hub edge type (e.g. 120 governed-by edges into one source)
  // swamps the layout, so allow switching types off. Nodes left with no visible
@@ -817,7 +818,10 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  const NS='http://www.w3.org/2000/svg',W=stage.clientWidth||900,H=560;
  stage.style.height=H+'px';svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
 
- const N=d.nodes.map(n=>({...n,x:W/2+Math.cos(Math.random()*6.28)*180,y:H/2+Math.sin(Math.random()*6.28)*140}));
+ const N=d.nodes.map(n=>{const sv=GPOS.get(n.id);
+  return {...n, pin:!!(sv&&sv.pin),
+          x:sv?sv.x:W/2+Math.cos(Math.random()*6.28)*180,
+          y:sv?sv.y:H/2+Math.sin(Math.random()*6.28)*140};});
  const idx=Object.fromEntries(N.map((n,i)=>[n.id,i]));
  const E=d.edges.filter(e=>e.from in idx&&e.to in idx).map(e=>({s:idx[e.from],t:idx[e.to],label:e.label}));
  const neigh=N.map(()=>new Set());E.forEach(e=>{neigh[e.s].add(e.t);neigh[e.t].add(e.s)});
@@ -825,7 +829,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  for(let it=0;it<300;it++){for(const a of N){a.fx=0;a.fy=0}
   for(let i=0;i<N.length;i++)for(let j=i+1;j<N.length;j++){let dx=N[i].x-N[j].x,dy=N[i].y-N[j].y,dd=Math.hypot(dx,dy)||.01,f=k*k/dd;N[i].fx+=dx/dd*f;N[i].fy+=dy/dd*f;N[j].fx-=dx/dd*f;N[j].fy-=dy/dd*f}
   for(const e of E){let a=N[e.s],b=N[e.t],dx=a.x-b.x,dy=a.y-b.y,dd=Math.hypot(dx,dy)||.01,f=dd*dd/k;a.fx-=dx/dd*f;a.fy-=dy/dd*f;b.fx+=dx/dd*f;b.fy+=dy/dd*f}
-  for(const a of N){a.fx+=(W/2-a.x)*.03;a.fy+=(H/2-a.y)*.03;const dl=Math.hypot(a.fx,a.fy)||.01,t=Math.max(1.5,W*0.05*(1-it/300));a.x+=a.fx/dl*Math.min(dl,t);a.y+=a.fy/dl*Math.min(dl,t)}}
+  for(const a of N){if(a.pin)continue;a.fx+=(W/2-a.x)*.03;a.fy+=(H/2-a.y)*.03;const dl=Math.hypot(a.fx,a.fy)||.01,t=Math.max(1.5,W*0.05*(1-it/300));a.x+=a.fx/dl*Math.min(dl,t);a.y+=a.fy/dl*Math.min(dl,t)}}
 
  // Pan/zoom state lives only in this transform — "fit" (below) picks k/x/y to frame whatever the
  // layout produced, however far disconnected components have spread, instead of distorting node
@@ -838,14 +842,34 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  g.appendChild(linesG);g.appendChild(elabG);g.appendChild(nodesG);g.appendChild(nlabG);
  const ring=document.createElementNS(NS,'circle');ring.setAttribute('r',13);ring.setAttribute('fill','none');ring.setAttribute('stroke','var(--accent)');ring.setAttribute('stroke-width','2.5');ring.setAttribute('vector-effect','non-scaling-stroke');ring.style.display='none';ring.style.pointerEvents='none';g.appendChild(ring);
 
- const lines=[],elabels=[],circles=[],nlabels=[];
+ const lines=[],elabels=[],circles=[],nlabels=[],hits=[];
+ let inv=1;                       // 1/zoom — keeps nodes & text a constant size on screen
+ // A pair like a->b and b->a would otherwise print both labels on the same midpoint,
+ // which is the mush you see on reciprocal relationships. Slide each along its own edge.
+ // Slot every edge among the edges sharing its unordered pair, so a->b and b->a
+ // (and any parallel edges) get distinct label anchors instead of one shared midpoint.
+ const _pairSlot=(()=>{const seen={},out=[];
+  E.forEach((e,ei)=>{const key=Math.min(e.s,e.t)+':'+Math.max(e.s,e.t);
+   seen[key]=(seen[key]||0);out[ei]=seen[key]++;});
+  return out})();
+ function elabPos(ei){const e=E[ei];
+  const lo=Math.min(e.s,e.t),hi=Math.max(e.s,e.t),A=N[lo],B=N[hi];
+  // canonical basis so the offset does NOT cancel when the edge runs the other way
+  const slot=_pairSlot[ei], dirBack=(e.s!==lo);
+  const t=0.5+(dirBack?0.16:-0.16)+(slot?0.06*slot*(dirBack?1:-1):0);
+  const dx=B.x-A.x, dy=B.y-A.y, len=Math.hypot(dx,dy)||1;
+  const perp=(slot?(slot%2?1:-1)*Math.ceil(slot/2)*9*inv:0);
+  return {x:A.x+dx*t - dy/len*perp, y:A.y+dy*t + dx/len*perp - 4*inv};}
  E.forEach((e,ei)=>{const l=document.createElementNS(NS,'line');l.setAttribute('x1',N[e.s].x);l.setAttribute('y1',N[e.s].y);l.setAttribute('x2',N[e.t].x);l.setAttribute('y2',N[e.t].y);l.setAttribute('stroke','var(--line)');l.setAttribute('stroke-width','1.5');l.setAttribute('vector-effect','non-scaling-stroke');linesG.appendChild(l);lines[ei]=l;
-  if(e.label){const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');tx.setAttribute('x',(N[e.s].x+N[e.t].x)/2);tx.setAttribute('y',(N[e.s].y+N[e.t].y)/2-4);tx.textContent=e.label;elabG.appendChild(tx);elabels[ei]=tx}else elabels[ei]=null});
- N.forEach((n,i)=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',8);c.setAttribute('fill',n.color);c.dataset.i=i;
+  if(e.label){const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');const _p=elabPos(ei);tx.setAttribute('x',_p.x);tx.setAttribute('y',_p.y);tx.textContent=e.label;elabG.appendChild(tx);elabels[ei]=tx}else elabels[ei]=null});
+ N.forEach((n,i)=>{
+  const hit=document.createElementNS(NS,'circle');hit.setAttribute('cx',n.x);hit.setAttribute('cy',n.y);hit.setAttribute('r',16);
+  hit.setAttribute('fill','transparent');hit.dataset.i=i;hit.style.cursor='grab';nodesG.appendChild(hit);hits[i]=hit;
+  const c=document.createElementNS(NS,'circle');c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',8);c.setAttribute('fill',n.color);c.dataset.i=i;c.style.pointerEvents='none';
   const ti=document.createElementNS(NS,'title');
   ti.textContent=(n.text?n.text+'\n':'')+n.id+(n.kind?'  ·  '+n.kind:'');c.appendChild(ti);
-  c.addEventListener('pointerenter',()=>{hoverIdx=i;paintDim();updateLOD()});
-  c.addEventListener('pointerleave',()=>{hoverIdx=-1;paintDim();updateLOD()});
+  hit.addEventListener('pointerenter',()=>{hoverIdx=i;paintDim();updateLOD()});
+  hit.addEventListener('pointerleave',()=>{hoverIdx=-1;paintDim();updateLOD()});
   nodesG.appendChild(c);circles[i]=c;
   const t=document.createElementNS(NS,'text');t.setAttribute('class','nlab');t.setAttribute('x',n.x+11);t.setAttribute('y',n.y+4);
   const disp=(n.label||n.id);t.textContent=disp.length>46?disp.slice(0,46)+'…':disp;nlabG.appendChild(t);nlabels[i]=t});
@@ -885,11 +909,12 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  svg.addEventListener('click',ev=>{if(ev.target===svg)setSelected(-1)});
 
  function moveNode(i){circles[i].setAttribute('cx',N[i].x);circles[i].setAttribute('cy',N[i].y);
-  nlabels[i].setAttribute('x',N[i].x+11);nlabels[i].setAttribute('y',N[i].y+4);
+  hits[i].setAttribute('cx',N[i].x);hits[i].setAttribute('cy',N[i].y);
+  nlabels[i].setAttribute('x',N[i].x+11*inv);nlabels[i].setAttribute('y',N[i].y+4*inv);
   if(i===selIdx){ring.setAttribute('cx',N[i].x);ring.setAttribute('cy',N[i].y)}
   E.forEach((e,ei)=>{if(e.s===i){lines[ei].setAttribute('x1',N[i].x);lines[ei].setAttribute('y1',N[i].y)}
    if(e.t===i){lines[ei].setAttribute('x2',N[i].x);lines[ei].setAttribute('y2',N[i].y)}
-   if((e.s===i||e.t===i)&&elabels[ei]){elabels[ei].setAttribute('x',(N[e.s].x+N[e.t].x)/2);elabels[ei].setAttribute('y',(N[e.s].y+N[e.t].y)/2-4)}})}
+   if((e.s===i||e.t===i)&&elabels[ei]){const q=elabPos(ei);elabels[ei].setAttribute('x',q.x);elabels[ei].setAttribute('y',q.y)}})}
 
  // Hover/search dim everything except what's relevant — "the rest" gets quieter, nothing disappears.
  function paintDim(){N.forEach((n,i)=>{const inc=hoverIdx>=0&&(i===hoverIdx||neigh[hoverIdx].has(i));
@@ -908,10 +933,27 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   const smallE=E.length<=25,zinE=view.k>=2.2;
   E.forEach((e,ei)=>{if(!elabels[ei])return;const show=smallE||zinE||(hoverIdx>=0&&(e.s===hoverIdx||e.t===hoverIdx))||(selIdx>=0&&(e.s===selIdx||e.t===selIdx));
    elabels[ei].style.display=show?'':'none'})}
- function applyTransform(){g.setAttribute('transform',`translate(${view.x},${view.y}) scale(${view.k})`);updateLOD()}
+ function renderPinBadge(){
+  const pins=[...GPOS.values()].filter(v=>v.pin).length;
+  let el=wrap.querySelector('.gpins');
+  if(!pins){if(el)el.remove();return}
+  if(!el){el=$(`<button class="gchip reset gpins"></button>`);
+   el.onclick=()=>{GPOS.clear();draw(unfiltered,mount,full)};
+   const tools=wrap.querySelector('.gtools');tools.insertBefore(el,tools.querySelector('#gzo'))}
+  el.textContent=`📌 ${pins} pinned — unpin all`;
+  el.title='These nodes stay where you dragged them across redraws. Click to release them.';}
+ function applyTransform(){g.setAttribute('transform',`translate(${view.x},${view.y}) scale(${view.k})`);
+  inv=1/view.k;
+  const nr=(8*inv).toFixed(2),hr=(16*inv).toFixed(2);
+  for(let i=0;i<circles.length;i++){circles[i].setAttribute('r',nr);hits[i].setAttribute('r',hr);
+   nlabels[i].setAttribute('x',N[i].x+11*inv);nlabels[i].setAttribute('y',N[i].y+4*inv)}
+  ring.setAttribute('r',(13*inv).toFixed(2));
+  nlabG.style.fontSize=(11*inv).toFixed(2)+'px';elabG.style.fontSize=(10*inv).toFixed(2)+'px';
+  for(let ei=0;ei<E.length;ei++)if(elabels[ei]){const q=elabPos(ei);elabels[ei].setAttribute('x',q.x);elabels[ei].setAttribute('y',q.y)}
+  updateLOD()}
  function fitView(){if(!N.length){view.x=0;view.y=0;view.k=1;return applyTransform()}
   const xs=N.map(n=>n.x),ys=N.map(n=>n.y),mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys),pad=40;
-  view.k=Math.max(MINK,Math.min(MAXK,Math.min((W-2*pad)/(mxx-mnx||1),(H-2*pad)/(mxy-mny||1))));
+  view.k=Math.max(0.005,Math.min(MAXK,Math.min((W-2*pad)/(mxx-mnx||1),(H-2*pad)/(mxy-mny||1))));
   view.x=W/2-(mnx+mxx)/2*view.k;view.y=H/2-(mny+mxy)/2*view.k;applyTransform()}
  function zoomAt(sx,sy,factor){const wx=(sx-view.x)/view.k,wy=(sy-view.y)/view.k;
   view.k=Math.max(MINK,Math.min(MAXK,view.k*factor));view.x=sx-wx*view.k;view.y=sy-wy*view.k;applyTransform()}
@@ -978,13 +1020,14 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   else if(panStart){view.x=panStart.vx+(ev.clientX-panStart.x)*(W/r.width);view.y=panStart.vy+(ev.clientY-panStart.y)*(H/r.height);applyTransform()}});
  svg.addEventListener('pointerup',()=>{
   if(!moved){ if(lastMod&&lastHit!=null)openSet(lastHit); else setSelected(dragI!=null?dragI:-1); }
+  else if(dragI!=null){GPOS.set(N[dragI].id,{x:N[dragI].x,y:N[dragI].y,pin:true});renderPinBadge()}
   dragI=null;panStart=null;downPt=null});
  // Pointer capture retargets click/dblclick to the svg, so delegate using the
  // index recorded on pointerdown rather than ev.target.
  svg.addEventListener('dblclick',ev=>{if(lastHit!=null){ev.preventDefault();openSet(lastHit)}});
  svg.addEventListener('pointercancel',()=>{dragI=null;panStart=null;downPt=null});
 
- fitView();}
+ fitView();renderPinBadge();}
 async function timeline(m){m.innerHTML='';const d=await api('/api/timeline');
  if(!d.items.length){m.innerHTML='<p class="hint">No epistemic states with chapter numbers to plot.</p>';return}
  const ST={knows:'#0e9488',believes:'#3b6ea5','believes-false':'#c0632a',suspects:'#7a5cba','embargoed-until':'#8a97a5'};
