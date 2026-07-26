@@ -538,6 +538,12 @@ function draw(d){const svg=document.getElementById('gv');const W=svg.clientWidth
   for(let i=0;i<N.length;i++)for(let j=i+1;j<N.length;j++){let dx=N[i].x-N[j].x,dy=N[i].y-N[j].y,dd=Math.hypot(dx,dy)||.01,f=k*k/dd;N[i].fx+=dx/dd*f;N[i].fy+=dy/dd*f;N[j].fx-=dx/dd*f;N[j].fy-=dy/dd*f}
   for(const e of E){let a=N[e.s],b=N[e.t],dx=a.x-b.x,dy=a.y-b.y,dd=Math.hypot(dx,dy)||.01,f=dd*dd/k;a.fx-=dx/dd*f;a.fy-=dy/dd*f;b.fx+=dx/dd*f;b.fy+=dy/dd*f}
   for(const a of N){a.fx+=(W/2-a.x)*.03;a.fy+=(H/2-a.y)*.03;const dl=Math.hypot(a.fx,a.fy)||.01,t=Math.max(1.5,W*0.05*(1-it/300));a.x+=a.fx/dl*Math.min(dl,t);a.y+=a.fy/dl*Math.min(dl,t)}}
+ // Fit to viewBox: disconnected components repel each other far outside the frame — normalize back in.
+ if(N.length){const xs=N.map(n=>n.x),ys=N.map(n=>n.y);
+  const mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys);
+  const padL=24,padR=150,padV=28;
+  const s=Math.min((W-padL-padR)/((mxx-mnx)||1),(H-2*padV)/((mxy-mny)||1));
+  N.forEach(n=>{n.x=padL+(n.x-mnx)*s;n.y=padV+(n.y-mny)*s});}
  const NS='http://www.w3.org/2000/svg';svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.innerHTML='';
  for(const e of E){const l=document.createElementNS(NS,'line');l.setAttribute('x1',N[e.s].x);l.setAttribute('y1',N[e.s].y);l.setAttribute('x2',N[e.t].x);l.setAttribute('y2',N[e.t].y);l.setAttribute('stroke','var(--line)');l.setAttribute('stroke-width','1.5');l.dataset.s=e.s;l.dataset.t=e.t;svg.appendChild(l)}
  for(const e of E){if(!e.label)continue;const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');tx.setAttribute('x',(N[e.s].x+N[e.t].x)/2);tx.setAttribute('y',(N[e.s].y+N[e.t].y)/2-4);tx.textContent=e.label;tx.dataset.es=e.s;tx.dataset.et=e.t;svg.appendChild(tx)}
