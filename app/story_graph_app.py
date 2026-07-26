@@ -854,12 +854,18 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   return out})();
  function elabPos(ei){const e=E[ei];
   const lo=Math.min(e.s,e.t),hi=Math.max(e.s,e.t),A=N[lo],B=N[hi];
-  // canonical basis so the offset does NOT cancel when the edge runs the other way
   const slot=_pairSlot[ei], dirBack=(e.s!==lo);
-  const t=0.5+(dirBack?0.16:-0.16)+(slot?0.06*slot*(dirBack?1:-1):0);
   const dx=B.x-A.x, dy=B.y-A.y, len=Math.hypot(dx,dy)||1;
-  const perp=(slot?(slot%2?1:-1)*Math.ceil(slot/2)*9*inv:0);
-  return {x:A.x+dx*t - dy/len*perp, y:A.y+dy*t + dx/len*perp - 4*inv};}
+  // Separate labels in SCREEN space (hence *inv): a graph-unit offset gets scaled
+  // back down by the zoom and ends up a few pixels, which still collides.
+  // Separate the two directions ALONG the edge as a fraction of its length (so the
+  // gap grows with the drawn line and works at any orientation), on the canonical
+  // A->B basis so the flip doesn't cancel it; plus a small constant perpendicular
+  // nudge to lift the text off the line.
+  const t=0.5+((dirBack?1:-1)*(0.20+0.07*slot));
+  const perp=((dirBack?1:-1)*(1+slot))*8*inv;
+  return {x:A.x+dx*t - dy/len*perp,
+          y:A.y+dy*t + dx/len*perp - 3*inv};}
  E.forEach((e,ei)=>{const l=document.createElementNS(NS,'line');l.setAttribute('x1',N[e.s].x);l.setAttribute('y1',N[e.s].y);l.setAttribute('x2',N[e.t].x);l.setAttribute('y2',N[e.t].y);l.setAttribute('stroke','var(--line)');l.setAttribute('stroke-width','1.5');l.setAttribute('vector-effect','non-scaling-stroke');linesG.appendChild(l);lines[ei]=l;
   if(e.label){const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');const _p=elabPos(ei);tx.setAttribute('x',_p.x);tx.setAttribute('y',_p.y);tx.textContent=e.label;elabG.appendChild(tx);elabels[ei]=tx}else elabels[ei]=null});
  N.forEach((n,i)=>{
@@ -932,7 +938,9 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
    nlabels[i].style.display=show?'':'none'});
   const smallE=E.length<=25,zinE=view.k>=2.2;
   E.forEach((e,ei)=>{if(!elabels[ei])return;const show=smallE||zinE||(hoverIdx>=0&&(e.s===hoverIdx||e.t===hoverIdx))||(selIdx>=0&&(e.s===selIdx||e.t===selIdx));
-   elabels[ei].style.display=show?'':'none'})}
+   const forced=(hoverIdx>=0&&(e.s===hoverIdx||e.t===hoverIdx))||(selIdx>=0&&(e.s===selIdx||e.t===selIdx));
+   if(forced&&elabels[ei].dataset.hidByClash)delete elabels[ei].dataset.hidByClash;
+   elabels[ei].style.display=(show&&(forced||!elabels[ei].dataset.hidByClash))?'':'none'})}
  function renderPinBadge(){
   const pins=[...GPOS.values()].filter(v=>v.pin).length;
   let el=wrap.querySelector('.gpins');
@@ -942,6 +950,31 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
    const tools=wrap.querySelector('.gtools');tools.insertBefore(el,tools.querySelector('#gzo'))}
   el.textContent=`📌 ${pins} pinned — unpin all`;
   el.title='These nodes stay where you dragged them across redraws. Click to release them.';}
+ let _declutterPending=false;
+ function _rects(a,b){return Math.min(a.right,b.right)-Math.max(a.left,b.left)>1 &&
+                             Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1}
+ function declutter(){
+  const items=[];
+  for(let ei=0;ei<E.length;ei++){const t=elabels[ei];
+   if(!t)continue;
+   if(t.dataset.hidByClash){t.style.display='';delete t.dataset.hidByClash}   // re-test each pass
+   if(t.style.display==='none')continue;
+   items.push({t,r:t.getBoundingClientRect()});}
+  if(!items.length||items.length>70)return;      // dense views already hide labels via LOD
+  items.sort((a,b)=>a.r.top-b.r.top||a.r.left-b.r.left);
+  const placed=[];
+  for(const it of items){
+   let ok=false;
+   for(let attempt=0;attempt<3&&!ok;attempt++){
+    if(!placed.some(p=>_rects(it.r,p))){ok=true;break}
+    it.t.setAttribute('y',(+it.t.getAttribute('y'))+13*inv);   // shift a line down
+    it.r=it.t.getBoundingClientRect();
+   }
+   if(ok||!placed.some(p=>_rects(it.r,p))){placed.push(it.r)}
+   else {it.t.style.display='none';it.t.dataset.hidByClash='1'}   // give up: hide, keep on hover
+  }}
+ function scheduleDeclutter(){if(_declutterPending)return;_declutterPending=true;
+  requestAnimationFrame(()=>{_declutterPending=false;declutter()})}
  function applyTransform(){g.setAttribute('transform',`translate(${view.x},${view.y}) scale(${view.k})`);
   inv=1/view.k;
   const nr=(8*inv).toFixed(2),hr=(16*inv).toFixed(2);
@@ -950,7 +983,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   ring.setAttribute('r',(13*inv).toFixed(2));
   nlabG.style.fontSize=(11*inv).toFixed(2)+'px';elabG.style.fontSize=(10*inv).toFixed(2)+'px';
   for(let ei=0;ei<E.length;ei++)if(elabels[ei]){const q=elabPos(ei);elabels[ei].setAttribute('x',q.x);elabels[ei].setAttribute('y',q.y)}
-  updateLOD()}
+  updateLOD();scheduleDeclutter()}
  function fitView(){if(!N.length){view.x=0;view.y=0;view.k=1;return applyTransform()}
   const xs=N.map(n=>n.x),ys=N.map(n=>n.y),mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys),pad=40;
   view.k=Math.max(0.005,Math.min(MAXK,Math.min((W-2*pad)/(mxx-mnx||1),(H-2*pad)/(mxy-mny||1))));
