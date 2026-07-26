@@ -263,9 +263,15 @@ def _node_text():
 def api_graph(prop=""):
     nodes, edges = sg._viz_model(STATE["graph"], prop)
     txt = _node_text()
+    def label_for(nid, kind):
+        # Slug-like kinds (p-b03-000012, ev-…, setup ids) are meaningless on canvas;
+        # entities/sources/holders already read as names, so keep their ids.
+        t = (txt.get(nid) or "").strip()
+        return t if (t and kind in ("proposition", "evidence", "openloop")) else nid
+
     return {
         "nodes": [{"id": nid, "kind": kind, "color": sg._VIZ_COLORS.get(kind, "#888"),
-                   "text": txt.get(nid, "")}
+                   "text": txt.get(nid, ""), "label": label_for(nid, kind)}
                   for nid, kind in nodes.items()],
         "edges": [{"from": u, "to": v, "label": lab} for u, v, lab in edges],
     }
@@ -649,6 +655,9 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padd
 circle.gmatch{stroke:var(--accent);stroke-width:2px}
 circle.ghover{stroke:var(--ink);stroke-width:2px}
 .gpanel{position:absolute;top:10px;right:10px;width:230px;max-height:calc(100% - 20px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;box-shadow:0 6px 24px rgba(0,0,0,.3);font-size:13px}
+.setwin{width:min(860px,100%)}
+.setwin table{font:12.5px ui-monospace,monospace} .setwin td{vertical-align:top}
+.setwin td:nth-child(4){font:13px/1.4 'Iowan Old Style',Palatino,Georgia,serif;min-width:16rem}
 .gpanel-text{font:14px/1.4 'Iowan Old Style',Palatino,Georgia,serif;margin:.1rem 1.1rem .45rem 0}
 .gpanel-id{font:600 13px ui-monospace,monospace;word-break:break-all;padding-right:1.2rem}
 .gpanel-count{color:var(--muted);font-size:11px;border-top:1px solid var(--line);padding-top:.35rem;margin-top:.2rem}
@@ -810,7 +819,8 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   c.addEventListener('pointerenter',()=>{hoverIdx=i;paintDim();updateLOD()});
   c.addEventListener('pointerleave',()=>{hoverIdx=-1;paintDim();updateLOD()});
   nodesG.appendChild(c);circles[i]=c;
-  const t=document.createElementNS(NS,'text');t.setAttribute('class','nlab');t.setAttribute('x',n.x+11);t.setAttribute('y',n.y+4);t.textContent=n.id;nlabG.appendChild(t);nlabels[i]=t});
+  const t=document.createElementNS(NS,'text');t.setAttribute('class','nlab');t.setAttribute('x',n.x+11);t.setAttribute('y',n.y+4);
+  const disp=(n.label||n.id);t.textContent=disp.length>46?disp.slice(0,46)+'…':disp;nlabG.appendChild(t);nlabels[i]=t});
 
  // ── node details: click a node for its kind + neighbours, with Focus ──
  const closePanel=()=>{panel.style.display='none';selIdx=-1;ring.style.display='none';paintDim();updateLOD()};
@@ -836,6 +846,39 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
    panel.appendChild(f)}
   panel.style.display='block';paintDim();updateLOD();}
  circles.forEach((c,i)=>c.addEventListener('click',ev=>{ev.stopPropagation();if(!c.dataset.moved)selectNode(i);delete c.dataset.moved}));
+ circles.forEach((c,i)=>c.addEventListener('dblclick',ev=>{ev.stopPropagation();ev.preventDefault();openSet(i)}));
+ // Double-click: explore this node's set in a window with a readable table.
+ function openSet(i){
+  const rows=[[N[i],'—','this node']];
+  E.forEach(e=>{if(e.s===i)rows.push([N[e.t],e.label||'',' → out']);else if(e.t===i)rows.push([N[e.s],e.label||'',' ← in'])});
+  const ov=$(`<div class="sm-overlay"></div>`),mod=$(`<div class="sm-modal setwin"></div>`);ov.appendChild(mod);
+  const close=()=>{ov.remove();document.removeEventListener('keydown',onK)};
+  const onK=ev=>{if(ev.key==='Escape')close()};document.addEventListener('keydown',onK);
+  ov.addEventListener('mousedown',ev=>{if(ev.target===ov)close()});
+  const head=N[i].label||N[i].id;
+  mod.innerHTML=`<div class="sm-head"><div><span class="sm-title-label">${esc(head.length>70?head.slice(0,70)+'…':head)}</span>`+
+   `<span class="sm-title-sub">${esc(N[i].kind||'')} · ${rows.length-1} connection${rows.length===2?'':'s'}</span></div>`+
+   `<button class="sm-close" title="Close (Esc)">×</button></div>`;
+  mod.querySelector('.sm-close').onclick=close;
+  const body=$(`<div class="sm-body"></div>`);
+  let h='<table><thead><tr><th>Node</th><th>Kind</th><th>Relation</th><th>Proposition / description</th></tr></thead><tbody>';
+  rows.forEach(([n,lab,dir])=>{h+=`<tr><td>${esc(n.id)}</td><td>${esc(n.kind||'')}</td>`+
+   `<td>${esc((dir||'').trim())}${lab?' '+esc(lab):''}</td><td>${esc(n.text||n.label||'')}</td></tr>`});
+  h+='</tbody></table>';
+  body.appendChild($(`<div style="overflow:auto">${h}</div>`));
+  const bar=$(`<div class="row" style="margin-top:.8rem"></div>`);
+  const bf=$(`<button class="go">Focus this set in the graph</button>`);
+  bf.onclick=()=>{const keep=new Set([i]);E.forEach(e=>{if(e.s===i)keep.add(e.t);if(e.t===i)keep.add(e.s)});
+   const nodes=[...keep].map(k=>({id:N[k].id,kind:N[k].kind,color:N[k].color,text:N[k].text,label:N[k].label}));
+   const edges=E.filter(e=>keep.has(e.s)&&keep.has(e.t)).map(e=>({from:N[e.s].id,to:N[e.t].id,label:e.label}));
+   close();draw({nodes,edges},mount,full)};
+  const bc=$(`<button class="ghost">Copy as CSV</button>`);
+  bc.onclick=()=>{const csv=['node,kind,relation,description'].concat(rows.map(([n,lab,dir])=>
+    [n.id,n.kind||'',((dir||'').trim()+(lab?' '+lab:'')),(n.text||n.label||'')]
+      .map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','))).join('\n');
+   navigator.clipboard?.writeText(csv);bc.textContent='Copied ✓';setTimeout(()=>bc.textContent='Copy as CSV',1200)};
+  bar.appendChild(bf);bar.appendChild(bc);body.appendChild(bar);
+  mod.appendChild(body);document.body.appendChild(ov);}
  svg.addEventListener('click',ev=>{if(ev.target===svg)closePanel()});
  mount.addEventListener('keydown',ev=>{if(ev.key==='Escape')closePanel()});
  document.addEventListener('keydown',function onEsc(ev){if(ev.key==='Escape'&&document.body.contains(panel))closePanel();
