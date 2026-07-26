@@ -233,7 +233,11 @@ REL TABLES
   (Evidence)-[EVIDENCED_BY]->(OpenLoop)
 NOTES
   since_ch is a STRING chapter number; order numerically with CAST(x AS INT64).
-  Dramatic irony = the reader knows a proposition a character believes-false."""
+  Dramatic irony = the reader knows a proposition a character believes-false.
+  All ids are lowercase kebab-case slugs — entities like 'jonah-harrow' / 'margot-vance',
+  the reserved holder 'reader', propositions like 'p-b03-000007'. When the user names
+  someone loosely ("Jonah", "Margot"), NEVER use equality on a display name — match the
+  slug case-insensitively: WHERE toLower(e.id) CONTAINS 'jonah'  (not  e.id = 'Jonah')."""
 
 
 def api_schema():
