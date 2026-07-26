@@ -19,9 +19,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+DB_LOCK = threading.Lock()   # one kuzu Connection shared by all request threads
 
 APP_DIR = Path(__file__).resolve().parent
 ASSETS = APP_DIR.parent / "story-graph" / "assets"
@@ -66,6 +70,10 @@ def _env_write(updates):
             if not ("=" in ln and not ln.strip().startswith("#") and ln.split("=", 1)[0].strip() in keys)]
     kept += [f"{k}={v}" for k, v in updates.items()]
     p.write_text("\n".join(kept) + "\n", encoding="utf-8")
+    try:
+        import os as _o; _o.chmod(p, 0o600)   # the file holds an API key
+    except Exception:
+        pass
     for k, v in updates.items():
         _os.environ[k] = v  # reflect immediately in this process
 
@@ -225,11 +233,12 @@ def api_cypher(cypher):
     if STATE["conn"] is None:
         return {"error": f"Cypher needs kuzu (pip install kuzu). {STATE['kuzu_err']}".strip()}
     try:
-        res = STATE["conn"].execute(cypher)
-        cols = res.get_column_names()
-        rows = []
-        while res.has_next():
-            rows.append([_jsonable(v) for v in res.get_next()])
+        with DB_LOCK:   # kuzu Connection is not safe for concurrent execute across threads
+            res = STATE["conn"].execute(cypher)
+            cols = res.get_column_names()
+            rows = []
+            while res.has_next():
+                rows.append([_jsonable(v) for v in res.get_next()])
         return {"columns": cols, "rows": rows}
     except Exception as e:
         return {"error": str(e)}
@@ -316,7 +325,7 @@ def api_ask(question):
         return {"error": "the model did not return valid JSON", "raw": text[:400]}
     cypher = (obj.get("cypher") or "").strip()
     explanation = obj.get("explanation", "")
-    if any(w in cypher.lower() for w in (" create ", " merge ", " set ", " delete ", " drop ", "detach ")):
+    if re.search(r"\b(create|merge|set|delete|drop|detach|copy|alter|install|load)\b", cypher, re.I):
         return {"cypher": cypher, "explanation": explanation, "error": "refusing to run a non-read-only query"}
     result = api_cypher(cypher)
     result["cypher"] = cypher
@@ -392,6 +401,19 @@ class Handler(BaseHTTPRequestHandler):
         self._send(json.dumps(obj), "application/json; charset=utf-8", status)
 
     def do_GET(self):
+        # A handler exception used to kill the response mid-flight, which the browser
+        # saw as a dead fetch and the UI as a tab stuck loading. Always answer.
+        try:
+            if not self._local_only():
+                return
+            self._get()
+        except Exception as e:
+            try:
+                self._json({"error": f"{type(e).__name__}: {e}"}, 500)
+            except Exception:
+                pass
+
+    def _get(self):
         from urllib.parse import urlparse, parse_qs
         u = urlparse(self.path)
         q = parse_qs(u.query)
@@ -417,9 +439,35 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_report(q.get("kind", ["report"])[0]))
         return self._json({"error": "not found"}, 404)
 
+    def _local_only(self):
+        """Reject cross-origin / DNS-rebinding requests: this server is for this
+        machine's browser only, and its POSTs write .env and spend API credits."""
+        host = (self.headers.get("Host") or "").split(":")[0]
+        if host not in ("127.0.0.1", "localhost", "[::1]", "::1"):
+            self._json({"error": "forbidden host"}, 403)
+            return False
+        origin = self.headers.get("Origin")
+        if origin and not re.match(r"^https?://(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$", origin):
+            self._json({"error": "cross-origin request refused"}, 403)
+            return False
+        return True
+
     def do_POST(self):
-        length = int(self.headers.get("Content-Length") or 0)
-        payload = json.loads(self.rfile.read(length) or "{}")
+        if not self._local_only():
+            return
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+            payload = json.loads(self.rfile.read(length) or "{}")
+            if not isinstance(payload, dict):
+                raise ValueError("body must be a JSON object")
+        except Exception as e:
+            return self._json({"error": f"bad request body: {e}"}, 400)
+        try:
+            return self._post(payload)
+        except Exception as e:
+            return self._json({"error": f"{type(e).__name__}: {e}"}, 500)
+
+    def _post(self, payload):
         if self.path == "/api/cypher":
             return self._json(api_cypher(payload.get("cypher", "")))
         if self.path == "/api/ask":
@@ -463,6 +511,8 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padd
 .err{color:var(--irony)} .hint{color:var(--muted);font-size:.85rem}
 .legend{display:flex;flex-wrap:wrap;gap:.4rem 1rem;padding:.6rem 1rem;font:11px ui-monospace,monospace;color:var(--muted)}
 .legend i{display:inline-block;width:.7rem;height:.7rem;border-radius:3px;margin-right:.35rem;vertical-align:-1px}
+#offline{position:fixed;left:0;right:0;bottom:0;background:var(--irony,#b4531f);color:#fff;padding:.6rem 1rem;font:13px system-ui;display:flex;gap:.75rem;align-items:center;justify-content:center;z-index:99}
+#offline button{background:#fff;border:0;border-radius:6px;padding:.25rem .6rem;cursor:pointer}
 #gear{margin-left:auto;font:13px system-ui;background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:.4rem .7rem;cursor:pointer}
 .sm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;z-index:50}
 .sm-modal{background:var(--bg);border:1px solid var(--line);border-radius:14px;width:min(680px,100%);max-height:86vh;overflow:auto;box-shadow:0 12px 48px rgba(0,0,0,.45)}
@@ -495,10 +545,27 @@ body.a11y-minfont .hint,body.a11y-minfont .tlab,body.a11y-minfont .elab,body.a11
 <main id="main"></main>
 <script>
 const $=(h)=>{const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild};
-const api=async(p,o)=>(await fetch(p,o)).json();
+// Never throws: every failure comes back as {error} so a caller can render it
+// instead of leaving a tab stuck on "loading…" (a restarted backend used to do exactly that).
+const api=async(p,o)=>{
+ try{
+  const res=await fetch(p,o);
+  let d=null;
+  try{ d=await res.json() }catch(_){ d=null }
+  if(!res.ok)return {error:(d&&d.error)||`server error ${res.status}`,_http:res.status};
+  if(d===null)return {error:'server sent a malformed response'};
+  banner(false);return d;
+ }catch(e){
+  banner(true);
+  return {error:'Cannot reach the server — it may have been restarted. Reload the page.',_offline:true};
+ }};
+function banner(show){let b=document.getElementById('offline');
+ if(show&&!b){b=$(`<div id="offline">Backend unreachable — the server may have restarted. <button class="ghost" onclick="location.reload()">Reload</button></div>`);document.body.appendChild(b)}
+ else if(!show&&b)b.remove();}
 let TAB='dashboard';
 const TABS=['dashboard','graph','timeline','query','ask','reports'];
-const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// Escapes quotes too — values from the provider catalog land in HTML attributes (value="…").
+const esc=(s)=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 function nav(){const n=document.getElementById('nav');n.innerHTML='';TABS.forEach(t=>{const b=document.createElement('button');b.textContent=t[0].toUpperCase()+t.slice(1);b.className=t===TAB?'on':'';b.onclick=()=>{TAB=t;render()};n.appendChild(b)})}
 async function render(){nav();const m=document.getElementById('main');m.innerHTML='<p class="hint">loading…</p>';
  if(TAB==='dashboard')return dashboard(m);
