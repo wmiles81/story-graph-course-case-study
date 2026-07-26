@@ -771,7 +771,7 @@ async function graph(m){m.innerHTML='';
  async function go(){const p=document.getElementById('focus').value.trim();const d=await api('/api/graph?prop='+encodeURIComponent(p));
   leg.innerHTML='';[...new Set(d.nodes.map(n=>n.kind))].forEach(k=>{const c=(d.nodes.find(n=>n.kind===k)||{}).color;leg.appendChild($(`<span><i style="background:${c}"></i>${k}</span>`))});
   if(!d.nodes.length){hint.textContent='No such proposition. Leave the box blank for the whole graph.';mount.innerHTML='';return}
-  hint.textContent=`${d.nodes.length} nodes · ${d.edges.length} edges · drag a node to move it · drag empty space to pan · wheel to zoom · click a node for details`;
+  hint.textContent=`${d.nodes.length} nodes · ${d.edges.length} edges · drag a node to move it · drag empty space to pan · wheel to zoom · click a node for details · shift-click or double-click to explore its set`;
   draw(d,mount)}
  document.getElementById('fbtn').onclick=go;
  document.getElementById('focus').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
@@ -822,32 +822,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   const t=document.createElementNS(NS,'text');t.setAttribute('class','nlab');t.setAttribute('x',n.x+11);t.setAttribute('y',n.y+4);
   const disp=(n.label||n.id);t.textContent=disp.length>46?disp.slice(0,46)+'…':disp;nlabG.appendChild(t);nlabels[i]=t});
 
- // ── node details: click a node for its kind + neighbours, with Focus ──
- const closePanel=()=>{panel.style.display='none';selIdx=-1;ring.style.display='none';paintDim();updateLOD()};
- function selectNode(i){selIdx=i;const n=N[i];
-  ring.setAttribute('cx',N[i].x);ring.setAttribute('cy',N[i].y);ring.style.display='';
-  const nb=[];E.forEach(e=>{if(e.s===i)nb.push([N[e.t].id,e.t,e.label,'→']);else if(e.t===i)nb.push([N[e.s].id,e.s,e.label,'←'])});
-  panel.innerHTML=`<button class="gpanel-x" title="Close (Esc)">×</button>`+
-   (n.text?`<div class="gpanel-text">${esc(n.text)}</div>`:'')+
-   `<div class="gpanel-id">${esc(n.id)}</div><div class="gpanel-kind">${esc(n.kind||'')}</div>`+
-   `<div class="gpanel-count">${nb.length} neighbour${nb.length===1?'':'s'}</div>`;
-  panel.querySelector('.gpanel-x').onclick=closePanel;
-  const list=document.createElement('div');list.className='gpanel-list';
-  nb.slice(0,60).forEach(([id,idx,lab,dir])=>{const b=document.createElement('button');b.className='gpanel-link';
-   const nt=(N[idx]&&N[idx].text)||'';
-   b.textContent=dir+' '+(nt?(nt.length>70?nt.slice(0,70)+'…':nt):id)+(lab?'  ·  '+lab:'');
-   b.title=(nt?nt+'\n':'')+id;b.onclick=()=>selectNode(idx);list.appendChild(b)});
-  panel.appendChild(list);
-  if(nb.length){const f=document.createElement('button');f.className='gpanel-focus';f.textContent='Focus on this node';
-   f.onclick=()=>{const keep=new Set([i]);E.forEach(e=>{if(e.s===i)keep.add(e.t);if(e.t===i)keep.add(e.s)});
-    const nodes=[...keep].map(k=>({id:N[k].id,kind:N[k].kind,color:N[k].color,text:N[k].text}));
-    const edges=E.filter(e=>keep.has(e.s)&&keep.has(e.t)).map(e=>({from:N[e.s].id,to:N[e.t].id,label:e.label}));
-    draw({nodes,edges},mount,full)};
-   panel.appendChild(f)}
-  panel.style.display='block';paintDim();updateLOD();}
- circles.forEach((c,i)=>c.addEventListener('click',ev=>{ev.stopPropagation();if(!c.dataset.moved)selectNode(i);delete c.dataset.moved}));
- circles.forEach((c,i)=>c.addEventListener('dblclick',ev=>{ev.stopPropagation();ev.preventDefault();openSet(i)}));
- // Double-click: explore this node's set in a window with a readable table.
+ // Double-click / modifier-click opens the set explorer (wired below in the pointer flow).
  function openSet(i){
   const rows=[[N[i],'—','this node']];
   E.forEach(e=>{if(e.s===i)rows.push([N[e.t],e.label||'',' → out']);else if(e.t===i)rows.push([N[e.s],e.label||'',' ← in'])});
@@ -879,10 +854,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
    navigator.clipboard?.writeText(csv);bc.textContent='Copied ✓';setTimeout(()=>bc.textContent='Copy as CSV',1200)};
   bar.appendChild(bf);bar.appendChild(bc);body.appendChild(bar);
   mod.appendChild(body);document.body.appendChild(ov);}
- svg.addEventListener('click',ev=>{if(ev.target===svg)closePanel()});
- mount.addEventListener('keydown',ev=>{if(ev.key==='Escape')closePanel()});
- document.addEventListener('keydown',function onEsc(ev){if(ev.key==='Escape'&&document.body.contains(panel))closePanel();
-  else if(!document.body.contains(panel))document.removeEventListener('keydown',onEsc)});
+ svg.addEventListener('click',ev=>{if(ev.target===svg)setSelected(-1)});
 
  function moveNode(i){circles[i].setAttribute('cx',N[i].x);circles[i].setAttribute('cy',N[i].y);
   nlabels[i].setAttribute('x',N[i].x+11);nlabels[i].setAttribute('y',N[i].y+4);
@@ -921,13 +893,19 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   ring.style.display='';ring.setAttribute('cx',N[i].x);ring.setAttribute('cy',N[i].y);
   const nbrs=[...neigh[i]].map(j=>N[j]).sort((a,b)=>a.id<b.id?-1:1);
   panel.hidden=false;panel.innerHTML='';
-  const head=$(`<div class="gpanel-head"><b>${esc(N[i].id)}</b><button class="gpanel-x" title="Close (Esc)">×</button></div>`);
+  const head=$(`<div class="gpanel-head"><b>${esc(N[i].label||N[i].id)}</b><button class="gpanel-x" title="Close (Esc)">×</button></div>`);
   head.querySelector('.gpanel-x').onclick=()=>setSelected(-1);panel.appendChild(head);
-  panel.appendChild($(`<div class="gpanel-kind">${esc(N[i].kind)}</div>`));
-  const foc=$(`<button class="ghost">Focus</button>`);foc.onclick=()=>focusOn(i);panel.appendChild(foc);
+  if(N[i].text&&N[i].text!==(N[i].label||''))panel.appendChild($(`<div class="gpanel-text">${esc(N[i].text)}</div>`));
+  panel.appendChild($(`<div class="gpanel-kind">${esc(N[i].kind)} · ${esc(N[i].id)}</div>`));
+  const acts=$(`<div class="row"></div>`);
+  const foc=$(`<button class="ghost">Focus</button>`);foc.onclick=()=>focusOn(i);acts.appendChild(foc);
+  const exp=$(`<button class="go">Explore set</button>`);exp.onclick=()=>openSet(i);acts.appendChild(exp);
+  panel.appendChild(acts);
   panel.appendChild($(`<div class="hint" style="margin:.6rem 0 .3rem">${nbrs.length} neighbour${nbrs.length===1?'':'s'}</div>`));
   const list=$(`<div class="gpanel-nbrs"></div>`);panel.appendChild(list);
-  nbrs.forEach(nb=>{const a=$(`<a class="gpanel-link">${esc(nb.id)}</a>`);a.onclick=()=>setSelected(idx[nb.id]);list.appendChild(a)});
+  nbrs.forEach(nb=>{const d=(nb.label||nb.id);const shown=d.length>64?d.slice(0,64)+'…':d;
+   const a=$(`<a class="gpanel-link" title="${esc((nb.text?nb.text+' — ':'')+nb.id)}">${esc(shown)}</a>`);
+   a.onclick=()=>setSelected(idx[nb.id]);list.appendChild(a)});
   updateLOD()}
  function focusOn(i){const keep=new Set([i,...neigh[i]]);
   const subN=[...keep].map(j=>({id:N[j].id,kind:N[j].kind,color:N[j].color}));
@@ -959,8 +937,10 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  // pointerup decides click-vs-drag from `moved`, not from re-reading ev.target — once pointer capture
  // is set, ev.target on later events is the svg itself, not whatever is visually underneath it.
  let dragI=null,panStart=null,downPt=null,moved=false;
+ let lastHit=null,lastMod=false;
  svg.addEventListener('pointerdown',ev=>{downPt={x:ev.clientX,y:ev.clientY};moved=false;
   const hit=(ev.target.dataset&&ev.target.dataset.i!=null)?+ev.target.dataset.i:null;
+  lastHit=hit;lastMod=!!(ev.shiftKey||ev.metaKey||ev.ctrlKey||ev.altKey);
   dragI=hit;if(hit==null)panStart={x:ev.clientX,y:ev.clientY,vx:view.x,vy:view.y};
   try{svg.setPointerCapture(ev.pointerId)}catch(_){}});
  svg.addEventListener('pointermove',ev=>{if(downPt&&!moved&&Math.hypot(ev.clientX-downPt.x,ev.clientY-downPt.y)>4)moved=true;
@@ -968,8 +948,12 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   if(dragI!=null){const sx=(ev.clientX-r.left)*(W/r.width),sy=(ev.clientY-r.top)*(H/r.height);
    N[dragI].x=(sx-view.x)/view.k;N[dragI].y=(sy-view.y)/view.k;moveNode(dragI)}
   else if(panStart){view.x=panStart.vx+(ev.clientX-panStart.x)*(W/r.width);view.y=panStart.vy+(ev.clientY-panStart.y)*(H/r.height);applyTransform()}});
- svg.addEventListener('pointerup',()=>{if(!moved)setSelected(dragI!=null?dragI:-1);
+ svg.addEventListener('pointerup',()=>{
+  if(!moved){ if(lastMod&&lastHit!=null)openSet(lastHit); else setSelected(dragI!=null?dragI:-1); }
   dragI=null;panStart=null;downPt=null});
+ // Pointer capture retargets click/dblclick to the svg, so delegate using the
+ // index recorded on pointerdown rather than ev.target.
+ svg.addEventListener('dblclick',ev=>{if(lastHit!=null){ev.preventDefault();openSet(lastHit)}});
  svg.addEventListener('pointercancel',()=>{dragI=null;panStart=null;downPt=null});
 
  fitView();}
@@ -1081,7 +1065,7 @@ function askRender(out){
  out.appendChild(map);
  const d=askGraphData(r);
  const mount=$(`<div></div>`);out.appendChild(mount);
- out.appendChild($(`<p class="hint">${d.nodes.length} nodes · ${d.edges.length} edges · drag a node to move it · drag empty space to pan · wheel to zoom · click a node for details</p>`));
+ out.appendChild($(`<p class="hint">${d.nodes.length} nodes · ${d.edges.length} edges · drag a node to move it · drag empty space to pan · wheel to zoom · click a node for details · shift-click or double-click to explore its set</p>`));
  draw(d,mount);
 }
 async function ask(m){m.innerHTML='';
