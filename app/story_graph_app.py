@@ -40,6 +40,42 @@ PROVIDERS = [
 _PROV = {p["name"]: p for p in PROVIDERS}
 
 
+def _env_path():
+    from pathlib import Path
+    return Path(__file__).resolve().parent / ".env"
+
+
+def _env_read():
+    p = _env_path()
+    out = {}
+    if p.exists():
+        for line in p.read_text(encoding="utf-8").splitlines():
+            s = line.strip()
+            if s and not s.startswith("#") and "=" in s:
+                k, v = s.split("=", 1)
+                out[k.strip()] = v.strip()
+    return out
+
+
+def _env_write(updates):
+    """Upsert KEY=VALUE pairs into the local (gitignored) .env, preserving other lines."""
+    import os as _os
+    p = _env_path()
+    keys = set(updates)
+    kept = [ln for ln in (p.read_text(encoding="utf-8").splitlines() if p.exists() else [])
+            if not ("=" in ln and not ln.strip().startswith("#") and ln.split("=", 1)[0].strip() in keys)]
+    kept += [f"{k}={v}" for k, v in updates.items()]
+    p.write_text("\n".join(kept) + "\n", encoding="utf-8")
+    for k, v in updates.items():
+        _os.environ[k] = v  # reflect immediately in this process
+
+
+def _load_env():
+    import os as _os
+    for k, v in _env_read().items():
+        _os.environ.setdefault(k, v)  # never override an env var set explicitly at launch
+
+
 def _provider_key(name):
     import os as _os
     p = _PROV.get(name) or {}
@@ -104,6 +140,10 @@ def _jsonable(v):
 
 
 def load(graph_path, chapters_dir=""):
+    import os as _os
+    _load_env()  # restore keys + provider/model saved to the local .env
+    STATE["provider"] = STATE.get("provider") or _os.environ.get("SGOS_PROVIDER", "")
+    STATE["model"] = STATE.get("model") or _os.environ.get("SGOS_MODEL", "")
     STATE["path"] = graph_path
     STATE["chapters_dir"] = chapters_dir
     STATE["text"] = Path(graph_path).read_text(encoding="utf-8")
@@ -295,12 +335,18 @@ def api_settings_get():
 def api_settings_put(patch):
     if "provider" in patch:
         STATE["provider"] = (patch.get("provider") or "").strip()
+        _env_write({"SGOS_PROVIDER": STATE["provider"]})
     if "model" in patch:
         STATE["model"] = (patch.get("model") or "").strip()
-    if "api_key" in patch:  # held in memory only; never written to disk
+        _env_write({"SGOS_MODEL": STATE["model"]})
+    if "api_key" in patch:
         prov = (patch.get("provider") or STATE.get("provider") or "").strip()
-        if prov:
-            STATE.setdefault("keys", {})[prov] = (patch.get("api_key") or "").strip()
+        key = (patch.get("api_key") or "").strip()
+        p = _PROV.get(prov) or {}
+        if prov and key:
+            STATE.setdefault("keys", {})[prov] = key
+            if p.get("env"):  # persist cloud keys to the gitignored .env so they survive restarts
+                _env_write({p["env"]: key})
     return api_settings_get()
 
 
@@ -593,7 +639,7 @@ function smDisplay(body){const a=a11yRead();
 async function smModel(body){
  const s=await api('/api/settings');
  const post=(patch)=>api('/api/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)});
- body.appendChild($(`<p class="hint">The AI behind the <b>Ask</b> tab. Pick a provider, then a model. Keys are held in memory for this session only — never written to disk. Local providers (Ollama, LM Studio) need no key — the dot shows reachability.</p>`));
+ body.appendChild($(`<p class="hint">The AI behind the <b>Ask</b> tab. Pick a provider, then a model — your choice and any key are saved to a local <code>.env</code> (gitignored) so they persist across restarts. Local providers (Ollama, LM Studio) need no key — the dot shows reachability.</p>`));
  // provider
  const prow=$(`<div class="sm-row"><div class="sm-row-head"><span class="sm-label">Provider</span></div></div>`);
  const psel=$(`<select class="sm-field"></select>`);

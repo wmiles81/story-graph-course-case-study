@@ -44,8 +44,9 @@ def test_app_schema_and_ask_guards(tmp_path):
     assert "plain English" in app.api_ask("")["error"]
 
 
-def test_app_settings_providers_roundtrip():
+def test_app_settings_providers_roundtrip(tmp_path):
     app = _app()
+    app._env_path = lambda: tmp_path / ".env"  # never touch the real .env during tests
     s = app.api_settings_get()
     names = {p["name"] for p in s["providers"]}
     assert {"openrouter", "ollama", "lmstudio"} <= names and "kuzu" in s
@@ -54,6 +55,9 @@ def test_app_settings_providers_roundtrip():
     assert s2["provider"] == "openrouter" and s2["model"] == "anthropic/claude-3.5-sonnet"
     app.api_settings_put({"provider": "openrouter", "api_key": "sk-or-x"})
     assert any(p["name"] == "openrouter" and p["key_set"] for p in app.api_settings_get()["providers"])
+    # persisted to .env, restorable after a "restart"
+    env = app._env_read()
+    assert env["OPENROUTER_API_KEY"] == "sk-or-x" and env["SGOS_MODEL"] == "anthropic/claude-3.5-sonnet"
     # local provider probe fails fast (nothing listening) — both return dicts, no exception
     assert "models" in app.api_models("ollama")
     assert "ok" in app.api_testkey("ollama")

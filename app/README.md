@@ -59,8 +59,10 @@ outside to close.
 - **AI Model** — provider-neutral config for the Ask tab: pick a **provider**
   (OpenRouter · Ollama · LM Studio — the dot shows local reachability), then a
   **model** (Browse the provider's live catalogue, or type an id for a local
-  model), and `Test` the connection. Cloud keys are held **in memory for the
-  session only — never written to disk**; local providers need no key.
+  model), and `Test` the connection. Your provider/model choice and any cloud key
+  are saved to a local **`.env`** (gitignored) so they **persist across restarts**;
+  local providers need no key. A pre-set `OPENROUTER_API_KEY` in the environment is
+  also picked up.
 - **About** — the loaded graph, canon chapter, modules, and Kùzu status.
 
 (The source dialog also has novel-pipeline Flows and an OpenRouter Corpus tab;
