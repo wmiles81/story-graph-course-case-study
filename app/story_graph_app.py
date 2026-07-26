@@ -235,10 +235,37 @@ def api_reload():
     return api_summary()
 
 
+def _node_text():
+    """id -> human-readable text, so the UI can show "The Founding Scrolls are
+    missing." instead of the opaque slug p-b03-000007."""
+    S = STATE["graph"]["sections"]
+    t = {}
+    for r in S.get("Propositions", []):
+        if r.get("prop-id"):
+            t[r["prop-id"]] = r.get("statement", "")
+    for r in S.get("Evidence", []):
+        if r.get("span-id"):
+            q = (r.get("quote") or "").strip()
+            t[r["span-id"]] = (f'\u201c{q}\u201d ' if q else "") + f'({r.get("locator","")})'
+    for r in S.get("Open Loops & Setups", []):
+        if r.get("id"):
+            t[r["id"]] = r.get("expectation", "")
+    for r in S.get("Sources", []):
+        if r.get("source-id"):
+            t[r["source-id"]] = f'{r.get("type","source")} (authority {r.get("authority","?")})'
+    for r in S.get("Entities", []):
+        if r.get("id"):
+            bits = [b for b in (r.get("type"), r.get("status"), r.get("note")) if b]
+            t[r["id"]] = " · ".join(bits)
+    return t
+
+
 def api_graph(prop=""):
     nodes, edges = sg._viz_model(STATE["graph"], prop)
+    txt = _node_text()
     return {
-        "nodes": [{"id": nid, "kind": kind, "color": sg._VIZ_COLORS.get(kind, "#888")}
+        "nodes": [{"id": nid, "kind": kind, "color": sg._VIZ_COLORS.get(kind, "#888"),
+                   "text": txt.get(nid, "")}
                   for nid, kind in nodes.items()],
         "edges": [{"from": u, "to": v, "label": lab} for u, v, lab in edges],
     }
@@ -622,6 +649,7 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padd
 circle.gmatch{stroke:var(--accent);stroke-width:2px}
 circle.ghover{stroke:var(--ink);stroke-width:2px}
 .gpanel{position:absolute;top:10px;right:10px;width:230px;max-height:calc(100% - 20px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem;box-shadow:0 6px 24px rgba(0,0,0,.3);font-size:13px}
+.gpanel-text{font:14px/1.4 'Iowan Old Style',Palatino,Georgia,serif;margin:.1rem 1.1rem .45rem 0}
 .gpanel-id{font:600 13px ui-monospace,monospace;word-break:break-all;padding-right:1.2rem}
 .gpanel-count{color:var(--muted);font-size:11px;border-top:1px solid var(--line);padding-top:.35rem;margin-top:.2rem}
 .gpanel-list{display:flex;flex-direction:column;margin:.25rem 0}
@@ -777,7 +805,8 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  E.forEach((e,ei)=>{const l=document.createElementNS(NS,'line');l.setAttribute('x1',N[e.s].x);l.setAttribute('y1',N[e.s].y);l.setAttribute('x2',N[e.t].x);l.setAttribute('y2',N[e.t].y);l.setAttribute('stroke','var(--line)');l.setAttribute('stroke-width','1.5');l.setAttribute('vector-effect','non-scaling-stroke');linesG.appendChild(l);lines[ei]=l;
   if(e.label){const tx=document.createElementNS(NS,'text');tx.setAttribute('class','elab');tx.setAttribute('x',(N[e.s].x+N[e.t].x)/2);tx.setAttribute('y',(N[e.s].y+N[e.t].y)/2-4);tx.textContent=e.label;elabG.appendChild(tx);elabels[ei]=tx}else elabels[ei]=null});
  N.forEach((n,i)=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',8);c.setAttribute('fill',n.color);c.dataset.i=i;
-  const ti=document.createElementNS(NS,'title');ti.textContent=`${n.id} (${n.kind})`;c.appendChild(ti);
+  const ti=document.createElementNS(NS,'title');
+  ti.textContent=(n.text?n.text+'\n':'')+n.id+(n.kind?'  ·  '+n.kind:'');c.appendChild(ti);
   c.addEventListener('pointerenter',()=>{hoverIdx=i;paintDim();updateLOD()});
   c.addEventListener('pointerleave',()=>{hoverIdx=-1;paintDim();updateLOD()});
   nodesG.appendChild(c);circles[i]=c;
@@ -789,16 +818,19 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   ring.setAttribute('cx',N[i].x);ring.setAttribute('cy',N[i].y);ring.style.display='';
   const nb=[];E.forEach(e=>{if(e.s===i)nb.push([N[e.t].id,e.t,e.label,'→']);else if(e.t===i)nb.push([N[e.s].id,e.s,e.label,'←'])});
   panel.innerHTML=`<button class="gpanel-x" title="Close (Esc)">×</button>`+
+   (n.text?`<div class="gpanel-text">${esc(n.text)}</div>`:'')+
    `<div class="gpanel-id">${esc(n.id)}</div><div class="gpanel-kind">${esc(n.kind||'')}</div>`+
    `<div class="gpanel-count">${nb.length} neighbour${nb.length===1?'':'s'}</div>`;
   panel.querySelector('.gpanel-x').onclick=closePanel;
   const list=document.createElement('div');list.className='gpanel-list';
   nb.slice(0,60).forEach(([id,idx,lab,dir])=>{const b=document.createElement('button');b.className='gpanel-link';
-   b.textContent=dir+' '+id+(lab?'  ·  '+lab:'');b.onclick=()=>selectNode(idx);list.appendChild(b)});
+   const nt=(N[idx]&&N[idx].text)||'';
+   b.textContent=dir+' '+(nt?(nt.length>70?nt.slice(0,70)+'…':nt):id)+(lab?'  ·  '+lab:'');
+   b.title=(nt?nt+'\n':'')+id;b.onclick=()=>selectNode(idx);list.appendChild(b)});
   panel.appendChild(list);
   if(nb.length){const f=document.createElement('button');f.className='gpanel-focus';f.textContent='Focus on this node';
    f.onclick=()=>{const keep=new Set([i]);E.forEach(e=>{if(e.s===i)keep.add(e.t);if(e.t===i)keep.add(e.s)});
-    const nodes=[...keep].map(k=>({id:N[k].id,kind:N[k].kind,color:N[k].color}));
+    const nodes=[...keep].map(k=>({id:N[k].id,kind:N[k].kind,color:N[k].color,text:N[k].text}));
     const edges=E.filter(e=>keep.has(e.s)&&keep.has(e.t)).map(e=>({from:N[e.s].id,to:N[e.t].id,label:e.label}));
     draw({nodes,edges},mount,full)};
    panel.appendChild(f)}
