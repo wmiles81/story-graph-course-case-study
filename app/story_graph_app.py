@@ -567,21 +567,64 @@ async function timeline(m){m.innerHTML='';const d=await api('/api/timeline');
  const frame=$(`<div class="frame" style="overflow:auto"><svg viewBox="0 0 ${W} ${height}" style="min-width:${W}px;height:${height}px">${s}</svg></div>`);m.appendChild(frame);
  const cap=$(`<p class="hint">Time runs left→right (chapter); each row is a character. Hover a dot for the belief, or click to pin it here.</p>`);m.appendChild(cap);
  frame.querySelectorAll('circle').forEach(c=>{c.onclick=()=>{cap.textContent=decodeURIComponent(c.dataset.b)}});}
+// Ask state survives tab switches — question, last result, chosen view + column mapping.
+let ASK={q:'',r:null,view:'table',src:0,tgt:-1,lbl:-1};
+const ASK_PAL=['#0b7d84','#8a5cf6','#b4531f','#0e7c86','#94708a','#5a3fa6'];
+function askGraphData(r){
+ const n=r.columns.length;
+ const src=Math.min(ASK.src,n-1), tgt=(ASK.tgt<0?n-1:Math.min(ASK.tgt,n-1)), lbl=ASK.lbl;
+ const nodes={},edges=[];
+ r.rows.forEach(rw=>{
+  const a=rw[src]==null?'':String(rw[src]), b=rw[tgt]==null?'':String(rw[tgt]);
+  if(a&&!(a in nodes))nodes[a]={id:a,kind:r.columns[src],color:ASK_PAL[src%ASK_PAL.length]};
+  if(b&&b!==a&&!(b in nodes))nodes[b]={id:b,kind:r.columns[tgt],color:ASK_PAL[tgt%ASK_PAL.length]};
+  if(a&&b&&a!==b)edges.push({from:a,to:b,label:(lbl>=0&&lbl<n)?String(rw[lbl]??''):''});});
+ return {nodes:Object.values(nodes),edges};
+}
+function askRender(out){
+ out.innerHTML='';const r=ASK.r;
+ if(!r)return;
+ if(r.cypher)out.appendChild($(`<p class="hint"><b>Generated Cypher</b> — ${esc(r.explanation||'')}</p>`)),out.appendChild($(`<pre>${esc(r.cypher)}</pre>`));
+ if(r.error){out.appendChild($(`<p class="err">${esc(r.error)}</p>`));if(r.raw)out.appendChild($(`<pre>${esc(r.raw)}</pre>`));return}
+ // view toggle
+ const bar=$(`<div class="row"></div>`);
+ [['table','Table'],['graph','Graph']].forEach(([k,l])=>{const b=$(`<button class="${ASK.view===k?'go':'ghost'}">${l}</button>`);b.onclick=()=>{ASK.view=k;askRender(out)};bar.appendChild(b)});
+ out.appendChild(bar);
+ if(ASK.view==='table'){
+  let h='<table><thead><tr>'+r.columns.map(c=>`<th>${esc(c)}</th>`).join('')+'</tr></thead><tbody>';
+  h+=r.rows.map(rw=>'<tr>'+rw.map(v=>`<td>${v==null?'':esc(String(v))}</td>`).join('')+'</tr>').join('');
+  h+='</tbody></table>';out.appendChild($(`<div>${h}</div>`));
+  out.appendChild($(`<p class="hint">${r.rows.length} row(s)</p>`));
+  return;
+ }
+ // graph view: pick which columns are source → target (+ optional edge label)
+ if(!r.rows.length){out.appendChild($(`<p class="hint">No rows to draw.</p>`));return}
+ const map=$(`<div class="row" style="flex-wrap:wrap;gap:.5rem"></div>`);
+ const mk=(label,field,allowNone)=>{const sel=$(`<select class="sm-field"></select>`);
+  if(allowNone){const o=document.createElement('option');o.value='-1';o.textContent='(none)';sel.appendChild(o)}
+  r.columns.forEach((c,i)=>{const o=document.createElement('option');o.value=String(i);o.textContent=c;sel.appendChild(o)});
+  const cur=field==='tgt'&&ASK.tgt<0?r.columns.length-1:ASK[field];
+  sel.value=String(cur);sel.onchange=()=>{ASK[field]=+sel.value;askRender(out)};
+  const w=$(`<span class="hint" style="display:inline-flex;align-items:center;gap:.35rem">${label}</span>`);w.appendChild(sel);return w};
+ map.appendChild(mk('nodes from','src',false));map.appendChild(mk('→','tgt',false));map.appendChild(mk('edge label','lbl',true));
+ out.appendChild(map);
+ const d=askGraphData(r);
+ out.appendChild($(`<div class="frame" style="overflow:auto;max-height:64vh"><svg id="gv" style="width:100%;height:520px"></svg></div>`));
+ out.appendChild($(`<p class="hint">${d.nodes.length} nodes · ${d.edges.length} edges · drag nodes to rearrange</p>`));
+ draw(d);
+}
 async function ask(m){m.innerHTML='';
- m.appendChild($(`<p class="hint">Ask in plain English — the model you set in <b>⚙️ Settings → AI Model</b> (OpenRouter, or a local Ollama / LM Studio server) turns it into a Cypher query, runs it, and shows both. No API key needed for local models.</p>`));
- const ta=$(`<textarea placeholder="e.g. which propositions does the reader know that a character believes are false?">Which propositions does the reader know that a character believes are false?</textarea>`);m.appendChild(ta);
+ m.appendChild($(`<p class="hint">Ask in plain English — the model you set in <b>⚙️ Settings → AI Model</b> (OpenRouter, or a local Ollama / LM Studio server) turns it into a Cypher query, runs it, and shows both. Results stay until your next question; flip to <b>Graph</b> to see them as a node-link.</p>`));
+ const ta=$(`<textarea placeholder="e.g. what does Jonah know?"></textarea>`);ta.value=ASK.q||'What does Jonah know?';m.appendChild(ta);
  const row=$(`<div class="row"></div>`);const btn=$(`<button class="go">Ask</button>`);row.appendChild(btn);m.appendChild(row);
  const out=$(`<div></div>`);m.appendChild(out);
+ askRender(out);   // restore the previous result on tab return
  const sch=await api('/api/schema');
  m.appendChild($(`<details style="margin-top:1rem"><summary class="hint">Cypher rules — the schema the AI is given</summary><pre>${esc(sch.schema||'')}</pre></details>`));
- btn.onclick=async()=>{out.innerHTML='<p class="hint">asking Claude…</p>';
+ btn.onclick=async()=>{ASK.q=ta.value;out.innerHTML='<p class="hint">asking…</p>';
   const r=await api('/api/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:ta.value})});
-  let h='';
-  if(r.cypher)h+=`<p class="hint"><b>Generated Cypher</b> — ${esc(r.explanation||'')}</p><pre>${esc(r.cypher)}</pre>`;
-  if(r.error){h+=`<p class="err">${esc(r.error)}</p>`+(r.raw?`<pre>${esc(r.raw)}</pre>`:'');out.innerHTML=h;return}
-  h+='<table><thead><tr>'+r.columns.map(c=>`<th>${esc(c)}</th>`).join('')+'</tr></thead><tbody>';
-  h+=r.rows.map(rw=>'<tr>'+rw.map(v=>`<td>${v==null?'':esc(String(v))}</td>`).join('')+'</tr>').join('');
-  h+='</tbody></table><p class="hint">'+r.rows.length+' row(s)</p>';out.innerHTML=h};}
+  ASK.r=r;ASK.src=0;ASK.tgt=-1;ASK.lbl=-1;   // reset mapping for the new result shape
+  askRender(out)};}
 async function query(m){m.innerHTML='';const s=await api('/api/summary');
  m.appendChild($(`<p class="hint">Ad-hoc Cypher over the compiled graph. Node tables: Entity, Proposition, Source, Evidence, OpenLoop, Holder. Rel tables: RELATES, EPISTEMIC, GOVERNED_BY, EVIDENCED_BY, SUPPORTS.</p>`));
  const ta=$(`<textarea>MATCH (h:Holder)-[e:EPISTEMIC]->(p:Proposition) RETURN h.id, e.mode, e.since_ch, p.id ORDER BY e.since_ch LIMIT 25</textarea>`);m.appendChild(ta);
