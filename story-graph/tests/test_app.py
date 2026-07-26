@@ -23,6 +23,33 @@ def test_app_summary_and_graph(tmp_path):
     assert isinstance(app.api_graph()["nodes"], list)
 
 
+def test_graph_nodes_carry_sizing_metrics(tmp_path):
+    """Node size encodes receipts / believers / contested, so every node must ship
+    those magnitudes — and `contested` must stay 0 unless holders actually disagree."""
+    app = _app()
+    props = ("## Propositions\n| prop-id | statement | canon-status | governing-source | span |\n"
+             "|---|---|---|---|---|\n"
+             "| p1 | jackson is alive | contested | ms | ev1 ev2 |\n"
+             "| p2 | nobody argues about this | true | ms | provisional |\n")
+    evid = ("## Evidence\n| span-id | source-id | locator | quote | note |\n|---|---|---|---|---|\n"
+            "| ev1 | ms | ch01 | a | |\n| ev2 | ms | ch02 | b | |\n")
+    epi = ("## Epistemic States\n| prop-id | holder | mode | since-ch | span |\n|---|---|---|---|---|\n"
+           "| p1 | reader | knows | 1 | provisional |\n"
+           "| p1 | jonah | believes-false | 1 | provisional |\n"
+           "| p2 | jonah | knows | 1 | provisional |\n"
+           "| p2 | reader | knows | 1 | provisional |\n")
+    g = tmp_path / "g.md"
+    g.write_text(make_graph(Propositions=props, Evidence=evid, **{"Epistemic States": epi}),
+                 encoding="utf-8")
+    app.load(str(g))
+    m = {n["id"]: n["m"] for n in app.api_graph()["nodes"]}
+    assert m["p1"] == {"ev": 2, "bel": 2, "con": 1}     # two receipts, two holders, one disagreement
+    assert m["p2"]["ev"] == 0 and m["p2"]["bel"] == 2
+    assert m["p2"]["con"] == 0, "agreement is not contested"
+    assert m["jonah"]["bel"] == 2                        # holds a stance on both claims
+    assert m["library"] == {"ev": 0, "bel": 0, "con": 0}  # never scores, but always present
+
+
 def test_app_cypher_and_bad_query(tmp_path):
     pytest.importorskip("kuzu")
     app = _app()

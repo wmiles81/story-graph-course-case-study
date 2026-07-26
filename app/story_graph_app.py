@@ -260,9 +260,54 @@ def _node_text():
     return t
 
 
+_TRUEISH = ("knows", "believes", "suspects")
+
+
+def _node_metrics():
+    """Per-node magnitudes the viewer can map to node size.
+
+    Degree is deliberately NOT computed here — the viewer measures that on the
+    edges actually on screen, so hiding an edge type rebalances it. These are the
+    *semantic* ones, which are properties of the story and don't change because a
+    layer was switched off:
+
+      ev  — receipts: verbatim evidence spans backing this claim
+      bel — epistemic reach: minds holding a stance on it (or, for a character,
+            claims they hold a stance on)
+      con — contested: holders on the smaller side of a genuine disagreement, so
+            a proposition only scores if somebody believes the opposite of
+            somebody else. This is the dramatic-irony surface.
+    """
+    S = STATE["graph"]["sections"]
+    ev_ids = {r.get("span-id") for r in S.get("Evidence", []) if r.get("span-id")}
+    m = {}
+    def cell(nid):
+        return m.setdefault(nid, {"ev": 0, "bel": 0, "con": 0})
+
+    stance = {}
+    for r in S.get("Propositions", []):
+        pid = r.get("prop-id")
+        if not pid:
+            continue
+        cell(pid)["ev"] += sum(1 for s in sg._span_ids(r.get("span", "")) if s in ev_ids)
+    for r in S.get("Epistemic States", []):
+        pid, h, mode = r.get("prop-id"), r.get("holder"), (r.get("mode") or "")
+        if not pid or not h:
+            continue
+        cell(pid)["bel"] += 1
+        cell(h)["bel"] += 1
+        if mode in _TRUEISH or mode == "believes-false":
+            side = stance.setdefault(pid, {"for": 0, "against": 0})
+            side["against" if mode == "believes-false" else "for"] += 1
+    for pid, side in stance.items():
+        cell(pid)["con"] = min(side["for"], side["against"])
+    return m
+
+
 def api_graph(prop=""):
     nodes, edges = sg._viz_model(STATE["graph"], prop)
     txt = _node_text()
+    met = _node_metrics()
     def label_for(nid, kind):
         # Slug-like kinds (p-b03-000012, ev-…, setup ids) are meaningless on canvas;
         # entities/sources/holders already read as names, so keep their ids.
@@ -271,7 +316,8 @@ def api_graph(prop=""):
 
     return {
         "nodes": [{"id": nid, "kind": kind, "color": sg._VIZ_COLORS.get(kind, "#888"),
-                   "text": txt.get(nid, ""), "label": label_for(nid, kind)}
+                   "text": txt.get(nid, ""), "label": label_for(nid, kind),
+                   "m": met.get(nid, {"ev": 0, "bel": 0, "con": 0})}
                   for nid, kind in nodes.items()],
         "edges": [{"from": u, "to": v, "label": lab} for u, v, lab in edges],
     }
@@ -652,6 +698,9 @@ pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padd
 .gtools{display:flex;gap:.5rem;align-items:center;padding:.5rem .6rem;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .gtools .ghost{padding:.3rem .6rem}
 .gsearch{flex:1;min-width:140px;font:13px ui-monospace,monospace;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem}
+.gsizesel{font:12px ui-monospace,monospace;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.3rem .4rem}
+.glegend{padding:.1rem .6rem .5rem;font-size:12px;color:var(--muted);display:flex;align-items:baseline;gap:.45rem;flex-wrap:wrap}
+.glegend svg{vertical-align:-3px;overflow:visible}
 .gstage{position:relative;overflow:hidden}
 .gstage svg{width:100%;height:100%;cursor:grab;touch-action:none}
 .gstage svg:active{cursor:grabbing}
@@ -789,7 +838,27 @@ async function graph(m){m.innerHTML='';
 // `full` (internal, threaded through recursive calls) is the true root dataset, so "Focus" on a
 // neighbourhood can always offer a "Show all" back to the original graph, however deep the focus.
 let GHIDE=new Set();   // edge types switched off in the graph view (persists across redraws)
+let GSIZE='uniform';   // which magnitude node area encodes (persists across redraws)
 const GPOS=new Map();  // id -> {x,y,pin} — a node you drag stays where you put it across redraws
+// What node area can encode. `conn` is measured on the edges actually drawn, so hiding an
+// edge type rebalances it; the rest are story facts sent by the server (n.m) and don't move.
+// Each returns a magnitude >= 0; 0 draws at the floor radius.
+const SIZERS=[
+ {k:'uniform',name:'uniform',v:()=>1,
+  help:'every node the same size'},
+ {k:'conn',name:'connections',v:(i,C)=>C.conn[i],
+  help:'bigger = more edges in the visible graph — structural hubs'},
+ {k:'bel',name:'believers',v:(i,C)=>(C.N[i].m||{}).bel||0,
+  help:'bigger = more minds hold a stance on this claim (or, for a character, more claims they hold)'},
+ {k:'ev',name:'receipts',v:(i,C)=>(C.N[i].m||{}).ev||0,
+  help:'bigger = more verbatim evidence spans back this claim'},
+ // Propositions only: an entity or a source has no receipts by construction, so scoring
+ // them here would just re-draw the hubs and bury the claims you actually need to check.
+ {k:'unproven',name:'unproven weight',v:(i,C)=>(C.N[i].kind==='proposition'&&!((C.N[i].m||{}).ev)?C.conn[i]:0),
+  help:'bigger = more rests on a claim with no evidence span behind it (propositions only)'},
+ {k:'con',name:'contested',v:(i,C)=>(C.N[i].m||{}).con||0,
+  help:'bigger = more holders on the smaller side of a real disagreement — the dramatic-irony surface'},
+];
 function draw(d,mount,full){full=full||d;mount.innerHTML='';
  // Edge-type filter: a hub edge type (e.g. 120 governed-by edges into one source)
  // swamps the layout, so allow switching types off. Nodes left with no visible
@@ -801,7 +870,8 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   const keep=new Set();eg.forEach(e=>{keep.add(e.from);keep.add(e.to)});
   d={nodes:(d.nodes||[]).filter(n=>keep.has(n.id)),edges:eg};
  }
- const wrap=$(`<div class="frame gwrap"><div class="gtools"><input class="gsearch" placeholder="search nodes…" aria-label="Search nodes"><span class="gcount hint" aria-live="polite"></span><span style="flex:1"></span>${full!==d?'<button class="ghost" id="gall">Show all</button>':''}<button class="ghost" id="gzo" title="Zoom out">−</button><button class="ghost" id="gzi" title="Zoom in">+</button><button class="ghost" id="gzf" title="Fit to view">Fit</button></div><div class="gstage"><svg tabindex="0" role="img" aria-label="Story graph with ${d.nodes.length} nodes"></svg><div class="gpanel" hidden></div></div></div>`);
+ const sizeOpts=SIZERS.map(s=>`<option value="${s.k}"${GSIZE===s.k?' selected':''}>${s.name}</option>`).join('');
+ const wrap=$(`<div class="frame gwrap"><div class="gtools"><input class="gsearch" placeholder="search nodes…" aria-label="Search nodes"><span class="gcount hint" aria-live="polite"></span><span style="flex:1"></span><label class="hint">size <select class="gsizesel" aria-label="Size nodes by">${sizeOpts}</select></label>${full!==d?'<button class="ghost" id="gall">Show all</button>':''}<button class="ghost" id="gzo" title="Zoom out">−</button><button class="ghost" id="gzi" title="Zoom in">+</button><button class="ghost" id="gzf" title="Fit to view">Fit</button></div><div class="gstage"><svg tabindex="0" role="img" aria-label="Story graph with ${d.nodes.length} nodes"></svg><div class="gpanel" hidden></div></div></div>`);
  mount.appendChild(wrap);
  if(Object.keys(etypes).length>1){
   const chips=$(`<div class="gchips"><span class="hint">edges:</span></div>`);
@@ -825,11 +895,30 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  const idx=Object.fromEntries(N.map((n,i)=>[n.id,i]));
  const E=d.edges.filter(e=>e.from in idx&&e.to in idx).map(e=>({s:idx[e.from],t:idx[e.to],label:e.label}));
  const neigh=N.map(()=>new Set());E.forEach(e=>{neigh[e.s].add(e.t);neigh[e.t].add(e.s)});
- const k=0.9*Math.sqrt(W*H/Math.max(1,N.length));
- for(let it=0;it<300;it++){for(const a of N){a.fx=0;a.fy=0}
-  for(let i=0;i<N.length;i++)for(let j=i+1;j<N.length;j++){let dx=N[i].x-N[j].x,dy=N[i].y-N[j].y,dd=Math.hypot(dx,dy)||.01,f=k*k/dd;N[i].fx+=dx/dd*f;N[i].fy+=dy/dd*f;N[j].fx-=dx/dd*f;N[j].fy-=dy/dd*f}
+ // Sizing inputs. Degree is counted on the edges actually drawn, so switching an edge
+ // type off rebalances it; radii are recomputed without re-running the layout, so
+ // changing what size means never moves anything.
+ const conn=N.map(()=>0);E.forEach(e=>{conn[e.s]++;conn[e.t]++});
+ const SZCTX={conn,N},RFLOOR=4,RCEIL=17;
+ let radii=N.map(()=>8);
+ // Isolated nodes contribute nothing but repulsion. Left in the simulation they push each
+ // other into a huge ring and the connected graph collapses to a dot at its centre (fit has
+ // to frame both). So settle the connected part alone, then park the strays in a tidy column
+ // grid beside it, where they're still visible and searchable but cost the core no room.
+ const SIM=N.filter((n,i)=>conn[i]>0);
+ const k=0.9*Math.sqrt(W*H/Math.max(1,SIM.length));
+ for(let it=0;it<300;it++){for(const a of SIM){a.fx=0;a.fy=0}
+  for(let i=0;i<SIM.length;i++)for(let j=i+1;j<SIM.length;j++){let dx=SIM[i].x-SIM[j].x,dy=SIM[i].y-SIM[j].y,dd=Math.hypot(dx,dy)||.01,f=k*k/dd;SIM[i].fx+=dx/dd*f;SIM[i].fy+=dy/dd*f;SIM[j].fx-=dx/dd*f;SIM[j].fy-=dy/dd*f}
   for(const e of E){let a=N[e.s],b=N[e.t],dx=a.x-b.x,dy=a.y-b.y,dd=Math.hypot(dx,dy)||.01,f=dd*dd/k;a.fx-=dx/dd*f;a.fy-=dy/dd*f;b.fx+=dx/dd*f;b.fy+=dy/dd*f}
-  for(const a of N){if(a.pin)continue;a.fx+=(W/2-a.x)*.03;a.fy+=(H/2-a.y)*.03;const dl=Math.hypot(a.fx,a.fy)||.01,t=Math.max(1.5,W*0.05*(1-it/300));a.x+=a.fx/dl*Math.min(dl,t);a.y+=a.fy/dl*Math.min(dl,t)}}
+  for(const a of SIM){if(a.pin)continue;a.fx+=(W/2-a.x)*.03;a.fy+=(H/2-a.y)*.03;const dl=Math.hypot(a.fx,a.fy)||.01,t=Math.max(1.5,W*0.05*(1-it/300));a.x+=a.fx/dl*Math.min(dl,t);a.y+=a.fy/dl*Math.min(dl,t)}}
+ const strays=N.filter((n,i)=>conn[i]===0&&!n.pin),GAP=40;
+ if(strays.length){
+  const core=SIM.length?SIM:null;
+  const x0=core?Math.max(...core.map(n=>n.x))+GAP*2:W/2-GAP*Math.ceil(Math.sqrt(strays.length))/2;
+  const y0=core?Math.min(...core.map(n=>n.y)):H/2;
+  const rows=core?Math.max(1,Math.round((Math.max(...core.map(n=>n.y))-y0)/GAP)):Math.ceil(Math.sqrt(strays.length));
+  strays.forEach((n,j)=>{n.x=x0+Math.floor(j/rows)*GAP;n.y=y0+(j%rows)*GAP});
+ }
 
  // Pan/zoom state lives only in this transform — "fit" (below) picks k/x/y to frame whatever the
  // layout produced, however far disconnected components have spread, instead of distorting node
@@ -871,7 +960,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  N.forEach((n,i)=>{
   const hit=document.createElementNS(NS,'circle');hit.setAttribute('cx',n.x);hit.setAttribute('cy',n.y);hit.setAttribute('r',16);
   hit.setAttribute('fill','transparent');hit.dataset.i=i;hit.style.cursor='grab';nodesG.appendChild(hit);hits[i]=hit;
-  const c=document.createElementNS(NS,'circle');c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',8);c.setAttribute('fill',n.color);c.dataset.i=i;c.style.pointerEvents='none';
+  const c=document.createElementNS(NS,'circle');c.setAttribute('cx',n.x);c.setAttribute('cy',n.y);c.setAttribute('r',radii[i]);c.setAttribute('fill',n.color);c.dataset.i=i;c.style.pointerEvents='none';
   const ti=document.createElementNS(NS,'title');
   ti.textContent=(n.text?n.text+'\n':'')+n.id+(n.kind?'  ·  '+n.kind:'');c.appendChild(ti);
   hit.addEventListener('pointerenter',()=>{hoverIdx=i;paintDim();updateLOD()});
@@ -902,7 +991,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   const bar=$(`<div class="row" style="margin-top:.8rem"></div>`);
   const bf=$(`<button class="go">Focus this set in the graph</button>`);
   bf.onclick=()=>{const keep=new Set([i]);E.forEach(e=>{if(e.s===i)keep.add(e.t);if(e.t===i)keep.add(e.s)});
-   const nodes=[...keep].map(k=>({id:N[k].id,kind:N[k].kind,color:N[k].color,text:N[k].text,label:N[k].label}));
+   const nodes=[...keep].map(k=>({id:N[k].id,kind:N[k].kind,color:N[k].color,text:N[k].text,label:N[k].label,m:N[k].m}));
    const edges=E.filter(e=>keep.has(e.s)&&keep.has(e.t)).map(e=>({from:N[e.s].id,to:N[e.t].id,label:e.label}));
    close();draw({nodes,edges},mount,full)};
   const bc=$(`<button class="ghost">Copy as CSV</button>`);
@@ -916,7 +1005,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
 
  function moveNode(i){circles[i].setAttribute('cx',N[i].x);circles[i].setAttribute('cy',N[i].y);
   hits[i].setAttribute('cx',N[i].x);hits[i].setAttribute('cy',N[i].y);
-  nlabels[i].setAttribute('x',N[i].x+11*inv);nlabels[i].setAttribute('y',N[i].y+4*inv);
+  nlabels[i].setAttribute('x',N[i].x+(radii[i]+3)*inv);nlabels[i].setAttribute('y',N[i].y+4*inv);
   if(i===selIdx){ring.setAttribute('cx',N[i].x);ring.setAttribute('cy',N[i].y)}
   E.forEach((e,ei)=>{if(e.s===i){lines[ei].setAttribute('x1',N[i].x);lines[ei].setAttribute('y1',N[i].y)}
    if(e.t===i){lines[ei].setAttribute('x2',N[i].x);lines[ei].setAttribute('y2',N[i].y)}
@@ -983,13 +1072,34 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
   requestAnimationFrame(()=>{_declutterPending=false;declutter()})}
  function applyTransform(){g.setAttribute('transform',`translate(${view.x},${view.y}) scale(${view.k})`);
   inv=1/view.k;
-  const nr=(8*inv).toFixed(2),hr=(16*inv).toFixed(2);
-  for(let i=0;i<circles.length;i++){circles[i].setAttribute('r',nr);hits[i].setAttribute('r',hr);
-   nlabels[i].setAttribute('x',N[i].x+11*inv);nlabels[i].setAttribute('y',N[i].y+4*inv)}
-  ring.setAttribute('r',(13*inv).toFixed(2));
+  for(let i=0;i<circles.length;i++){const rr=radii[i];
+   circles[i].setAttribute('r',(rr*inv).toFixed(2));hits[i].setAttribute('r',(Math.max(rr+8,16)*inv).toFixed(2));
+   nlabels[i].setAttribute('x',N[i].x+(rr+3)*inv);nlabels[i].setAttribute('y',N[i].y+4*inv)}
+  ring.setAttribute('r',(((selIdx>=0?radii[selIdx]:8)+5)*inv).toFixed(2));
   nlabG.style.fontSize=(11*inv).toFixed(2)+'px';elabG.style.fontSize=(10*inv).toFixed(2)+'px';
   for(let ei=0;ei<E.length;ei++)if(elabels[ei]){const q=elabPos(ei);elabels[ei].setAttribute('x',q.x);elabels[ei].setAttribute('y',q.y)}
   updateLOD();scheduleDeclutter()}
+ // Node AREA is proportional to the value — radius-proportional sizing badly overstates
+ // magnitude (4x the area for 2x the value), so map through sqrt. Recomputing radii never
+ // re-runs the layout: switching metric resizes in place, so you keep your bearings.
+ function sizeNodes(){
+  const S=SIZERS.find(s=>s.k===GSIZE)||SIZERS[0];
+  let note='';
+  if(S.k==='uniform')radii=N.map(()=>8);
+  else{const vals=N.map((n,i)=>Math.max(0,S.v(i,SZCTX)||0)),mx=Math.max(0,...vals);
+   radii=vals.map(v=>mx?RFLOOR+(RCEIL-RFLOOR)*Math.sqrt(v/mx):RFLOOR);
+   const zeros=vals.filter(v=>!v).length,top=vals.indexOf(mx);
+   note=mx?`max ${mx} — ${(N[top].label||N[top].id).slice(0,44)}`:'nothing here scores above zero';
+   if(zeros)note+=` · ${zeros}/${N.length} at the floor`;}
+  let el=wrap.querySelector('.glegend');
+  if(!el){el=$(`<div class="glegend"></div>`);wrap.insertBefore(el,wrap.querySelector('.gstage'))}
+  el.style.display=S.k==='uniform'?'none':'';
+  el.innerHTML=`<svg width="48" height="17" aria-hidden="true"><circle cx="5" cy="10" r="3.5" fill="var(--muted)"/><circle cx="19" cy="10" r="5.5" fill="var(--muted)"/><circle cx="37" cy="10" r="8" fill="var(--muted)"/></svg>`+
+   `<span>${esc(S.help)}</span>${note?`<span class="hint">· ${esc(note)}</span>`:''}`;
+  // A hub's hit area must sit BEHIND its small neighbours' or it swallows their clicks;
+  // last in DOM order wins the pointer, so append biggest first.
+  [...hits].map((h,i)=>[radii[i],h]).sort((a,b)=>b[0]-a[0]).forEach(([,h])=>nodesG.appendChild(h));
+  applyTransform();}
  function fitView(){if(!N.length){view.x=0;view.y=0;view.k=1;return applyTransform()}
   const xs=N.map(n=>n.x),ys=N.map(n=>n.y),mnx=Math.min(...xs),mxx=Math.max(...xs),mny=Math.min(...ys),mxy=Math.max(...ys),pad=40;
   view.k=Math.max(0.005,Math.min(MAXK,Math.min((W-2*pad)/(mxx-mnx||1),(H-2*pad)/(mxy-mny||1))));
@@ -1000,6 +1110,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  function setSelected(i){selIdx=i;
   if(i<0){panel.hidden=true;ring.style.display='none';updateLOD();return}
   ring.style.display='';ring.setAttribute('cx',N[i].x);ring.setAttribute('cy',N[i].y);
+  ring.setAttribute('r',((radii[i]+5)*inv).toFixed(2));
   const nbrs=[...neigh[i]].map(j=>N[j]).sort((a,b)=>a.id<b.id?-1:1);
   panel.hidden=false;panel.innerHTML='';
   const head=$(`<div class="gpanel-head"><b>${esc(N[i].label||N[i].id)}</b><button class="gpanel-x" title="Close (Esc)">×</button></div>`);
@@ -1017,7 +1128,9 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
    a.onclick=()=>setSelected(idx[nb.id]);list.appendChild(a)});
   updateLOD()}
  function focusOn(i){const keep=new Set([i,...neigh[i]]);
-  const subN=[...keep].map(j=>({id:N[j].id,kind:N[j].kind,color:N[j].color}));
+  // Carry text/label/metrics across — a focused view that reverts to raw slugs and
+  // uniform dots is a downgrade, not a zoom.
+  const subN=[...keep].map(j=>({id:N[j].id,kind:N[j].kind,color:N[j].color,text:N[j].text,label:N[j].label,m:N[j].m}));
   const subE=E.filter(e=>keep.has(e.s)&&keep.has(e.t)).map(e=>({from:N[e.s].id,to:N[e.t].id,label:e.label}));
   draw({nodes:subN,edges:subE},mount,full)}
 
@@ -1035,6 +1148,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  wrap.querySelector('#gzi').onclick=()=>zoomAt(W/2,H/2,1.4);
  wrap.querySelector('#gzf').onclick=fitView;
  const allBtn=wrap.querySelector('#gall');if(allBtn)allBtn.onclick=()=>draw(full,mount);
+ const ssel=wrap.querySelector('.gsizesel');ssel.onchange=()=>{GSIZE=ssel.value;sizeNodes()};
 
  // Wheel (and trackpad pinch, which arrives as wheel+ctrlKey) zooms toward the cursor; the transform
  // is the only thing that changes, so this never touches the layout.
@@ -1066,7 +1180,7 @@ function draw(d,mount,full){full=full||d;mount.innerHTML='';
  svg.addEventListener('dblclick',ev=>{if(lastHit!=null){ev.preventDefault();openSet(lastHit)}});
  svg.addEventListener('pointercancel',()=>{dragI=null;panStart=null;downPt=null});
 
- fitView();renderPinBadge();}
+ sizeNodes();fitView();renderPinBadge();}
 async function timeline(m){m.innerHTML='';const d=await api('/api/timeline');
  if(!d.items.length){m.innerHTML='<p class="hint">No epistemic states with chapter numbers to plot.</p>';return}
  const ST={knows:'#0e9488',believes:'#3b6ea5','believes-false':'#c0632a',suspects:'#7a5cba','embargoed-until':'#8a97a5'};

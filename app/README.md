@@ -35,6 +35,25 @@ few seconds on a large graph (e.g. a full-book import); small graphs are instant
   rearrange, **zoom slider** to enlarge and read edge labels; the whole plot fits
   on load). Focus box narrows to one proposition's neighbourhood. No external JS
   library — inline and self-contained.
+  - **Size by** — node *area* can encode a magnitude, so the shape of the graph
+    answers a question instead of just being a picture. Switching metric resizes
+    in place (the layout never re-runs, so you keep your bearings), and the legend
+    names the top scorer and how many nodes sit at the floor:
+
+    | Mode | Bigger means | Reads as |
+    |---|---|---|
+    | `connections` | more edges *in the visible graph* — so the edge-type filter rebalances it | structural hubs |
+    | `believers` | more minds hold a stance on this claim (for a character, more claims they hold) | where the story's knowledge actually lives |
+    | `receipts` | more verbatim evidence spans back this claim | what's proven vs. asserted |
+    | `unproven weight` | more rests on a claim with **no** evidence span (propositions only) | what to go verify first |
+    | `contested` | more holders on the smaller side of a real disagreement | the dramatic-irony surface |
+
+    A metric with no data is reported honestly rather than hidden — `contested`
+    reading "nothing here scores above zero" means no `believes-false` states
+    exist yet, which is a finding about the graph, not a bug in the view.
+  - Nodes with no edges are parked in a grid to the side rather than left in the
+    simulation, where their mutual repulsion would blow the connected graph into
+    an unreadable dot.
 - **Timeline** — belief-over-time: each character a lane, chapters left→right,
   every epistemic state a coloured dot.
 - **Query** — an ad-hoc **Cypher** console over the compiled graph. Node tables:
