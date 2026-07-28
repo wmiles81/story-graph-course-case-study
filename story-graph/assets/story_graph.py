@@ -281,6 +281,52 @@ def check_entities(graph, report):
     return ids, locations
 
 
+def _alias_cell(row):
+    """Surface forms for an entity, as `;`-separated text.
+
+    Prefers an explicit `aliases` column; falls back to the `note` column, which is
+    where existing graphs put them. The fallback is guarded because a note is free
+    text: `provisional — auto-registered from an assertion reference` splits into
+    convincing nonsense, and nonsense aliases produce false collisions, which is worse
+    than no checking at all. A segment only counts as an alias if it reads like a name.
+    """
+    explicit = (row.get("aliases") or "").strip()
+    if explicit:
+        return [s.strip() for s in explicit.split(";") if s.strip()]
+    note = (row.get("note") or "").strip()
+    if not note:
+        return []
+    parts = [s.strip() for s in note.split(";") if s.strip()]
+    if any(len(p.split()) > 4 or "—" in p or p.endswith(".") for p in parts):
+        return []          # prose, not an alias list
+    return parts
+
+
+def check_aliases(graph, entity_ids, report):
+    """Identity resolution, mechanically. Cannot tell you that two names are one
+    person — but it CAN tell you the graph has already claimed both readings at once,
+    which is the state that silently corrupts everything downstream."""
+    claimed = {}
+    for r in graph["sections"].get("Entities", []):
+        eid = r.get("id", "")
+        if not eid:
+            continue
+        for a in _alias_cell(r):
+            key = a.lower()
+            if key == eid.lower():
+                report.warn(f"Entities [{eid}]: alias '{a}' repeats the canonical id")
+                continue
+            if key in entity_ids or key.replace(" ", "-") in entity_ids:
+                report.error(f"Entities [{eid}]: alias '{a}' is another entity's canonical id — "
+                             f"one of them is wrong")
+            claimed.setdefault(key, []).append(eid)
+    for a, owners in sorted(claimed.items()):
+        if len(owners) > 1:
+            report.error(f"Entities: alias '{a}' is claimed by {len(owners)} entities "
+                         f"({', '.join(sorted(owners))}) — either they are one entity recorded "
+                         f"twice, or the alias belongs to only one of them")
+
+
 def check_open_loops(graph, canon_ch, span_ids, report):
     for r in graph["sections"].get("Open Loops & Setups", []):
         gid, status = r.get("id", "?"), r.get("status", "")
@@ -408,6 +454,7 @@ def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""
     sources = check_sources(graph, report)
     check_authority(graph, sources, report)
     entity_ids, location_ids = check_entities(graph, report)
+    check_aliases(graph, entity_ids, report)
     span_ids = check_evidence(graph, sources, report)
     verify_spans(graph, sources, chapters_dir, report)
     prop_ids = check_propositions(graph, sources, span_ids, report)
@@ -973,6 +1020,11 @@ def main(argv=None):
     vz.add_argument("graph")
     vz.add_argument("--out", required=True)
     vz.add_argument("--prop", default="")
+    dc = sub.add_parser("decisions")
+    dc.add_argument("cases", nargs="?", default="")
+    dc.add_argument("--provider", default="", help="ollama | lmstudio | openrouter; omit for the structural check only")
+    dc.add_argument("--model", default="")
+    dc.add_argument("--env", default="", help=".env holding a provider key (default: none)")
     args = parser.parse_args(argv)
     if args.command == "validate":
         report = validate(args.graph, args.ontology, args.genres_dir, args.spe_dir, args.chapters_dir)
@@ -1021,6 +1073,31 @@ def main(argv=None):
         title = text.splitlines()[0].lstrip("# ").strip() if text.strip() else ""
         print(coverage_report(parse_graph(text), title))
         return 0
+    if args.command == "decisions":
+        import story_graph_decisions as sgd     # lazy: nothing else needs it
+        cases = args.cases or str(Path(__file__).resolve().parent.parent / "tests" / "decisions")
+        chat = None
+        if args.provider:
+            if not args.model:
+                print("ERROR: --provider needs --model")
+                return 1
+            import story_graph_llm as llm
+            if args.env:
+                llm.load_env(Path(args.env))
+            import os
+            p = llm.provider(args.provider)
+            if p is None:
+                print(f"ERROR: unknown provider '{args.provider}'")
+                return 1
+            key = os.environ.get(p["env"], "") if p["env"] else ""
+
+            def chat(system, user):
+                return llm.chat(args.provider, args.model, system, user, key=key)
+        text, (pts, tot) = sgd.run(cases, chat)
+        print(text)
+        # A structural problem fails the build; a low score is information, not an error —
+        # the corpus exists to be scored against, including badly.
+        return 1 if "STRUCTURE — " in text and "problem" in text else 0
     if args.command == "queue":
         graph = parse_graph(Path(args.graph).read_text(encoding="utf-8"))
         rows = unratified_ranked(graph)

@@ -302,6 +302,31 @@ on-disk format is version-specific (Kùzu 0.11.x here). `MODE=READ_ONLY` is
 recommended: the compiled DB is a rebuildable projection of `Story-Graph.md`, so
 there is no reason to let the UI write back to it.
 
+## Scoring the decisions (optional)
+
+`reference/decisions.md` states the inclusion & resolution rules; `decisions` measures
+whether they're followed, so a change to the rules produces a number instead of an
+argument.
+
+```bash
+# structural check only — no model, no network, safe in CI
+python3 <SKILL_DIR>/assets/story_graph.py decisions
+
+# scored against a model you choose (local needs no key)
+python3 <SKILL_DIR>/assets/story_graph.py decisions --provider ollama --model <id>
+```
+
+Each case in `tests/decisions/` is a short scene, the correct call, and the trap it
+sets. **Every category carries both polarities on purpose** — without a control, a
+degenerate strategy ("always ambiguous", "always propose a row") scores well while
+deciding nothing. A format failure is reported as `FMT`, separately from a wrong
+decision, and retried once; the two are different failures and conflating them makes
+the score unreadable.
+
+Note what this does *not* do: it scores judgement against a fixture, not against your
+manuscript. A high score means the rules are being applied consistently, not that the
+resulting graph is right.
+
 ## Genre modules (optional)
 
 If the host project declares genre modules (in a worksheet RDL or an existing

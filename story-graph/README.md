@@ -65,6 +65,13 @@ Run `story_graph.py` (stdlib; `compile`/`query`/`audit`/`impact` also want `pip 
 - **Query** — `query` (irony · knows · open-loops · receipts), `report`, and
   ad-hoc **Cypher** over the compiled graph.
 - **Diagnose** — `coverage` (which layers are populated, how deep, and what's missing).
+- **Decide consistently** — [`reference/decisions.md`](reference/decisions.md) is the
+  inclusion & resolution rulebook (what earns a row; how to resolve one person's many
+  names; when a conflict is a state change rather than a contradiction). `decisions`
+  scores those calls against a fixture corpus of hard cases, so a change to the rules
+  produces a number instead of an opinion. `validate` also checks alias consistency
+  mechanically — it can't tell you two names are one person, but it will tell you the
+  graph has claimed both readings at once.
 - **Ratify** — `queue` (what's still provisional) and `freeze` (stamp a versioned canon baseline).
 - **Audit & revise** — `audit` (continuity detectors), `impact` (what depends on a claim), `deviations` (where the prose has drifted from canon).
 - **Visualize** — `visualize` writes a self-contained node-link HTML page.
