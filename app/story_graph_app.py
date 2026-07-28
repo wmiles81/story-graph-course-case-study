@@ -38,12 +38,14 @@ STATE = {"path": None, "text": "", "graph": None, "chapters_dir": "", "conn": No
 # keys: Ask-tab AI provider/model + in-memory keys (never written to disk).
 # mtime: on-disk graph file's mtime as of the last load() — used for staleness polling.
 
-# Provider-neutral, OpenAI-compatible endpoints. Local servers need no key; cloud reads env or an in-memory key.
-PROVIDERS = [
-    {"name": "openrouter", "label": "OpenRouter", "base": "https://openrouter.ai/api/v1", "env": "OPENROUTER_API_KEY", "local": False},
-    {"name": "ollama", "label": "Ollama (local)", "base": "http://localhost:11434/v1", "env": "", "local": True},
-    {"name": "lmstudio", "label": "LM Studio (local)", "base": "http://localhost:1234/v1", "env": "", "local": True},
-]
+# The provider-neutral client lives in the skill's assets so the CLI's AI subcommands and
+# this app share one implementation (see docs/ai-plan.md, stage 0). These wrappers supply
+# the two things that are the app's business and not the client's: where this app keeps its
+# .env, and the in-memory key store in STATE. They stay module-level names so tests can
+# substitute _chat / _env_path without reaching into the shared module.
+import story_graph_llm as llm  # noqa: E402
+
+PROVIDERS = llm.PROVIDERS
 _PROV = {p["name"]: p for p in PROVIDERS}
 
 
@@ -53,95 +55,35 @@ def _env_path():
 
 
 def _env_read():
-    p = _env_path()
-    out = {}
-    if p.exists():
-        for line in p.read_text(encoding="utf-8").splitlines():
-            s = line.strip()
-            if s and not s.startswith("#") and "=" in s:
-                k, v = s.split("=", 1)
-                out[k.strip()] = v.strip()
-    return out
+    return llm.env_read(_env_path())
 
 
 def _env_write(updates):
     """Upsert KEY=VALUE pairs into the local (gitignored) .env, preserving other lines."""
-    import os as _os
-    p = _env_path()
-    keys = set(updates)
-    kept = [ln for ln in (p.read_text(encoding="utf-8").splitlines() if p.exists() else [])
-            if not ("=" in ln and not ln.strip().startswith("#") and ln.split("=", 1)[0].strip() in keys)]
-    kept += [f"{k}={v}" for k, v in updates.items()]
-    p.write_text("\n".join(kept) + "\n", encoding="utf-8")
-    try:
-        import os as _o; _o.chmod(p, 0o600)   # the file holds an API key
-    except Exception:
-        pass
-    for k, v in updates.items():
-        _os.environ[k] = v  # reflect immediately in this process
+    llm.env_write(_env_path(), updates)
 
 
 def _load_env():
-    import os as _os
-    for k, v in _env_read().items():
-        _os.environ.setdefault(k, v)  # never override an env var set explicitly at launch
+    llm.load_env(_env_path())
 
 
 def _provider_key(name):
+    """An explicitly-entered key (this session only) wins over one in the environment."""
     import os as _os
     p = _PROV.get(name) or {}
     return STATE.get("keys", {}).get(name) or (_os.environ.get(p.get("env", "")) if p.get("env") else "")
 
 
-_SSL_CTX = None
-
-
-def _ssl_ctx():
-    """A verifying SSL context that works on macOS python.org builds (which ship
-    no CA bundle) by using certifi's when available."""
-    global _SSL_CTX
-    if _SSL_CTX is None:
-        import ssl
-        try:
-            import certifi
-            _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
-        except Exception:
-            _SSL_CTX = ssl.create_default_context()
-    return _SSL_CTX
-
-
 def _oai(base, path, key, payload=None, timeout=60):
-    """One OpenAI-compatible request (GET /models or POST /chat/completions)."""
-    import urllib.request
-    headers = {"Content-Type": "application/json"}
-    if key:
-        headers["Authorization"] = "Bearer " + key
-    data = json.dumps(payload).encode("utf-8") if payload is not None else None
-    req = urllib.request.Request(base.rstrip("/") + path, data=data, headers=headers,
-                                 method="POST" if data is not None else "GET")
-    with urllib.request.urlopen(req, timeout=timeout, context=_ssl_ctx()) as r:  # context ignored for http://
-        return json.loads(r.read().decode("utf-8"))
+    return llm.oai(base, path, key, payload, timeout)
 
 
 def _chat(provider, model, system, user, max_tokens=2048):
-    p = _PROV[provider]
-    payload = {"model": model, "max_tokens": max_tokens,
-               "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
-    d = _oai(p["base"], "/chat/completions", _provider_key(provider), payload, timeout=90)
-    return d["choices"][0]["message"]["content"]
+    return llm.chat(provider, model, system, user, max_tokens, key=_provider_key(provider))
 
 
 def _reachable(name):
-    p = _PROV.get(name)
-    if not p:
-        return False
-    if not p["local"]:
-        return bool(_provider_key(name))
-    try:
-        _oai(p["base"], "/models", "", None, timeout=1.5)
-        return True
-    except Exception:
-        return False
+    return llm.reachable(name, _provider_key(name))
 
 
 def _jsonable(v):
@@ -360,9 +302,9 @@ def api_report(kind):
         title = STATE["text"].splitlines()[0].lstrip("# ").strip() if STATE["text"] else ""
         return {"text": sg.coverage_report(g, title)}
     if kind == "queue":
-        rows = sg.unratified(g)
+        rows = sg.unratified_ranked(g)   # heaviest first, same order the CLI shows
         return {"text": "Ratification queue is empty." if not rows else
-                "\n".join(f"[{sec}] {lab}" for sec, lab in rows)}
+                "\n".join(f"[{score:>3}] [{sec}] {lab} — {why}" for sec, lab, score, why in rows)}
     if kind == "deviations":
         if not ch:
             return {"text": "deviations needs --chapters-dir at app startup."}

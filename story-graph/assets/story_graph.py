@@ -813,6 +813,81 @@ def unratified(graph):
     return out
 
 
+def blast_radius(graph):
+    """Per-proposition dependency weight: what has to be revisited if this claim moves
+    or flips. Stdlib; no kuzu.
+
+    Mind the ceiling, because it bounds every use of this: ontology v2 has no
+    proposition -> proposition edge, so the walk is ONE HOP and cannot go transitive.
+    A claim that quietly underpins another claim scores as weightless here. That gap is
+    the reason "load-bearing" can't be computed as a dependency today — see
+    reference/decisions.md.
+    """
+    S = graph["sections"]
+    out = {}
+
+    def cell(pid):
+        return out.setdefault(pid, {"holders": 0, "evidence": 0, "irony": False, "score": 0})
+
+    for r in S.get("Propositions", []):
+        pid = r.get("prop-id")
+        if pid:
+            cell(pid)["evidence"] += len(_span_ids(r.get("span", "")))
+    modes = {}
+    for r in S.get("Epistemic States", []):
+        pid = r.get("prop-id")
+        if not pid:
+            continue
+        cell(pid)["holders"] += 1
+        modes.setdefault(pid, set()).add(r.get("mode") or "")
+    for pid, ms in modes.items():
+        if "believes-false" in ms and ({"knows", "believes"} & ms):
+            cell(pid)["irony"] = True
+    for c in out.values():
+        # irony is weighted because breaking it is the failure a reader actually feels,
+        # and it is the one that no later validation pass will catch for you.
+        c["score"] = c["holders"] + c["evidence"] + (3 if c["irony"] else 0)
+    return out
+
+
+def unratified_ranked(graph):
+    """The ratification queue as a work plan rather than a list: heaviest first, each
+    row saying what rests on it. 149 rows in file order tells you nothing about where
+    to start."""
+    bl = blast_radius(graph)
+    canon = graph.get("canon_ch") or 0
+    try:
+        canon = int(canon)
+    except (TypeError, ValueError):
+        canon = 0
+    overdue = {}
+    for r in graph["sections"].get("Open Loops & Setups", []):
+        gid, by = r.get("id"), (r.get("must-fire-by") or "").strip()
+        if gid and by.isdigit() and canon and int(by) <= canon:
+            overdue[gid] = canon - int(by)
+
+    out = []
+    for sec, lab in unratified(graph):
+        pid = lab.split("/")[0] if sec == "Epistemic States" else lab
+        c = bl.get(pid) or {}
+        why = []
+        if c.get("holders"):
+            why.append(f"{c['holders']} holder{'' if c['holders'] == 1 else 's'}")
+        if c.get("evidence"):
+            why.append(f"{c['evidence']} span{'' if c['evidence'] == 1 else 's'}")
+        if c.get("irony"):
+            why.append("dramatic irony")
+        score = c.get("score", 0)
+        if lab in overdue:
+            # An open loop carries obligation weight, not dependency weight. Without this
+            # every overdue setup sorts last, which is exactly backwards for a work plan.
+            score = max(score, 5 + overdue[lab])
+            why.append(f"overdue by {overdue[lab]} ch")
+        out.append((sec, lab, score, ", ".join(why) or "nothing depends on it yet"))
+    out.sort(key=lambda t: (-t[2], t[0], t[1]))
+    return out
+
+
 def freeze_graph(graph_path, version, out_path, force=False, at=""):
     """Stamp a versioned canon baseline. Validates first; refuses if any
     provisional (unratified) rows remain unless --force. Writes the stamped
@@ -948,13 +1023,16 @@ def main(argv=None):
         return 0
     if args.command == "queue":
         graph = parse_graph(Path(args.graph).read_text(encoding="utf-8"))
-        rows = unratified(graph)
+        rows = unratified_ranked(graph)
         if not rows:
             print("Ratification queue empty — no provisional load-bearing rows.")
             return 0
-        print(f"Ratification queue — {len(rows)} unratified (provisional) row(s):")
-        for sec, lab in rows:
-            print(f"  [{sec}] {lab}")
+        print(f"Ratification queue — {len(rows)} unratified (provisional) row(s), heaviest first:")
+        for sec, lab, score, why in rows:
+            print(f"  [{score:>3}] [{sec}] {lab} — {why}")
+        print("\nWeight is a ONE-HOP count (holders + spans, +3 for irony, or how overdue a setup is).\n"
+              "Ontology v2 has no proposition->proposition edge, so a claim that silently\n"
+              "underpins another claim scores 0 here. See reference/decisions.md.")
         return 0
     if args.command == "freeze":
         report = freeze_graph(args.graph, args.version, args.out, args.force, args.at)

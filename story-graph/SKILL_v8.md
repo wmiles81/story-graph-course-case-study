@@ -45,8 +45,6 @@ Resolve these relative to THIS skill's directory (the folder containing this
 - `<SKILL_DIR>/assets/Story-Graph-Ontology-v2.md` — the v2 schema: header block, core/module sections, controlled vocabularies, table schemas, authority model, evidence-span rules, and the `compile` projection. Read it before writing the graph.
 - `<SKILL_DIR>/assets/story_graph.py` — the stdlib-only validator, plus the `compile` entry point (lazily imports `story_graph_kuzu`).
 - `<SKILL_DIR>/assets/story_graph_kuzu.py` — the Kùzu loader used only by `compile`; never imported by `validate`.
-- `<SKILL_DIR>/assets/story_graph_llm.py` — provider-neutral chat client for optional AI subcommands. The validator/compiler **never** imports it; nothing in this skill's normal operation makes a network call.
-- `<SKILL_DIR>/reference/decisions.md` — **inclusion & resolution rules. Read this in every mode**, alongside the one mode guide below.
 
 ## File-safety (unconditional)
 
@@ -85,13 +83,6 @@ validate, in one invocation.
 | Always, as the last step | **Validate** | See *Validation* below |
 
 Load the one reference file for the branch you're on; don't read all three.
-
-**Always also load `reference/decisions.md`.** The mode guides say how to fill each
-section; `decisions.md` says what earns a row and how to resolve references that
-conflict — and those are the two calls the validator cannot make for you. In
-particular, read it before you write your first Proposition: which rows are
-*load-bearing* (and so must cite an evidence span or be marked `provisional`) is a
-rule the validator **enforces**, and discovering it from an ERROR is the slow way.
 
 ### Seed vs. reverse-engineer
 
