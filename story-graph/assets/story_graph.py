@@ -1020,6 +1020,13 @@ def main(argv=None):
     vz.add_argument("graph")
     vz.add_argument("--out", required=True)
     vz.add_argument("--prop", default="")
+    ur = sub.add_parser("unresolved")
+    ur.add_argument("graph")
+    ur.add_argument("--chapters-dir", required=True)
+    ur.add_argument("--min", type=int, default=2, help="ignore names seen fewer times (default 2)")
+    cf = sub.add_parser("conflicts")
+    cf.add_argument("graph")
+    cf.add_argument("--overlap", type=float, default=0.45, help="content-word similarity floor (default 0.45)")
     dc = sub.add_parser("decisions")
     dc.add_argument("cases", nargs="?", default="")
     dc.add_argument("--provider", default="", help="ollama | lmstudio | openrouter; omit for the structural check only")
@@ -1072,6 +1079,18 @@ def main(argv=None):
         text = Path(args.graph).read_text(encoding="utf-8")
         title = text.splitlines()[0].lstrip("# ").strip() if text.strip() else ""
         print(coverage_report(parse_graph(text), title))
+        return 0
+    if args.command in ("unresolved", "conflicts"):
+        import story_graph_candidates as sgc     # lazy: nothing else needs it
+        graph = parse_graph(Path(args.graph).read_text(encoding="utf-8"))
+        if args.command == "unresolved":
+            rows = sgc.unresolved(graph, args.chapters_dir, _alias_cell, args.min)
+            print(sgc.unresolved_report(rows, args.min))
+        else:
+            same, cross, undated = sgc.conflicts(graph, args.overlap)
+            props = [r for r in graph["sections"].get("Propositions", []) if r.get("prop-id")]
+            print(sgc.conflicts_report(same, cross, undated,
+                                       dated=len(sgc._prop_chapter(graph)), total=len(props)))
         return 0
     if args.command == "decisions":
         import story_graph_decisions as sgd     # lazy: nothing else needs it

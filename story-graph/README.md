@@ -65,6 +65,11 @@ Run `story_graph.py` (stdlib; `compile`/`query`/`audit`/`impact` also want `pip 
 - **Query** — `query` (irony · knows · open-loops · receipts), `report`, and
   ad-hoc **Cypher** over the compiled graph.
 - **Diagnose** — `coverage` (which layers are populated, how deep, and what's missing).
+- **Find what's missing** — `unresolved` lists proper nouns in the prose that resolve to
+  no entity (who you forgot to model), and `conflicts` lists claims about the same subject
+  **partitioned by chapter**, because a state change and a contradiction look identical in
+  structure and only the chapter tells them apart. Both are deterministic and recall-first:
+  code enumerates, you judge.
 - **Decide consistently** — [`reference/decisions.md`](reference/decisions.md) is the
   inclusion & resolution rulebook (what earns a row; how to resolve one person's many
   names; when a conflict is a state change rather than a contradiction). `decisions`

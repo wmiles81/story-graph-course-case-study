@@ -302,6 +302,31 @@ on-disk format is version-specific (Kùzu 0.11.x here). `MODE=READ_ONLY` is
 recommended: the compiled DB is a rebuildable projection of `Story-Graph.md`, so
 there is no reason to let the UI write back to it.
 
+## Finding what's missing (deterministic)
+
+Two candidate generators. Neither uses a model, neither writes to the graph, and both
+are tuned for recall — a missed candidate is invisible, a spurious one costs a glance.
+
+```bash
+# proper nouns in the prose with no entity behind them, most frequent first
+python3 <SKILL_DIR>/assets/story_graph.py unresolved <graph> --chapters-dir <dir> [--min 4]
+
+# claims about the same subject, partitioned by chapter
+python3 <SKILL_DIR>/assets/story_graph.py conflicts <graph> [--overlap 0.45]
+```
+
+**Run `unresolved` at the start of every catch-up pass.** It turns "who did I forget to
+model?" from a re-read of the manuscript into a finite ranked list. A name near the top
+with no entity row is usually a character the graph never caught up on.
+
+`conflicts` partitions on purpose (see `reference/decisions.md` 2.4): **same chapter is
+a bug; different chapters is usually plot.** A pair it cannot date lands in UNDATED and
+tells you nothing — so the report prints what fraction of propositions resolve to a
+chapter at all, because that number caps what the command can say.
+
+Neither output is a verdict. `unresolved` also surfaces capitalised common nouns, and
+`conflicts` also surfaces claims that are merely compatible.
+
 ## Scoring the decisions (optional)
 
 `reference/decisions.md` states the inclusion & resolution rules; `decisions` measures
