@@ -1074,8 +1074,12 @@ def main(argv=None):
     pr.add_argument("kind", choices=["entities", "evidence", "epistemic"])
     pr.add_argument("graph")
     pr.add_argument("--chapters-dir", required=True)
-    pr.add_argument("--provider", required=True)
-    pr.add_argument("--model", required=True)
+    pr.add_argument("--ask", action="store_true",
+                    help="write the question to disk instead of calling a model — the agent "
+                         "reading this manuscript answers it in-session")
+    pr.add_argument("--answers", default="", help="directory of <kind>-<scope>.answer.json")
+    pr.add_argument("--provider", default="", help="only for a headless/batch run")
+    pr.add_argument("--model", default="")
     pr.add_argument("--out", default="proposals")
     pr.add_argument("--cache", default="", help="reuse replies across runs (recommended)")
     pr.add_argument("--limit", type=int, default=18, help="claims/candidates per call")
@@ -1151,35 +1155,47 @@ def main(argv=None):
         print(coverage_report(parse_graph(text), title))
         return 0
     if args.command == "propose":
-        import os
-        import story_graph_llm as llm
         import story_graph_propose as sgpr
-        if args.env:
-            llm.load_env(Path(args.env))
-        p = llm.provider(args.provider)
-        if p is None:
-            print(f"ERROR: unknown provider '{args.provider}'")
-            return 1
-        key = os.environ.get(p["env"], "") if p["env"] else ""
-        if not p["local"] and not key:
-            print(f"ERROR: {args.provider} needs a key (set {p['env']} or pass --env)")
-            return 1
-        calls = [0]
+        chat, calls = None, [0]
+        if not args.ask and not args.answers:
+            # Only a headless run needs an external provider. In an editor the agent
+            # reading the manuscript is the strongest judge available and is already here;
+            # routing this out to a smaller model over HTTP is a downgrade, not a design.
+            import os
+            import story_graph_llm as llm
+            if not args.provider or not args.model:
+                print("ERROR: choose one — --ask (answer it yourself), --answers <dir>, "
+                      "or --provider/--model for a headless run")
+                return 1
+            if args.env:
+                llm.load_env(Path(args.env))
+            p = llm.provider(args.provider)
+            if p is None:
+                print(f"ERROR: unknown provider '{args.provider}'")
+                return 1
+            key = os.environ.get(p["env"], "") if p["env"] else ""
+            if not p["local"] and not key:
+                print(f"ERROR: {args.provider} needs a key (set {p['env']} or pass --env)")
+                return 1
 
-        def chat(system, user):
-            calls[0] += 1
-            # generous: a reasoning model spends most of its budget thinking, and a
-            # truncated reply reads as a refusal rather than as running out of room.
-            return llm.chat(args.provider, args.model, system, user, max_tokens=12000, key=key)
+            def chat(system, user):
+                calls[0] += 1
+                return llm.chat(args.provider, args.model, system, user, max_tokens=12000, key=key)
 
-        print(f"PROPOSE {args.kind} — {args.model} via {args.provider}")
+        mode = "ask" if args.ask else ("answers" if args.answers else
+                                       f"{args.model} via {args.provider}")
+        print(f"PROPOSE {args.kind} — {mode}")
         written = sgpr.generate(args.kind, args.graph, args.chapters_dir, chat,
-                                model=args.model, provider=args.provider, out_dir=args.out,
-                                cache_dir=args.cache, limit=args.limit,
+                                model=args.model or "agent", provider=args.provider or "in-session",
+                                out_dir=args.out, cache_dir=args.cache, limit=args.limit,
+                                ask=args.ask, answers_dir=args.answers,
                                 chapters=[c for c in args.chapters.split(",") if c.strip()] or None)
-        print(f"RESULT: {len(written)} proposal file(s), {calls[0]} model call(s) "
-              f"({'cache hits are free' if args.cache else 'no cache — pass --cache to make re-runs free'})")
-        print("Nothing has touched the graph. Next: verify-proposal, then apply-proposal.")
+        print(f"RESULT: {len(written)} file(s)" + (f", {calls[0]} model call(s)" if chat else ""))
+        if args.ask:
+            print("Answer each question file and save it beside as <kind>-<scope>.answer.json,\n"
+                  f"then: propose {args.kind} <graph> --chapters-dir <d> --answers {args.out}")
+        else:
+            print("Nothing has touched the graph. Next: verify-proposal, then apply-proposal.")
         return 0
     if args.command in ("verify-proposal", "apply-proposal"):
         import story_graph_proposals as sgp     # lazy: nothing else needs it

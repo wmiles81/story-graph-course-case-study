@@ -31,6 +31,16 @@ from story_graph_decisions import _json_from
 
 PROMPT_VERSION = {"entities": "entities/1", "evidence": "evidence/1", "epistemic": "epistemic/1"}
 
+# What an answer file must contain. The judge picks by NUMBER; it never writes a quote.
+ANSWER_SHAPE = {
+    "entities": '{"entities": [{"name": "<candidate name, copied exactly>", "id": "kebab-id", '
+                '"type": "Character|Object|Location|Faction", "aliases": "A; B", '
+                '"confidence": "high|low"}]}',
+    "evidence": '{"evidence": [{"prop-id": "...", "sentence": <number, or 0 for none>}]}',
+    "epistemic": '{"states": [{"prop-id": "...", "holder": "...", '
+                 '"mode": "knows|believes|believes-false|suspects", "sentence": <number>}]}',
+}
+
 SYSTEM = (
     "You maintain a story graph: a structured model of a manuscript's hidden state. "
     "You PROPOSE rows; deterministic code verifies them against the manuscript and a human "
@@ -292,14 +302,21 @@ def _ctx_epistemic(graph, chapter_text, ch_no, limit, per_claim=6):
     quote verbatim by construction, so the model spends its judgement on the only thing
     it should: WHO holds WHAT stance.
     """
-    ids = _entity_ids(graph)
+    # Only a mind can hold a belief. Offering every entity put `checkout-stamp`,
+    # `central-spire` and `biting-animated-book` on the holder list, and a real run duly
+    # produced `deep-stacks / knows`. Characters and Factions can know things; objects
+    # and locations cannot, however much attention the prose gives them.
+    minds = {r["id"] for r in _rows_of(graph, "Entities")
+             if r.get("id") and r.get("type") in ("Character", "Faction")}
     ct = sgc._tokens(chapter_text)
-    present = [e for e in ids if any(t in ct for t in sgc._tokens(e.replace("-", " ")))]
+    present = [e for e in minds if any(t in ct for t in sgc._tokens(e.replace("-", " ")))]
     anchored = sgc._prop_chapter(graph)
     have = {(r.get("prop-id"), r.get("holder"), r.get("mode"))
             for r in _rows_of(graph, "Epistemic States")}
     sents = _sentences(chapter_text)
     stoks = [sgc._tokens(s) for s in sents]
+    ev_quotes = {e.get("span-id"): (e.get("quote") or "")
+                 for e in _rows_of(graph, "Evidence") if e.get("span-id")}
     claims = []
     for r in _rows_of(graph, "Propositions"):
         pid = r.get("prop-id")
@@ -308,13 +325,42 @@ def _ctx_epistemic(graph, chapter_text, ch_no, limit, per_claim=6):
         t = sgc._tokens(r.get("statement", ""))
         if len(t) < 3 or len(t & ct) / len(t) < 0.5:
             continue
-        ranked = sorted(((len(t & st) / max(1, len(t)), i) for i, st in enumerate(stoks)),
-                        reverse=True)[:per_claim]
-        shown = [(n + 1, sents[i]) for n, (score, i) in enumerate(ranked) if score > 0]
-        cands = [{"n": k, "s": t} for k, (_, t) in enumerate(shown, 1)]
+        # Retrieval for a STANCE is not retrieval for a fact. Ranking purely by overlap
+        # with the claim surfaces sentences that restate it, while the line showing what
+        # someone BELIEVES is usually a reaction or a denial sharing almost no words with
+        # it — "Not now. Not ever." has zero content words in common with "Jonah's wolf
+        # identifies Margot as his mate", and that pair is this book's central irony.
+        # So: seed with the best matches, then include their neighbours, because a
+        # character reacts to a thing next to where the thing happens.
+        # Ties break by POSITION, earliest first. `reverse=True` on (score, i) ordered
+        # ties by higher index, which silently dropped "The way the wolf knew the scent of
+        # *mate*." — the sentence this graph already cites as this claim's evidence.
+        ranked = sorted(((len(t & st) / max(1, len(t)), -i) for i, st in enumerate(stoks)),
+                        reverse=True)
+        seeds = [-negi for score, negi in ranked[:per_claim] if score > 0]
+        # The graph may already know the answer: a claim with an evidence span was
+        # anchored by someone who read the scene. That sentence is the best possible seed,
+        # and the stance that reacts to it is usually within a line or two of it.
+        for sid in sg._span_ids(r.get("span", "")):
+            q = ev_quotes.get(sid, "")
+            if q:
+                hit = next((i for i, s in enumerate(sents) if sg.quote_found(s, q)), None)
+                if hit is not None and hit not in seeds:
+                    seeds.insert(0, hit)
+        picked, seen_i = [], set()
+        for i in seeds:
+            for j in (i, i + 1, i - 1):
+                if 0 <= j < len(sents) and j not in seen_i:
+                    seen_i.add(j)
+                    picked.append(j)
+        # Truncate by PRIORITY, then sort for reading. Sorting first threw away the
+        # ordering the seeds encode, so the chapter's opening scene crowded out the
+        # sentence the graph itself had cited as this claim's evidence.
+        picked = sorted(picked[:per_claim * 2])
+        cands = [{"n": k, "s": sents[i]} for k, i in enumerate(picked, 1)]
         if cands:
             claims.append({"prop-id": pid, "statement": r["statement"], "candidates": cands,
-                           "_sents": [t for _, t in shown]})
+                           "_sents": [sents[i] for i in picked]})
     if not claims or not present:
         return None
     return {"claims": claims[:limit], "holders": sorted(present)[:25], "have": have}
@@ -349,7 +395,9 @@ def _prompt_epistemic(ctx, chapter_text, locator, ch_no):
 
 
 def _rows_epistemic(answer, ctx, locator, ch_no, graph):
-    ids = _entity_ids(graph) | sg.RESERVED_HOLDERS
+    # Mirrors _ctx_epistemic: only minds hold beliefs, plus the reader.
+    ids = {r["id"] for r in _rows_of(graph, "Entities")
+           if r.get("id") and r.get("type") in ("Character", "Faction")} | sg.RESERVED_HOLDERS
     by_id = {c["prop-id"]: c for c in ctx["claims"]}
     out = []
     for s in (answer or {}).get("states", []) or []:
@@ -380,15 +428,56 @@ def _rows_epistemic(answer, ctx, locator, ch_no, graph):
 # ----------------------------------------------------------------------------- the driver
 
 
-def generate(kind, graph_path, chapters_dir, chat, model="?", provider="?", out_dir="proposals",
-             cache_dir="", limit=18, chapters=None, min_count=4, log=print):
-    """Write one proposal file per scope. Returns the list of paths written."""
+def generate(kind, graph_path, chapters_dir, chat=None, model="?", provider="?",
+             out_dir="proposals", cache_dir="", limit=18, chapters=None, min_count=4,
+             ask=False, answers_dir="", log=print):
+    """Write one proposal file per scope. Returns the list of paths written.
+
+    Three ways to supply the judgement, all sharing the same shortlist and the same
+    index-not-quote discipline:
+
+      ask=True        write the QUESTION to disk and stop. For the agent already reading
+                      this manuscript in an editor — it answers in-session, using the
+                      strongest model available, with no HTTP call and no second provider.
+      answers_dir=... read those answers back and build the proposal rows from them.
+      chat=...        call an external provider. Useful headless or in batch; it is not
+                      the main path, and it is the weakest link when the model is small.
+
+    The safety property is identical in all three: the judge picks a numbered sentence,
+    code fills the quote, and the gate checks the result.
+    """
     if kind not in PROMPT_VERSION:
         raise ValueError(f"unknown kind '{kind}' (expected {', '.join(PROMPT_VERSION)})")
+    if not ask and answers_dir == "" and chat is None:
+        raise ValueError("supply one of: ask=True, answers_dir=..., or chat=...")
     graph = sg.parse_graph(Path(graph_path).read_text(encoding="utf-8"))
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     written = []
+
+    def resolve(scope, ctx_payload, user, salt=""):
+        """The judgement for one scope, however it is being supplied."""
+        if ask:
+            q = out_dir / f"{kind}-{scope}.question.json"
+            q.write_text(json.dumps({"kind": kind, "scope": scope, "graph": str(graph_path),
+                                     "answer_shape": ANSWER_SHAPE[kind],
+                                     "instructions": user, **ctx_payload}, indent=1),
+                         encoding="utf-8")
+            written.append(str(q))
+            log(f"  {q.name}  — answer it, save as {kind}-{scope}.answer.json")
+            return None
+        if answers_dir:
+            a = Path(answers_dir) / f"{kind}-{scope}.answer.json"
+            if not a.exists():
+                log(f"  no answer for {scope} ({a.name}) — skipped")
+                return None
+            return _json_from(a.read_text(encoding="utf-8"))
+        # Everything that can change the reply belongs in the key: the chapter's own
+        # digest included, since an edit that leaves the shortlist untouched must still
+        # invalidate. Provider and SYSTEM too — a cached answer from one model must not
+        # be served as another's.
+        key = _digest(kind, PROMPT_VERSION[kind], provider, model, SYSTEM, salt, user)
+        return _json_from(_cached(cache_dir, key, lambda: chat(SYSTEM, user), log))
 
     def emit(scope, rows):
         if not rows:
@@ -407,10 +496,9 @@ def generate(kind, graph_path, chapters_dir, chat, model="?", provider="?", out_
         if not ctx:
             log("  no unresolved names above the threshold")
             return written
-        user = _prompt_entities(ctx, graph)
-        key = _digest(kind, PROMPT_VERSION[kind], model, user)
-        raw = _cached(cache_dir, key, lambda: chat(SYSTEM, user), log)
-        emit("all", _rows_entities(_json_from(raw), ctx, graph))
+        answer = resolve("all", {"candidates": ctx["candidates"]}, _prompt_entities(ctx, graph))
+        if answer is not None:
+            emit("all", _rows_entities(answer, ctx, graph))
         return written
 
     src = next((r["source-id"] for r in _rows_of(graph, "Sources")
@@ -426,16 +514,21 @@ def generate(kind, graph_path, chapters_dir, chat, model="?", provider="?", out_
             claims = _ctx_evidence(graph, text, limit)
             if not claims:
                 continue
-            user = _prompt_evidence(claims, text, locator)
-            key = _digest(kind, PROMPT_VERSION[kind], model, _digest(text), user)
-            raw = _cached(cache_dir, key, lambda: chat(SYSTEM, user), log)
-            emit(locator, _rows_evidence(_json_from(raw), claims, locator, graph, src, [1]))
+            shown = [{"prop-id": c["prop-id"], "statement": c["statement"],
+                      "candidates": c["candidates"]} for c in claims]
+            answer = resolve(locator, {"claims": shown},
+                             _prompt_evidence(claims, text, locator), _digest(text))
+            if answer is not None:
+                emit(locator, _rows_evidence(answer, claims, locator, graph, src, [1]))
         else:
             ctx = _ctx_epistemic(graph, text, ch_no, limit)
             if not ctx:
                 continue
-            user = _prompt_epistemic(ctx, text, locator, ch_no)
-            key = _digest(kind, PROMPT_VERSION[kind], model, _digest(text), user)
-            raw = _cached(cache_dir, key, lambda: chat(SYSTEM, user), log)
-            emit(locator, _rows_epistemic(_json_from(raw), ctx, locator, ch_no, graph))
+            shown = [{"prop-id": c["prop-id"], "statement": c["statement"],
+                      "candidates": c["candidates"]} for c in ctx["claims"]]
+            answer = resolve(locator, {"claims": shown, "holders": ctx["holders"],
+                                       "chapter": ch_no},
+                             _prompt_epistemic(ctx, text, locator, ch_no), _digest(text))
+            if answer is not None:
+                emit(locator, _rows_epistemic(answer, ctx, locator, ch_no, graph))
     return written

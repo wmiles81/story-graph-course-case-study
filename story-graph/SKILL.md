@@ -302,29 +302,36 @@ on-disk format is version-specific (Kùzu 0.11.x here). `MODE=READ_ONLY` is
 recommended: the compiled DB is a rebuildable projection of `Story-Graph.md`, so
 there is no reason to let the UI write back to it.
 
-## Generating rows from prose (optional, needs a model)
+## Generating rows from prose
+
+**You are the judge.** If you are reading this manuscript in an editor, you are the
+strongest model available and you are already here — routing this to a smaller model over
+HTTP is a downgrade, not a design.
 
 ```bash
-python3 <SKILL_DIR>/assets/story_graph.py propose entities  <graph> --chapters-dir <d> --provider ollama --model <id> --cache .sgcache
-python3 <SKILL_DIR>/assets/story_graph.py propose evidence  <graph> --chapters-dir <d> --provider ollama --model <id> --cache .sgcache
-python3 <SKILL_DIR>/assets/story_graph.py propose epistemic <graph> --chapters-dir <d> --provider ollama --model <id> --cache .sgcache
+# 1. ask: writes the questions to disk, calls nothing
+python3 <SKILL_DIR>/assets/story_graph.py propose epistemic <graph> --chapters-dir <d> --ask --out q/
+
+# 2. read q/epistemic-ch01.question.json, decide, save q/epistemic-ch01.answer.json
+
+# 3. turn your answers into proposal rows
+python3 <SKILL_DIR>/assets/story_graph.py propose epistemic <graph> --chapters-dir <d> --answers q/ --out proposals/
 ```
 
-Run them in that order: a belief cannot name a holder the graph has never heard of.
-Output is proposal files only — **nothing touches the graph** until `verify-proposal`
-and `apply-proposal`. Always pass `--cache`: replies are keyed by chapter digest, so a
-re-run after an unrelated edit is free and a crashed run resumes where it stopped.
+Run the kinds in order — `entities`, then `evidence`, then `epistemic` — because a belief
+cannot name a holder the graph has never heard of.
 
-**The model never writes a quote.** Code pulls candidate sentences from the chapter,
-numbers them, and asks the model which one applies; the quote is then taken from that
-list. This is not a nicety — asked for free-text quotes, a small local model fabricated
-**23 of 23**. Asked for an index, it fabricated none.
+**You never write a quote.** Each question gives you numbered sentences taken from the
+chapter; you answer with a NUMBER and code attaches the sentence. That is what makes a
+fabricated quote impossible rather than merely detectable — asked for free text, a small
+model fabricated 23 of 23; asked for an index, none.
 
-**Model size matters more than anything else here.** With a 3B local model, fabrication
-is structurally impossible but the *judgement* is poor: it will offer real sentences that
-do not support the claim, and real characters holding stances they never held. Every one
-of those rows is `NEEDS-HUMAN`, and the review is the point. Use the largest model you
-can before assuming a batch is worth reviewing.
+**Answer 0, or omit the claim, whenever no listed sentence shows the stance.** A sentence
+on the same topic is not evidence. This is the discipline the whole thing depends on, and
+it is the first thing a weak judge abandons.
+
+`--provider/--model` still exists for headless or batch runs. It is the weakest link when
+the model is small, and it is not the main path.
 
 ## Proposals: how generated rows reach canon
 
