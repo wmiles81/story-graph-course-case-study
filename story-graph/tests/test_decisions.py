@@ -126,3 +126,29 @@ def test_receipt_gate_matches_the_documented_table():
             p.unlink()
     assert errs("true") and errs("false"), "a settled claim with no span must ERROR"
     assert not errs("undetermined") and not errs("contested"), "these are exempt per 1.1"
+
+
+def test_one_holder_cannot_both_know_and_disbelieve():
+    """A full-book run proposed rows where the READER both knows a claim and believes it
+    false. That is not subtle — the audience cannot be in both states — and it means
+    either the rows disagree or the claim is state-shaped (decisions.md 2.4)."""
+    g = _graph(props=("| p1 | The Founding Scrolls are missing | true | ms | provisional |\n"
+                      "| p2 | Jonah dies in the ch20 ambush | true | ms | provisional |\n"),
+               epi=("| p1 | reader | knows | 2 | provisional |\n"
+                    "| p1 | reader | believes-false | 29 | provisional |\n"
+                    "| p2 | reader | knows | 20 | provisional |\n"
+                    "| p2 | jonah | believes-false | 5 | provisional |\n"))
+    rep = sg.Report()
+    sg.check_stance_contradiction(g, rep)
+    assert len(rep.warnings) == 1, rep.warnings
+    assert "p1/reader" in rep.warnings[0] and "state-shaped" in rep.warnings[0]
+
+
+def test_two_different_holders_disagreeing_is_irony_not_an_error():
+    """The whole point of the ontology: one character wrong while the reader is right."""
+    g = _graph(props="| p1 | x | true | ms | provisional |\n",
+               epi=("| p1 | reader | knows | 1 | provisional |\n"
+                    "| p1 | jonah | believes-false | 1 | provisional |\n"))
+    rep = sg.Report()
+    sg.check_stance_contradiction(g, rep)
+    assert rep.warnings == []

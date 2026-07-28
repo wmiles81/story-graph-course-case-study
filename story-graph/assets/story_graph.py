@@ -480,6 +480,30 @@ def check_span_relevance(graph, report):
                             f"content word with the claim — check it actually supports it")
 
 
+def check_stance_contradiction(graph, report):
+    """One holder who both knows a claim and believes it false.
+
+    For the reader especially this is not a subtle error: the audience cannot both know X
+    and be under the impression X is false. Either the rows are wrong, or the claim is
+    STATE-SHAPED — true early, false later, with no time bounds to say so — which is the
+    trap decisions.md 2.4 exists to prevent. Event-shaped claims cannot contradict
+    themselves this way, which is exactly why the rule prefers them.
+    """
+    modes = {}
+    for r in graph["sections"].get("Epistemic States", []):
+        pid, h, m = r.get("prop-id"), r.get("holder"), r.get("mode")
+        if pid and h and m:
+            modes.setdefault((pid, h), set()).add(m)
+    stmt = {r.get("prop-id"): r.get("statement", "")
+            for r in graph["sections"].get("Propositions", [])}
+    for (pid, h), ms in sorted(modes.items()):
+        if "believes-false" in ms and ({"knows", "believes"} & ms):
+            report.warn(f"Epistemic States [{pid}/{h}]: holds both "
+                        f"{'/'.join(sorted(ms))} — either the rows disagree, or "
+                        f"'{stmt.get(pid, pid)[:52]}' is state-shaped and needs "
+                        f"re-writing as an event (decisions.md 2.4)")
+
+
 def load_spe_anchors(spe_dir):
     """Return the set of anchor ids in <spe_dir>/narrative_state/anchors/*.yaml,
     or None when the catalog directory is absent (checks degrade to warnings)."""
@@ -532,6 +556,7 @@ def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""
     check_open_loops(graph, canon_ch, span_ids, report)
     check_logistics(graph, entity_ids, location_ids, span_ids, report)
     check_span_relevance(graph, report)
+    check_stance_contradiction(graph, report)
     check_commit_log(graph, report)
     if "spe" in graph["modules"]:
         check_physics(graph, spe_dir, report)
