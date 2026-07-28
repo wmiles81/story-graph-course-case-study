@@ -278,3 +278,77 @@ def test_accept_pass_takes_only_pass_rows_not_needs_human(world, tmp_path):
     g2 = sg.parse_graph(Path(world["graph"]).read_text(encoding="utf-8"))
     assert any(r["from"] == "vault" for r in g2["sections"]["Locations & Distances"])
     assert not any(r["holder"] == "jonah" for r in g2["sections"]["Epistemic States"])
+
+
+# ---------------------------------------------- holes found by the Phase 4 gate review
+
+
+def test_a_pipe_in_a_cell_is_rejected_not_silently_recolumned(world):
+    """The worst kind of bug: it corrupts and then validates clean. `parse_table` splits
+    on '|', so an Evidence quote containing one wrote quote='The sign read OPEN' with the
+    rest spilled into `note` — and nothing downstream noticed, because the truncated
+    fragment is still genuinely a substring of the chapter."""
+    pipe = "The sign read OPEN | CLOSED and nobody could tell."
+    ch = Path(world["chapters"]) / "ch05.md"
+    ch.write_text(ch.read_text(encoding="utf-8") + f" {pipe}", encoding="utf-8")
+    row = {"section": "Evidence",
+           "values": {"span-id": "ev9", "source-id": "ms", "locator": "ch05",
+                      "quote": pipe, "note": ""},
+           "basis": {"locator": "ch05", "quote": pipe}, "confidence": "high"}
+    v, _ = _verdicts(world, [row])
+    assert v[1][0] == sgp.FAIL and "markdown table cannot carry" in v[1][1]
+
+
+def test_a_newline_in_a_cell_is_rejected(world):
+    row = {"section": "Evidence",
+           "values": {"span-id": "ev9", "source-id": "ms", "locator": "ch05",
+                      "quote": "Snow fell.\n" + QUOTE, "note": ""},
+           "basis": {"locator": "ch05", "quote": "Snow fell. " + QUOTE}, "confidence": "high"}
+    v, _ = _verdicts(world, [row])
+    assert v[1][0] == sgp.FAIL and "split the row" in v[1][1]
+
+
+def test_the_evidence_quote_must_be_the_quote_that_was_verified(world):
+    """Only `basis.quote` is checked against the chapter. Nothing forced the Evidence
+    cell to hold the same string, so a real basis could escort a fabricated span in."""
+    row = {"section": "Evidence",
+           "values": {"span-id": "ev9", "source-id": "ms", "locator": "ch05",
+                      "quote": "She wept for hours.", "note": ""},
+           "basis": {"locator": "ch05", "quote": QUOTE}, "confidence": "high"}
+    v, _ = _verdicts(world, [row])
+    assert v[1][0] == sgp.FAIL and "differs from the basis quote" in v[1][1]
+
+
+def test_an_update_obeys_the_same_inference_rule_as_an_insert(world):
+    """A `set` on an inferred section returned PASS, routing around the one rule the gate
+    exists to enforce. The check applies to how a row is written, not to which verb."""
+    row = {"section": "Epistemic States", "op": "set",
+           "key": {"prop-id": "p1", "holder": "reader", "mode": "knows"},
+           "set": {"span": "ev1"},
+           "basis": {"locator": "ch05", "quote": QUOTE}, "confidence": "high"}
+    v, _ = _verdicts(world, [row])
+    assert v[1][0] == sgp.HUMAN and "still a reading" in v[1][1]
+
+
+def test_ratifying_a_claim_with_a_span_needs_a_human(world):
+    """Pointing a claim at a span asserts THAT SPAN PROVES IT — the same judgement an
+    Evidence row makes, and the one a real batch got wrong 11 times out of 12."""
+    row = {"section": "Propositions", "op": "set", "key": {"prop-id": "p1"},
+           "set": {"span": "ev1"},
+           "basis": {"locator": "ch05", "quote": QUOTE}, "confidence": "high"}
+    v, _ = _verdicts(world, [row])
+    assert v[1][0] == sgp.HUMAN and "the support is a reading" in v[1][1]
+
+
+def test_low_confidence_downgrades_an_update_too(world):
+    """Targets a real row and a non-span cell, so the ONLY thing that can downgrade it is
+    the confidence check — otherwise this would pass for the wrong reason."""
+    row = {"section": "Propositions", "op": "set", "key": {"prop-id": "p1"},
+           "set": {"canon-status": "true"},
+           "basis": {"locator": "ch05", "quote": QUOTE}, "confidence": "low"}
+    v, _ = _verdicts(world, [row])
+    assert v[1][0] == sgp.HUMAN and "low confidence" in v[1][1], v[1]
+    high = dict(row, confidence="high")
+    v2, _ = _verdicts(world, [high])
+    assert v2[1][0] == sgp.PASS, "the same row at high confidence must pass — else the "\
+                                 "test above proves nothing about confidence"

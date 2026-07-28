@@ -129,15 +129,25 @@ def _prompt_entities(ctx, graph):
         "",
         json.dumps(ctx["candidates"], indent=1),
         "",
-        'Answer: {"entities": [{"id": "kebab-id", "type": "Character", "aliases": "Surface; '
-        'Other Surface", "quote": "<the exact sentence given above, unchanged>", '
-        '"chapter": "ch15", "confidence": "high|low"}]}',
+        'Answer: {"entities": [{"name": "<the candidate name, copied exactly>", '
+        '"id": "kebab-id", "type": "Character", "aliases": "Surface; Other Surface", '
+        '"confidence": "high|low"}]}',
+        "",
+        "Do not write a quote — the sentence shown above is attached automatically.",
     ]
     return "\n".join(body)
 
 
 def _rows_entities(answer, ctx, graph):
+    """The quote and locator come from OUR candidate list, keyed by the name the model
+    replied about — never from the model's own text.
+
+    This was the one generator still trusting a model-written quote, which is why an
+    entity run appeared to fabricate 5 of 9 (it hadn't — but nothing here would have told
+    the difference). Same rule as evidence and epistemic: the model chooses, code fills.
+    """
     known = _entity_ids(graph)
+    by_name = {c["name"]: c for c in (ctx or {}).get("candidates", [])}
     out = []
     for e in (answer or {}).get("entities", []) or []:
         eid = (e.get("id") or "").strip()
@@ -145,12 +155,20 @@ def _rows_entities(answer, ctx, graph):
             continue
         if (e.get("type") or "") not in sg.ENTITY_TYPES:
             continue
+        # Match the reply back to a candidate we actually offered: by the name field if
+        # given, else by the id read as a name. No match means we cannot anchor it.
+        cand = by_name.get((e.get("name") or "").strip())
+        if cand is None:
+            want = eid.replace("-", " ").lower()
+            cand = next((c for c in by_name.values() if c["name"].lower() == want), None)
+        if cand is None:
+            continue
         out.append({
             "section": "Entities",
             "values": {"id": eid, "type": e["type"], "status": "active", "voice": "-",
                        "note": (e.get("aliases") or "").strip()},
-            "basis": {"locator": (e.get("chapter") or "").strip(), "quote": (e.get("quote") or "").strip()},
-            "reasoning": f"appears in the prose with no entity row",
+            "basis": {"locator": cand["chapter"], "quote": cand["sentence"]},
+            "reasoning": f"'{cand['name']}' appears {cand['count']}x with no entity row",
             "confidence": (e.get("confidence") or "high").lower(),
         })
     return out
@@ -196,10 +214,15 @@ def _ctx_evidence(graph, chapter_text, limit, per_claim=6):
             continue
         ranked = sorted(((len(t & st) / max(1, len(t)), i) for i, st in enumerate(stoks)),
                         reverse=True)[:per_claim]
-        cands = [{"n": n + 1, "s": sents[i]} for n, (score, i) in enumerate(ranked) if score > 0]
+        # _sents must hold EXACTLY the sentences shown, in the same order. When these two
+        # lists could differ, a model returning an index it was never offered got a row
+        # filled from a sentence with no relation to the claim — and that quote is real
+        # prose, so the gate waves it through. Shown-vs-fillable must not diverge.
+        shown = [(n + 1, sents[i]) for n, (score, i) in enumerate(ranked) if score > 0]
+        cands = [{"n": k, "s": t} for k, (_, t) in enumerate(shown, 1)]
         if cands:
             claims.append({"prop-id": r["prop-id"], "statement": r["statement"],
-                           "candidates": cands, "_sents": [sents[i] for _, i in ranked]})
+                           "candidates": cands, "_sents": [t for _, t in shown]})
     return claims[:limit] or None
 
 
@@ -277,10 +300,11 @@ def _ctx_epistemic(graph, chapter_text, ch_no, limit, per_claim=6):
             continue
         ranked = sorted(((len(t & st) / max(1, len(t)), i) for i, st in enumerate(stoks)),
                         reverse=True)[:per_claim]
-        cands = [{"n": n + 1, "s": sents[i]} for n, (score, i) in enumerate(ranked) if score > 0]
+        shown = [(n + 1, sents[i]) for n, (score, i) in enumerate(ranked) if score > 0]
+        cands = [{"n": k, "s": t} for k, (_, t) in enumerate(shown, 1)]
         if cands:
             claims.append({"prop-id": pid, "statement": r["statement"], "candidates": cands,
-                           "_sents": [sents[i] for _, i in ranked]})
+                           "_sents": [t for _, t in shown]})
     if not claims or not present:
         return None
     return {"claims": claims[:limit], "holders": sorted(present)[:25], "have": have}

@@ -91,13 +91,14 @@ def test_evidence_generator_emits_the_row_and_the_ratifying_update(world):
 
 
 def test_evidence_pair_survives_the_gate_and_ratifies_once_accepted(world):
-    """The Evidence row needs a human (does the quote actually PROVE the claim?); the
-    update that points the claim at it is mechanical once that is settled."""
+    """BOTH halves need a human. The Evidence row asserts a quote proves a claim; the
+    update that points the claim at that span asserts exactly the same thing. Letting the
+    update auto-pass routed around the rule the gate exists to enforce."""
     reply = json.dumps({"evidence": [{"prop-id": "p1", "sentence": 1}]})
     p = _gen(world, "evidence", reply)[0]
     p["_file"] = "x.json"
     verdicts = sgp.verify(p, world["graph"], world["chapters"])
-    assert [v for _, v, _ in verdicts] == [sgp.HUMAN, sgp.PASS], verdicts
+    assert [v for _, v, _ in verdicts] == [sgp.HUMAN, sgp.HUMAN], verdicts
     text = Path(world["graph"]).read_text(encoding="utf-8")
     merged = sgp.apply_rows(text, p, [1, 2], sg.parse_graph(text))
     g2 = sg.parse_graph(merged)
@@ -217,3 +218,72 @@ def test_garbage_from_the_model_yields_no_rows_rather_than_an_exception(world):
     for junk in ("", "I'd rather not", "{not json", '{"evidence": null}', '{"other": 1}'):
         assert _gen(world, "evidence", junk) == []
         assert _gen(world, "entities", junk) == []
+
+
+# ------------------------------------------ holes found by the Phase 4 generator review
+
+
+def test_the_model_can_only_pick_a_sentence_it_was_shown(tmp_path):
+    """The index design's whole promise. `_sents` once held every ranked sentence while
+    only the positive-scoring ones were SHOWN, so a model returning an index it never saw
+    got a row quoting unrelated prose — real prose, so the gate waved it through.
+    Evidence for "the wolf knew the scent of mate" came back as "The kettle whistled"."""
+    ch = tmp_path / "ch"
+    ch.mkdir()
+    (ch / "ch05.md").write_text(
+        "The wolf knew the scent of mate before the man did at all. "
+        "Rain fell steadily on the tin roof throughout the long afternoon. "
+        "The kettle whistled and nobody got up to take it off the heat.\n", encoding="utf-8")
+    g = tmp_path / "g.md"
+    g.write_text(make_graph(
+        Propositions=("## Propositions\n| prop-id | statement | canon-status | governing-source | span |\n"
+                      "|---|---|---|---|---|\n"
+                      "| p1 | the wolf knew the scent of mate | true | ms | provisional |\n")
+    ).replace("| current-canon-chapter | 0 |", "| current-canon-chapter | 30 |"), encoding="utf-8")
+    graph = sg.parse_graph(g.read_text(encoding="utf-8"))
+    claims = sp._ctx_evidence(graph, (ch / "ch05.md").read_text(encoding="utf-8"), 18)
+    c = claims[0]
+    assert len(c["candidates"]) == len(c["_sents"]), "shown and fillable must not diverge"
+    unseen = len(c["_sents"]) + 1
+    assert sp._rows_evidence({"evidence": [{"prop-id": "p1", "sentence": unseen}]},
+                             claims, "ch05", graph, "ms", [1]) == []
+
+
+def test_the_same_bound_holds_for_epistemic(tmp_path):
+    ch = tmp_path / "ch"
+    ch.mkdir()
+    (ch / "ch05.md").write_text(
+        "The wolf knew the scent of mate before the man did at all. "
+        "Rain fell steadily on the tin roof throughout the long afternoon.\n", encoding="utf-8")
+    g = tmp_path / "g.md"
+    g.write_text(make_graph(
+        Entities=("## Entities\n| id | type | status | voice | note |\n|---|---|---|---|---|\n"
+                  "| margot-vance | Character | active | - | Margot |\n"),
+        Propositions=("## Propositions\n| prop-id | statement | canon-status | governing-source | span |\n"
+                      "|---|---|---|---|---|\n"
+                      "| p1 | the wolf knew the scent of mate | true | ms | provisional |\n")
+    ).replace("| current-canon-chapter | 0 |", "| current-canon-chapter | 30 |"), encoding="utf-8")
+    graph = sg.parse_graph(g.read_text(encoding="utf-8"))
+    ctx = sp._ctx_epistemic(graph, (ch / "ch05.md").read_text(encoding="utf-8"), 5, 18)
+    if ctx is None:
+        pytest.skip("no epistemic context for this fixture")
+    for c in ctx["claims"]:
+        assert len(c["candidates"]) == len(c["_sents"])
+
+
+def test_an_entity_quote_comes_from_our_list_not_the_model(world):
+    """Entities was the last generator trusting a model-written quote. The model now
+    names a candidate; the sentence and locator are attached from our own shortlist."""
+    reply = json.dumps({"entities": [{"name": "Henderson", "id": "henderson",
+                                      "type": "Character", "aliases": "Henderson",
+                                      "quote": "A sentence the model made up entirely.",
+                                      "chapter": "ch99", "confidence": "high"}]})
+    p = _gen(world, "entities", reply)[0]
+    assert p["rows"][0]["basis"]["quote"] == QUOTE, "the model's quote must be ignored"
+    assert p["rows"][0]["basis"]["locator"] == "ch05", "the model's locator must be ignored"
+
+
+def test_an_entity_we_never_offered_is_dropped(world):
+    reply = json.dumps({"entities": [{"name": "Nobody", "id": "nobody",
+                                      "type": "Character", "confidence": "high"}]})
+    assert _gen(world, "entities", reply) == []

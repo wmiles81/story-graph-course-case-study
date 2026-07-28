@@ -78,6 +78,28 @@ def _op(row):
     return (row.get("op") or "add").lower()
 
 
+def _unwritable_cell(values):
+    """A cell value this markdown-table format cannot carry.
+
+    `parse_table` splits rows on `|`, so a quote containing one silently re-columns the
+    row: a real batch produced Evidence with quote='The sign read OPEN' and the rest of
+    the sentence spilled into `note`. Nothing downstream notices, because the truncated
+    fragment is still genuinely a substring of the chapter — the corruption validates
+    clean. A newline is the same failure, splitting one row into two.
+
+    Rejecting is deliberate. Escaping would need `parse_table` to unescape, and every
+    existing graph was written without it; mangling the value on write would corrupt the
+    very quote the gate exists to protect.
+    """
+    for col, v in (values or {}).items():
+        v = v or ""
+        if "|" in v:
+            return f"{col} contains '|', which a markdown table cannot carry — the row would re-column silently"
+        if "\n" in v or "\r" in v:
+            return f"{col} contains a newline, which would split the row in two"
+    return None
+
+
 def _headers(graph, section):
     """Column order as the graph itself declares it."""
     return sg.parse_table(sg._raw_section_lines(graph, section))[0]
@@ -146,6 +168,18 @@ def verify(proposal, graph_path, chapters_dir="", max_attribution=40):
         if missing:
             bad(f"empty key column(s): {', '.join(missing)}")
             continue
+        problem = _unwritable_cell(vals)
+        if problem:
+            bad(problem)
+            continue
+        # An Evidence row carries the quote in `values`, but only `basis.quote` is
+        # checked against the chapter. Nothing forced them to be the same string, so a
+        # real basis could escort a fabricated span into the graph.
+        if sec == "Evidence" and (vals.get("quote") or "").strip():
+            if (vals["quote"] or "").strip() != ((basis.get("quote") or "").strip()):
+                bad("the Evidence quote differs from the basis quote that was verified — "
+                    "they must be the same sentence")
+                continue
 
         # --- referential integrity -----------------------------------------------
         err = None
@@ -295,6 +329,10 @@ def _verify_set(row, sec, graph, spans, chapters_dir, bad):
                 bad(f"span(s) not declared in Evidence or earlier in this proposal: "
                     f"{', '.join(missing)}")
                 return None
+    problem = _unwritable_cell(sets)
+    if problem:
+        bad(problem)
+        return None
     quote = ((row.get("basis") or {}).get("quote") or "").strip()
     locator = ((row.get("basis") or {}).get("locator") or "").strip()
     if not quote:
@@ -310,9 +348,21 @@ def _verify_set(row, sec, graph, spans, chapters_dir, bad):
     if not sg.quote_found(chapter.read_text(encoding="utf-8"), quote):
         bad(f"basis quote is not in {chapter.name} — fabricated or misquoted")
         return None
-    # Ratifying a claim by pointing it at evidence is a transcription, not a reading:
-    # the checker has confirmed both that the span exists and that the quote is real.
-    return (PASS, f"ratifies {sec} {'/'.join(key.values())} with {sets}")
+    # An update is judged by the SAME rules as an insert. Skipping these let a `set` on
+    # Epistemic States return PASS, quietly routing around the one rule the gate exists
+    # to enforce — the inference check applies to how a row is written, not to which
+    # verb wrote it.
+    if sec in INFERRED_SECTIONS:
+        return (HUMAN, f"{sec} rows are inferences — updating one is still a reading")
+    if (row.get("confidence") or "").lower() == "low":
+        return (HUMAN, "the generator reported low confidence")
+    if "span" in sets:
+        # Pointing a claim at a span asserts THAT SPAN PROVES IT, which is the same
+        # judgement an Evidence row makes and the same one a batch got wrong 11 times
+        # out of 12. The quote being real is not the claim being proved.
+        return (HUMAN, f"ratifying {'/'.join(key.values())} claims this span proves the "
+                       f"claim — real quote, but the support is a reading")
+    return (PASS, f"updates {sec} {'/'.join(key.values())} with {sets}")
 
 
 def _errors_with(text, proposal, indices, graph_path, chapters_dir, verdicts=()):
