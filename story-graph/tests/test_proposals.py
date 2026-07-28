@@ -352,3 +352,90 @@ def test_low_confidence_downgrades_an_update_too(world):
     v2, _ = _verdicts(world, [high])
     assert v2[1][0] == sgp.PASS, "the same row at high confidence must pass — else the "\
                                  "test above proves nothing about confidence"
+
+
+# ------------------------------------------------ holes found by the Phase 4 CLI review
+
+
+@pytest.mark.parametrize("q,ok", [
+    ("the", False), ("wolf", False), ("a b", False),
+    ("Not now. Not ever.", True),          # real short dialogue from the fixture
+    ("The wolf knew the scent.", True),
+])
+def test_a_basis_quote_must_be_enough_text_to_identify_a_passage(q, ok):
+    """Without a floor, basis.quote='the' satisfies the anti-fabrication check on any
+    manuscript ever written — the gate looks like it works and tests nothing."""
+    assert sg.quote_is_substantial(q) is ok
+
+
+def test_a_quote_may_wrap_lines_but_not_jump_a_paragraph():
+    """Line wrapping was the only thing whitespace tolerance needed to forgive. Collapsing
+    the whole document also let a 'quote' span a scene break — a passage nobody could read
+    on the page."""
+    prose = "The wolf knew the scent.\n\n* * *\n\nRain fell on the roof.\n"
+    assert sg.quote_found("He said.\nNot now. Not ever.\nShe left.", "Not now. Not ever.")
+    assert sg.quote_found(prose, "The wolf knew the scent.")
+    assert not sg.quote_found(prose, "The wolf knew the scent. * * * Rain fell")
+    assert not sg.quote_found(prose, "She wept for hours")
+
+
+def test_a_one_word_basis_is_rejected_by_the_gate(world):
+    v, _ = _verdicts(world, [_epi(quote="the")])
+    assert v[1][0] == sgp.FAIL and "too short to identify a passage" in v[1][1]
+
+
+@pytest.mark.parametrize("accept,fragment", [
+    ("banana", "takes row numbers"),
+    ("1,two", "takes row numbers"),
+    ("0", "outside this proposal"),
+    ("99", "outside this proposal"),
+    ("-1", "takes row numbers"),
+])
+def test_a_malformed_accept_is_refused_and_leaves_the_graph_untouched(
+        world, tmp_path, capsys, accept, fragment):
+    """`prop["rows"][i-1]` on a bad index either explodes or, with 0 or a negative,
+    silently applies a DIFFERENT row than the one named."""
+    pf = tmp_path / "p.json"
+    pf.write_text(json.dumps(_prop([_epi(holder="jonah")])), encoding="utf-8")
+    before = Path(world["graph"]).read_text(encoding="utf-8")
+    rc = sg.main(["apply-proposal", str(pf), "--graph", world["graph"],
+                  "--chapters-dir", world["chapters"], "--accept", accept])
+    assert rc == 1 and fragment in capsys.readouterr().out
+    assert Path(world["graph"]).read_text(encoding="utf-8") == before
+
+
+def test_a_result_that_would_not_validate_never_reaches_the_graph(world, tmp_path, capsys):
+    """Writing first and validating afterwards left a broken graph on disk and told the
+    user only after the damage.
+
+    `validate` is stubbed to fail identically on the baseline AND the merged graph, so
+    the consequence pass sees no NEW error and lets the row through — which is the only
+    way to reach the write-time check and prove it independently.
+    """
+    real = sg.validate
+
+    def always_bad(path, **kw):
+        rep = real(path, **kw)
+        rep.error("stubbed failure")
+        return rep
+
+    pf = tmp_path / "p.json"
+    pf.write_text(json.dumps(_prop([_epi(holder="jonah")])), encoding="utf-8")
+    before = Path(world["graph"]).read_text(encoding="utf-8")
+    sg.validate = always_bad
+    try:
+        rc = sg.main(["apply-proposal", str(pf), "--graph", world["graph"],
+                      "--chapters-dir", world["chapters"], "--accept", "1"])
+    finally:
+        sg.validate = real
+    assert rc == 1 and "is unchanged" in capsys.readouterr().out
+    assert Path(world["graph"]).read_text(encoding="utf-8") == before, "the graph was written anyway"
+    assert not list(Path(world["graph"]).parent.glob("g_v*.md")), "no backup on a refusal"
+
+
+def test_accept_all_says_out_loud_that_it_is_taking_unreviewed_rows(world, tmp_path, capsys):
+    pf = tmp_path / "p.json"
+    pf.write_text(json.dumps(_prop([_epi(holder="jonah")])), encoding="utf-8")
+    sg.main(["apply-proposal", str(pf), "--graph", world["graph"],
+             "--chapters-dir", world["chapters"], "--accept", "all"])
+    assert "NEEDS-HUMAN row(s)" in capsys.readouterr().out

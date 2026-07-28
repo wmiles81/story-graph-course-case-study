@@ -241,6 +241,12 @@ def verify(proposal, graph_path, chapters_dir="", max_attribution=40):
         if not quote:
             bad("no basis quote — an unanchored claim cannot be checked against anything")
             continue
+        if not sg.quote_is_substantial(quote):
+            # Without a floor, basis.quote="the" satisfies the check on any manuscript
+            # ever written: the gate looks like it is working and is testing nothing.
+            bad(f"basis quote is too short to identify a passage ({quote!r}) — a common "
+                f"word matches any chapter and proves nothing")
+            continue
         if not chapters_dir:
             bad("cannot verify the basis quote without --chapters-dir")
             continue
@@ -337,6 +343,9 @@ def _verify_set(row, sec, graph, spans, chapters_dir, bad):
     locator = ((row.get("basis") or {}).get("locator") or "").strip()
     if not quote:
         bad("no basis quote — an unanchored update cannot be checked against anything")
+        return None
+    if not sg.quote_is_substantial(quote):
+        bad(f"basis quote is too short to identify a passage ({quote!r})")
         return None
     if not chapters_dir:
         bad("cannot verify the basis quote without --chapters-dir")

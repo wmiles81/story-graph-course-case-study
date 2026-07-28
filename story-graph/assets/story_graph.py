@@ -394,7 +394,27 @@ def quote_found(haystack, needle):
         return False
     if needle in haystack:
         return True
-    return " ".join(needle.split()) in " ".join(haystack.split())
+    # Normalise WITHIN a paragraph, never across one. Collapsing the whole document made
+    # a "quote" that jumped a scene break match — "The wolf knew the scent. * * * Rain
+    # fell" is not a passage anyone could read on the page. Line wrapping was the only
+    # thing that needed tolerating, and it never crosses a blank line.
+    want = " ".join(needle.split())
+    for block in re.split(r"\n\s*\n", haystack):
+        if want in " ".join(block.split()):
+            return True
+    return False
+
+
+# A basis quote has to be enough text to identify a passage. Without a floor, `the`
+# satisfies the anti-fabrication check on any manuscript ever written — the gate looks
+# like it is working and is testing nothing. Kept low enough for real short dialogue:
+# "Not now. Not ever." is 18 characters and 4 words, and must still pass.
+MIN_QUOTE_CHARS, MIN_QUOTE_WORDS = 12, 3
+
+
+def quote_is_substantial(quote):
+    q = (quote or "").strip()
+    return len(q) >= MIN_QUOTE_CHARS and len(q.split()) >= MIN_QUOTE_WORDS
 
 
 def _resolve_chapter(chapters_dir, locator):
@@ -1175,8 +1195,29 @@ def main(argv=None):
             accept = sorted(i for i, v, _ in verdicts if v == sgp.PASS)
         elif args.accept == "all":
             accept = sorted(ok)
+            humans = [i for i, v, _ in verdicts if v == sgp.HUMAN]
+            if humans:
+                # 'all' is a convenience, and convenience is how a review gets skipped.
+                # Say plainly what it is taking, since NEEDS-HUMAN is the whole safeguard.
+                print(f"NOTE: --accept all is taking {len(humans)} NEEDS-HUMAN row(s) "
+                      f"({', '.join(map(str, humans))}) that nobody has reviewed. "
+                      f"Use --accept pass, or name the rows, to review them first.")
         else:
+            bad_tokens = [x for x in re.split(r"[,\s]+", args.accept) if x.strip()
+                          and not re.fullmatch(r"\d+", x.strip())]
+            if bad_tokens:
+                print(f"ERROR: --accept takes row numbers, 'pass' or 'all'; "
+                      f"could not read {', '.join(repr(t) for t in bad_tokens)}")
+                return 1
             accept = sorted({int(x) for x in re.split(r"[,\s]+", args.accept) if x.strip()})
+            # An out-of-range index would index into the rows list and either explode or,
+            # with 0 or a negative, silently apply a DIFFERENT row than the one named.
+            n = len(prop["rows"])
+            out_of_range = [i for i in accept if i < 1 or i > n]
+            if out_of_range:
+                print(f"ERROR: row number(s) {out_of_range} are outside this proposal "
+                      f"(it has {n} row{'' if n == 1 else 's'}, numbered 1-{n})")
+                return 1
         rejected = [i for i in accept if i not in ok]
         if rejected:
             # Applying a row the checker rejected is the one thing this gate exists to
@@ -1210,13 +1251,26 @@ def main(argv=None):
         text = Path(args.graph).read_text(encoding="utf-8")
         merged = sgp.apply_rows(text, prop, accept, parse_graph(text))
         merged = sgp.append_commit(merged, sgp.commit_line(prop, verdicts, accept))
+        # Validate the RESULT before it becomes the user's file. Writing first and
+        # checking afterwards left a broken graph on disk whenever the merge went wrong,
+        # and told them so only after the damage. The user's canonical record is the one
+        # file in this project that must never be worse for having run a command.
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            probe = Path(td) / Path(args.graph).name
+            probe.write_text(merged, encoding="utf-8")
+            rep = validate(str(probe), chapters_dir=args.chapters_dir)
+        if rep.errors:
+            print(f"ERROR: the result would not validate — {args.graph} is unchanged.")
+            for e in rep.errors[:5]:
+                print(f"  {e}")
+            return 1
         prior = _next_version_path(args.graph)
         Path(prior).write_text(text, encoding="utf-8")   # never overwrite: keep the old one
         Path(args.graph).write_text(merged, encoding="utf-8")
-        rep = validate(args.graph, chapters_dir=args.chapters_dir)
         print(f"RESULT: applied {len(accept)} row(s) to {args.graph}; previous version kept at "
-              f"{Path(prior).name}; validate now reports {len(rep.errors)} error(s)")
-        return 1 if rep.errors else 0
+              f"{Path(prior).name}; validate reports 0 error(s)")
+        return 0
     if args.command in ("unresolved", "conflicts"):
         import story_graph_candidates as sgc     # lazy: nothing else needs it
         graph = parse_graph(Path(args.graph).read_text(encoding="utf-8"))
