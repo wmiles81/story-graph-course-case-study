@@ -378,6 +378,25 @@ def check_commit_log(graph, report):
         last = ch
 
 
+def quote_found(haystack, needle):
+    """Is this quote genuinely on the page?
+
+    Exact substring first, then a whitespace-insensitive retry. A sentence that wraps
+    across two lines in the markdown is the SAME sentence — failing it reports a
+    fabrication where there is only a line break, which is both wrong and corrosive: a
+    checker that cries wolf on formatting gets ignored on content.
+
+    Only runs of whitespace are collapsed. No word, character or mark is ignored, so a
+    quote that is not really in the prose still cannot pass.
+    """
+    needle = (needle or "").strip()
+    if not needle:
+        return False
+    if needle in haystack:
+        return True
+    return " ".join(needle.split()) in " ".join(haystack.split())
+
+
 def _resolve_chapter(chapters_dir, locator):
     base = Path(chapters_dir)
     m = re.fullmatch(r"ch(\d+)", (locator or "").strip())
@@ -406,7 +425,7 @@ def verify_spans(graph, sources, chapters_dir, report):
         if chapter is None:
             report.warn(f"Evidence [{sid}]: could not verify — chapter file for '{r.get('locator','')}' not found")
             continue
-        if quote not in chapter.read_text(encoding="utf-8"):
+        if not quote_found(chapter.read_text(encoding="utf-8"), quote):
             report.error(f"Evidence [{sid}]: quote not found in {chapter.name} — graph-vs-source mismatch")
 
 
@@ -730,7 +749,7 @@ def deviations(graph_path, chapters_dir):
         chapter = _resolve_chapter(chapters_dir, r.get("locator", ""))
         if chapter is None:
             devs.append((sid, span_prop.get(sid, "?"), r.get("locator", ""), "chapter file not found"))
-        elif quote not in chapter.read_text(encoding="utf-8"):
+        elif not quote_found(chapter.read_text(encoding="utf-8"), quote):
             devs.append((sid, span_prop.get(sid, "?"), chapter.name, "evidence no longer matches the prose"))
     return devs
 
@@ -1031,6 +1050,17 @@ def main(argv=None):
     vz.add_argument("graph")
     vz.add_argument("--out", required=True)
     vz.add_argument("--prop", default="")
+    pr = sub.add_parser("propose")
+    pr.add_argument("kind", choices=["entities", "evidence", "epistemic"])
+    pr.add_argument("graph")
+    pr.add_argument("--chapters-dir", required=True)
+    pr.add_argument("--provider", required=True)
+    pr.add_argument("--model", required=True)
+    pr.add_argument("--out", default="proposals")
+    pr.add_argument("--cache", default="", help="reuse replies across runs (recommended)")
+    pr.add_argument("--limit", type=int, default=18, help="claims/candidates per call")
+    pr.add_argument("--chapters", default="", help="comma-separated chapter stems, e.g. ch01,ch02")
+    pr.add_argument("--env", default="", help=".env holding a provider key")
     vp = sub.add_parser("verify-proposal")
     vp.add_argument("proposal")
     vp.add_argument("--graph", required=True)
@@ -1100,13 +1130,45 @@ def main(argv=None):
         title = text.splitlines()[0].lstrip("# ").strip() if text.strip() else ""
         print(coverage_report(parse_graph(text), title))
         return 0
+    if args.command == "propose":
+        import os
+        import story_graph_llm as llm
+        import story_graph_propose as sgpr
+        if args.env:
+            llm.load_env(Path(args.env))
+        p = llm.provider(args.provider)
+        if p is None:
+            print(f"ERROR: unknown provider '{args.provider}'")
+            return 1
+        key = os.environ.get(p["env"], "") if p["env"] else ""
+        if not p["local"] and not key:
+            print(f"ERROR: {args.provider} needs a key (set {p['env']} or pass --env)")
+            return 1
+        calls = [0]
+
+        def chat(system, user):
+            calls[0] += 1
+            # generous: a reasoning model spends most of its budget thinking, and a
+            # truncated reply reads as a refusal rather than as running out of room.
+            return llm.chat(args.provider, args.model, system, user, max_tokens=12000, key=key)
+
+        print(f"PROPOSE {args.kind} — {args.model} via {args.provider}")
+        written = sgpr.generate(args.kind, args.graph, args.chapters_dir, chat,
+                                model=args.model, provider=args.provider, out_dir=args.out,
+                                cache_dir=args.cache, limit=args.limit,
+                                chapters=[c for c in args.chapters.split(",") if c.strip()] or None)
+        print(f"RESULT: {len(written)} proposal file(s), {calls[0]} model call(s) "
+              f"({'cache hits are free' if args.cache else 'no cache — pass --cache to make re-runs free'})")
+        print("Nothing has touched the graph. Next: verify-proposal, then apply-proposal.")
+        return 0
     if args.command in ("verify-proposal", "apply-proposal"):
         import story_graph_proposals as sgp     # lazy: nothing else needs it
         prop = sgp.load(args.proposal)
         prop["_file"] = args.proposal
         verdicts = sgp.verify(prop, args.graph, args.chapters_dir)
         if args.command == "verify-proposal":
-            print(sgp.verify_report(verdicts, prop))
+            print(sgp.verify_report(verdicts, prop,
+                                    parse_graph(Path(args.graph).read_text(encoding='utf-8'))))
             return 1 if any(v == sgp.FAIL for _, v, _ in verdicts) else 0
         ok = {i for i, v, _ in verdicts if v != sgp.FAIL}
         if args.accept == "pass":
@@ -1124,6 +1186,27 @@ def main(argv=None):
         if not accept:
             print("Nothing accepted; the graph was not touched.")
             return 0
+        # An update that ratifies a claim cites an Evidence row proposed alongside it.
+        # Accepting the update but rejecting that row — which is exactly what happens when
+        # a reviewer rejects bad evidence — would point the claim at a span that does not
+        # exist. Verification passed both together, so only apply can catch this.
+        provided = {(prop["rows"][i - 1].get("values") or {}).get("span-id")
+                    for i in accept if prop["rows"][i - 1].get("section") == "Evidence"}
+        graph_now = parse_graph(Path(args.graph).read_text(encoding="utf-8"))
+        declared = {r.get("span-id") for r in graph_now["sections"].get("Evidence", [])}
+        orphaned = []
+        for i in accept:
+            row = prop["rows"][i - 1]
+            if (row.get("op") or "add") != "set":
+                continue
+            for s in _span_ids((row.get("set") or {}).get("span", "")):
+                if s not in provided and s not in declared:
+                    orphaned.append((i, s))
+        if orphaned:
+            for i, s in orphaned:
+                print(f"ERROR: row {i} cites span '{s}', which is neither in the graph nor "
+                      f"among the rows you accepted — accept the Evidence row too, or drop this one")
+            return 1
         text = Path(args.graph).read_text(encoding="utf-8")
         merged = sgp.apply_rows(text, prop, accept, parse_graph(text))
         merged = sgp.append_commit(merged, sgp.commit_line(prop, verdicts, accept))

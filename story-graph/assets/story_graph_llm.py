@@ -111,14 +111,25 @@ def oai(base, path, key="", payload=None, timeout=60):
         return json.loads(r.read().decode("utf-8"))
 
 
-def chat(name, model, system, user, max_tokens=2048, key=""):
-    """One chat completion. Returns the assistant's text."""
+def chat(name, model, system, user, max_tokens=2048, key="", timeout=None):
+    """One chat completion. Returns the assistant's text.
+
+    Local servers get a much longer default: the first call also pays for loading the
+    model off disk, which on a laptop routinely exceeds any timeout tuned for a cloud API.
+    """
     p = _PROV[name]
     payload = {"model": model, "max_tokens": max_tokens,
                "messages": [{"role": "system", "content": system},
                             {"role": "user", "content": user}]}
-    d = oai(p["base"], "/chat/completions", key, payload, timeout=90)
-    return d["choices"][0]["message"]["content"]
+    if timeout is None:
+        timeout = 600 if p["local"] else 90
+    d = oai(p["base"], "/chat/completions", key, payload, timeout=timeout)
+    msg = d["choices"][0]["message"]
+    # A reasoning model splits its output: thinking into `reasoning`, the answer into
+    # `content`. Spend the whole token budget thinking and `content` comes back EMPTY,
+    # which is indistinguishable from a dead call unless we look. Falling back to
+    # `reasoning` recovers the answer when it ended up in there.
+    return (msg.get("content") or "").strip() or (msg.get("reasoning") or "")
 
 
 def models(name, key=""):

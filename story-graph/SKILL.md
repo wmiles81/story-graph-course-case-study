@@ -302,6 +302,30 @@ on-disk format is version-specific (Kùzu 0.11.x here). `MODE=READ_ONLY` is
 recommended: the compiled DB is a rebuildable projection of `Story-Graph.md`, so
 there is no reason to let the UI write back to it.
 
+## Generating rows from prose (optional, needs a model)
+
+```bash
+python3 <SKILL_DIR>/assets/story_graph.py propose entities  <graph> --chapters-dir <d> --provider ollama --model <id> --cache .sgcache
+python3 <SKILL_DIR>/assets/story_graph.py propose evidence  <graph> --chapters-dir <d> --provider ollama --model <id> --cache .sgcache
+python3 <SKILL_DIR>/assets/story_graph.py propose epistemic <graph> --chapters-dir <d> --provider ollama --model <id> --cache .sgcache
+```
+
+Run them in that order: a belief cannot name a holder the graph has never heard of.
+Output is proposal files only — **nothing touches the graph** until `verify-proposal`
+and `apply-proposal`. Always pass `--cache`: replies are keyed by chapter digest, so a
+re-run after an unrelated edit is free and a crashed run resumes where it stopped.
+
+**The model never writes a quote.** Code pulls candidate sentences from the chapter,
+numbers them, and asks the model which one applies; the quote is then taken from that
+list. This is not a nicety — asked for free-text quotes, a small local model fabricated
+**23 of 23**. Asked for an index, it fabricated none.
+
+**Model size matters more than anything else here.** With a 3B local model, fabrication
+is structurally impossible but the *judgement* is poor: it will offer real sentences that
+do not support the claim, and real characters holding stances they never held. Every one
+of those rows is `NEEDS-HUMAN`, and the review is the point. Use the largest model you
+can before assuming a batch is worth reviewing.
+
 ## Proposals: how generated rows reach canon
 
 **A generated row is a file on disk, never an edit to the graph.** Anything produced by

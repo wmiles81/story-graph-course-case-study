@@ -185,6 +185,15 @@ another claim therefore scores **0**. So:
 
 # Part 3 — What is checked vs. what you must decide
 
+> **The single most expensive misunderstanding available here** is reading the left
+> column as "verified". A generated batch once produced 24 Evidence rows that *all*
+> passed every mechanical check — every quote genuinely on the page — while only about
+> one in twelve actually **proved** its claim. The winner: *"Jonah saves Margot from
+> hypothermia through emergency skin-to-skin warming"*, backed by *"'What,' Jonah Harrow
+> said slowly, 'the hell is going on?'"*
+>
+> A green check means **the quote is real**. It has never meant the claim is right.
+
 | The tool checks mechanically | Only you can decide |
 |---|---|
 | the quote exists verbatim in the chapter | whether the quote actually *supports* the claim |

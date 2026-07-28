@@ -145,20 +145,32 @@ def test_epistemic_rows_can_never_pass(world):
     assert v[1][0] == sgp.HUMAN and "inferences" in v[1][1]
 
 
-def test_low_confidence_downgrades_a_transcription_row(world):
-    row = {"section": "Evidence",
-           "values": {"span-id": "ev2", "source-id": "ms", "locator": "ch05", "quote": QUOTE, "note": ""},
+def test_low_confidence_downgrades_a_row(world):
+    row = {"section": "Locations & Distances",
+           "values": {"from": "vault", "to": "library", "time": "3 min", "mode": "walk"},
            "basis": {"locator": "ch05", "quote": QUOTE}, "confidence": "low"}
     v, _ = _verdicts(world, [row])
     assert v[1][0] == sgp.HUMAN and "low confidence" in v[1][1]
 
 
 def test_a_clean_transcription_row_passes(world):
+    """Only sections that record a FACT rather than a reading can auto-pass. A distance
+    is transcribed; an Evidence row asserts that a quote proves a claim, which is not."""
+    row = {"section": "Locations & Distances",
+           "values": {"from": "vault", "to": "library", "time": "3 min", "mode": "walk"},
+           "basis": {"locator": "ch05", "quote": QUOTE}, "confidence": "high"}
+    v, _ = _verdicts(world, [row])
+    assert v[1][0] == sgp.PASS
+
+
+def test_evidence_never_auto_passes(world):
+    """A 3B model produced 24 evidence rows that ALL passed the gate while only ~1 in 12
+    actually proved its claim. The quote being real is not the claim being proved."""
     row = {"section": "Evidence",
            "values": {"span-id": "ev2", "source-id": "ms", "locator": "ch05", "quote": QUOTE, "note": ""},
            "basis": {"locator": "ch05", "quote": QUOTE}, "confidence": "high"}
     v, _ = _verdicts(world, [row])
-    assert v[1][0] == sgp.PASS
+    assert v[1][0] == sgp.HUMAN
 
 
 # ------------------------------------------------------------------- consequence checking
@@ -256,13 +268,13 @@ def test_cli_apply_keeps_the_previous_version(world, tmp_path, capsys):
 def test_accept_pass_takes_only_pass_rows_not_needs_human(world, tmp_path):
     """'pass' must mean PASS. Sweeping NEEDS-HUMAN in under a convenience flag would
     quietly undo the rule that inferences need a person."""
-    ev = {"section": "Evidence",
-          "values": {"span-id": "ev2", "source-id": "ms", "locator": "ch05", "quote": QUOTE, "note": ""},
-          "basis": {"locator": "ch05", "quote": QUOTE}, "confidence": "high"}
+    loc = {"section": "Locations & Distances",
+           "values": {"from": "vault", "to": "library", "time": "3 min", "mode": "walk"},
+           "basis": {"locator": "ch05", "quote": QUOTE}, "confidence": "high"}
     pf = tmp_path / "p.json"
-    pf.write_text(json.dumps(_prop([_epi(holder="jonah"), ev])), encoding="utf-8")
+    pf.write_text(json.dumps(_prop([_epi(holder="jonah"), loc])), encoding="utf-8")
     assert sg.main(["apply-proposal", str(pf), "--graph", world["graph"],
                     "--chapters-dir", world["chapters"], "--accept", "pass"]) == 0
     g2 = sg.parse_graph(Path(world["graph"]).read_text(encoding="utf-8"))
-    assert any(r["span-id"] == "ev2" for r in g2["sections"]["Evidence"])
+    assert any(r["from"] == "vault" for r in g2["sections"]["Locations & Distances"])
     assert not any(r["holder"] == "jonah" for r in g2["sections"]["Epistemic States"])

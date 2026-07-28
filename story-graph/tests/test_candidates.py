@@ -193,5 +193,9 @@ def test_noise_stays_below_the_signal_on_the_real_manuscript():
     assert len(rows) < 80, f"{len(rows)} candidates is a wall of noise, not a work list"
     for junk in ("I'm", "You're", "They're", "Don't", "We're", "Chapter", "Get", "Look"):
         assert junk not in names, f"'{junk}' is not a character"
-    # Henderson appears 100+ times in ch15+ and has no entity row at all.
-    assert names[0] == "Henderson", names[:5]
+    # Henderson had 100+ mentions and no entity row until the ch15+ catch-up modelled
+    # him. That he is now ABSENT from this list is the catch-up working; asserting the
+    # junk-exclusion property above is what keeps holding as more names get modelled.
+    g2 = {r["id"] for r in g["sections"]["Entities"] if r.get("id")}
+    if "henderson" in g2:
+        assert "Henderson" not in names, "a modelled entity must stop being unresolved"
