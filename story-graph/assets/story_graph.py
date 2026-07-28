@@ -860,6 +860,17 @@ def unratified(graph):
     return out
 
 
+def _next_version_path(path):
+    """The next free `_v<N>` slot beside a file. The project never overwrites: applying a
+    proposal keeps the pre-application graph, so a bad batch is one `mv` from undone."""
+    p = Path(path)
+    stem = re.sub(r"_v\d+$", "", p.stem)
+    n = 1
+    while (p.parent / f"{stem}_v{n}{p.suffix}").exists():
+        n += 1
+    return str(p.parent / f"{stem}_v{n}{p.suffix}")
+
+
 def blast_radius(graph):
     """Per-proposition dependency weight: what has to be revisited if this claim moves
     or flips. Stdlib; no kuzu.
@@ -1020,6 +1031,15 @@ def main(argv=None):
     vz.add_argument("graph")
     vz.add_argument("--out", required=True)
     vz.add_argument("--prop", default="")
+    vp = sub.add_parser("verify-proposal")
+    vp.add_argument("proposal")
+    vp.add_argument("--graph", required=True)
+    vp.add_argument("--chapters-dir", default="")
+    ap = sub.add_parser("apply-proposal")
+    ap.add_argument("proposal")
+    ap.add_argument("--graph", required=True)
+    ap.add_argument("--chapters-dir", default="")
+    ap.add_argument("--accept", required=True, help="row numbers (1,3,5), 'pass', or 'all'")
     ur = sub.add_parser("unresolved")
     ur.add_argument("graph")
     ur.add_argument("--chapters-dir", required=True)
@@ -1080,6 +1100,40 @@ def main(argv=None):
         title = text.splitlines()[0].lstrip("# ").strip() if text.strip() else ""
         print(coverage_report(parse_graph(text), title))
         return 0
+    if args.command in ("verify-proposal", "apply-proposal"):
+        import story_graph_proposals as sgp     # lazy: nothing else needs it
+        prop = sgp.load(args.proposal)
+        prop["_file"] = args.proposal
+        verdicts = sgp.verify(prop, args.graph, args.chapters_dir)
+        if args.command == "verify-proposal":
+            print(sgp.verify_report(verdicts, prop))
+            return 1 if any(v == sgp.FAIL for _, v, _ in verdicts) else 0
+        ok = {i for i, v, _ in verdicts if v != sgp.FAIL}
+        if args.accept == "pass":
+            accept = sorted(i for i, v, _ in verdicts if v == sgp.PASS)
+        elif args.accept == "all":
+            accept = sorted(ok)
+        else:
+            accept = sorted({int(x) for x in re.split(r"[,\s]+", args.accept) if x.strip()})
+        rejected = [i for i in accept if i not in ok]
+        if rejected:
+            # Applying a row the checker rejected is the one thing this gate exists to
+            # prevent; there is deliberately no --force.
+            print(f"ERROR: row(s) {rejected} failed verification and cannot be applied")
+            return 1
+        if not accept:
+            print("Nothing accepted; the graph was not touched.")
+            return 0
+        text = Path(args.graph).read_text(encoding="utf-8")
+        merged = sgp.apply_rows(text, prop, accept, parse_graph(text))
+        merged = sgp.append_commit(merged, sgp.commit_line(prop, verdicts, accept))
+        prior = _next_version_path(args.graph)
+        Path(prior).write_text(text, encoding="utf-8")   # never overwrite: keep the old one
+        Path(args.graph).write_text(merged, encoding="utf-8")
+        rep = validate(args.graph, chapters_dir=args.chapters_dir)
+        print(f"RESULT: applied {len(accept)} row(s) to {args.graph}; previous version kept at "
+              f"{Path(prior).name}; validate now reports {len(rep.errors)} error(s)")
+        return 1 if rep.errors else 0
     if args.command in ("unresolved", "conflicts"):
         import story_graph_candidates as sgc     # lazy: nothing else needs it
         graph = parse_graph(Path(args.graph).read_text(encoding="utf-8"))

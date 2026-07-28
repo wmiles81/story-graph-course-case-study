@@ -302,6 +302,35 @@ on-disk format is version-specific (Kùzu 0.11.x here). `MODE=READ_ONLY` is
 recommended: the compiled DB is a rebuildable projection of `Story-Graph.md`, so
 there is no reason to let the UI write back to it.
 
+## Proposals: how generated rows reach canon
+
+**A generated row is a file on disk, never an edit to the graph.** Anything produced by
+a model goes through this gate first — the gate is deterministic and calls no model.
+
+```bash
+python3 <SKILL_DIR>/assets/story_graph.py verify-proposal <p.json> --graph <g> --chapters-dir <d>
+python3 <SKILL_DIR>/assets/story_graph.py apply-proposal  <p.json> --graph <g> --chapters-dir <d> --accept 1,4,7
+```
+
+Each row gets `PASS`, `FAIL <reason>`, or `NEEDS-HUMAN`. The checks: the section and
+columns exist, key columns are non-empty, every id resolves, the chapter is within canon,
+cited spans are declared, the row isn't already present — and **the quote gate**: the
+row's `basis.quote` must appear *verbatim* in its chapter. A model can invent a belief;
+it cannot invent a sentence that is on the page.
+
+Then a consequence pass validates the whole would-be graph and rejects any row that
+introduces an error the graph didn't already have.
+
+**`NEEDS-HUMAN` is not a soft pass.** Rows in `Epistemic States`, `Relationships` and
+`Open Loops & Setups` are *inferences*: the quote is real, but what it MEANS is a
+reading, and no checker confirms a reading. They can never auto-ratify. `--accept pass`
+deliberately excludes them; naming their row numbers is the deliberate act.
+
+Applying keeps the previous graph at the next free `_v<N>` slot, marks every new row
+`provisional`, and appends one Canon Commit Log line naming the model and the proposal
+file — so you can always ask what was proposed, what the checker allowed, and what you
+took. There is no `--force`.
+
 ## Finding what's missing (deterministic)
 
 Two candidate generators. Neither uses a model, neither writes to the graph, and both
