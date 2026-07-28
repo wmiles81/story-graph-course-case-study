@@ -163,6 +163,19 @@ An event-shaped proposition is **permanently** true once it happens, so it never
 flipped, and a later chapter cannot contradict it without contradicting the manuscript.
 State-shaped claims need constant maintenance and generate false contradictions.
 
+**This rule is now checked.** `story_graph.py shapes <graph>` lists every state-shaped
+proposition, riskiest first — those something already believes, because that is where the
+contradiction is already reachable. `validate` separately warns when one holder ends up
+both knowing a claim and believing it false, which is the state-shaped trap having sprung.
+
+The cost of ignoring it, measured: a full-book epistemic pass proposed
+`reader believes-false: "The Founding Scrolls are missing"` for chapters 21, 22, 28 and 29
+— **correct at those chapters**, because by ch29 the Scrolls are recovered. The generator
+was right and the claim was unrepresentable. Two other detectors converge on the same five
+claims: `conflicts` pairs "Jackson Harrow is alive and being used as an Alpha-class battery"
+with "Jackson Harrow is freed from the Alpha battery tank", and cannot partition them,
+because neither is anchored to a chapter.
+
 Where a state genuinely matters at a moment in time, that is what **Logistics** (per
 chapter: entity, location, condition) and **Relationships** (with a `trend`) are for.
 Use them instead of a state-shaped proposition.

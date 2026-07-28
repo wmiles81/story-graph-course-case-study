@@ -152,3 +152,66 @@ def test_two_different_holders_disagreeing_is_irony_not_an_error():
     rep = sg.Report()
     sg.check_stance_contradiction(g, rep)
     assert rep.warnings == []
+
+
+# ------------------------------------------------ proposition shape (decisions.md 2.4)
+
+# Labelled from real Book 3 statements. decisions.md 2.4 has said "prefer event-shaped"
+# since Stage A and nothing enforced it; the cost arrived as an epistemic run proposing
+# "reader believes-false: The Founding Scrolls are missing" for chapters after they were
+# recovered — correct at those chapters, and unrepresentable without time bounds.
+SHAPES = [
+    # can flip mid-book
+    ("The Founding Scrolls are missing.", "state"),
+    ("Margot is inside the library during the disturbance.", "state"),
+    ("Margot possesses her grandmother's journal.", "state"),
+    ("The current possessor of the Founding Scrolls is unknown.", "state"),
+    ("Jackson Harrow is alive and being used as an Alpha-class battery.", "state"),
+    # happened, so it stays happened
+    ("Jonah takes custody of the original Integration Treaty.", "event"),
+    ("Margot converts the private confrontation into public accountability.", "event"),
+    ("Jonah's wolf identifies Margot as his mate.", "event"),
+    ("Margot realizes she is in love with Jonah.", "event"),
+    ("The Founding Scrolls were hidden rather than stolen.", "event"),
+    ("The twelve-hour countdown remains active through Chapters 4-6.", "event"),
+    # a rule of the world, true throughout
+    ("Books in the library can animate and attack.", "rule"),
+    # permanent properties that read like states but never flip
+    ("The library contains active old magic.", "event"),
+    ("The basement contains impossible architecture.", "event"),
+    ("Level B1 contains predatory entities that consume text or language.", "event"),
+]
+
+
+def test_proposition_shape_matches_the_labelled_corpus():
+    wrong = [(s, want, sg.proposition_shape(s)) for s, want in SHAPES
+             if sg.proposition_shape(s) != want]
+    assert not wrong, "\n".join(f"{w[1]} != {w[2]}: {w[0]}" for w in wrong)
+
+
+def test_a_past_tense_fact_is_not_a_mutable_state():
+    """'were hidden' is settled; 'are hidden' can stop being true."""
+    assert sg.proposition_shape("The Scrolls were hidden in the vault.") == "event"
+    assert sg.proposition_shape("The Scrolls are hidden in the vault.") == "state"
+
+
+def test_an_anchored_claim_is_already_bounded():
+    assert sg.proposition_shape("Jackson is alive.") == "state"
+    assert sg.proposition_shape("Jackson is alive as of ch12.") == "event"
+
+
+def test_the_report_ranks_by_what_already_depends_on_the_claim():
+    """A state-shaped claim nobody holds is a latent problem; one with holders is a live
+    one, because the contradiction is already reachable."""
+    g = _graph(props=("| p1 | The Scrolls are missing | true | ms | provisional |\n"
+                      "| p2 | The journal is hidden | true | ms | provisional |\n"),
+               epi=("| p1 | reader | knows | 2 | provisional |\n"
+                    "| p1 | jonah | knows | 3 | provisional |\n"))
+    out = sg.shape_report(g)
+    assert out.index("p1") < out.index("p2")
+    assert "2 holders" in out and "1 of" not in out.splitlines()[0]
+
+
+def test_a_graph_of_event_shaped_claims_reports_clean():
+    g = _graph(props="| p1 | Jonah takes the Treaty in ch09 | true | ms | provisional |\n")
+    assert "none —" in sg.shape_report(g)

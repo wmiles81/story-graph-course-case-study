@@ -362,6 +362,25 @@ Applying keeps the previous graph at the next free `_v<N>` slot, marks every new
 file — so you can always ask what was proposed, what the checker allowed, and what you
 took. There is no `--force`.
 
+## Checking the shape of your claims
+
+```bash
+python3 <SKILL_DIR>/assets/story_graph.py shapes <graph>
+```
+
+Lists propositions that can become FALSE later in the same book — `"The Founding Scrolls
+are missing"`, `"Margot is inside the library"` — ranked by how many holders already
+believe them. A Proposition has no time bounds, so these generate contradictions that are
+nobody's mistake: the claim was true when written and false by the end.
+
+Run it before a catch-up pass. A state-shaped claim poisons every epistemic row that
+touches it, and rewriting one after fifty rows cite it is far more work than rewriting it
+now. The fix is always the same shape — say the event that made it true:
+
+  `"The Founding Scrolls are missing."` -> `"The Founding Scrolls are taken from the vault before ch02."`
+
+Rewriting a statement is a canon change, so the tool reports and does not edit.
+
 ## Finding what's missing (deterministic)
 
 Two candidate generators. Neither uses a model, neither writes to the graph, and both

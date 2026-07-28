@@ -71,6 +71,11 @@ Run `story_graph.py` (stdlib; `compile`/`query`/`audit`/`impact` also want `pip 
   writes a quote — code numbers real sentences and the model picks one, so a fabricated
   quote has no way in. Rows that assert a *reading* (a belief, an entity's type, that a
   quote proves a claim) are always `NEEDS-HUMAN`, never auto-applied.
+- **Check claim shape** — `shapes` lists propositions that can become false later in the
+  same book ("The Founding Scrolls are missing"), ranked by how many holders already
+  believe them. A Proposition has no time bounds, so these manufacture contradictions that
+  are nobody's mistake. Run it before a catch-up pass; rewriting one claim now beats
+  rewriting fifty rows that cite it later.
 - **Find what's missing** — `unresolved` lists proper nouns in the prose that resolve to
   no entity (who you forgot to model), and `conflicts` lists claims about the same subject
   **partitioned by chapter**, because a state change and a contradiction look identical in

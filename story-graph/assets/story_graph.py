@@ -480,6 +480,81 @@ def check_span_relevance(graph, report):
                             f"content word with the claim — check it actually supports it")
 
 
+# A claim whose truth can flip mid-book. decisions.md 2.4 says prefer event-shaped
+# propositions; until now nothing enforced it, and the cost showed up as an epistemic run
+# proposing "reader believes-false: The Founding Scrolls are missing" for chapters after
+# the Scrolls were recovered — correct at those chapters, and unrepresentable.
+# Verbs of CUSTODY, which changes hands. `contains` and `holds` are deliberately absent:
+# "the vault contains the Scrolls" is mutable but "the library contains active old magic"
+# is a permanent property of the world, and nothing mechanical separates them. Including
+# them flagged 5 permanent world-rules and gained no real find.
+_STATE_VERB = re.compile(r"\b(possess(?:es)?|owns?|remains?|stays?|keeps?|retains?)\b", re.I)
+# `is/are` + state, but NOT `was/were`: "the Scrolls WERE hidden rather than stolen" is a
+# settled fact about the past and can never flip, while "the Scrolls ARE hidden" can.
+# No open `in \w+` either — it read "is in love" as a location and flagged a realisation.
+_STATE_ADJ = re.compile(
+    r"\b(is|are|isn't|aren't|remains?)\s+(?:not\s+|no\s+longer\s+|still\s+)?"
+    r"(missing|gone|lost|dead|alive|hidden|concealed|sealed|safe|unsafe|unknown|inside|"
+    r"outside|present|absent|active|dormant|free|captive|imprisoned|broken|intact|"
+    r"aware|unaware|estranged|trapped|available|unavailable)\b", re.I)
+# A capability or world rule does not change when the plot moves; an anchored claim
+# already says when it is true. Neither is state-shaped.
+_CAPABILITY = re.compile(r"\b(can|cannot|can't|could|able to|always|never|must)\b", re.I)
+_ANCHORED = re.compile(r"\bch\s?\d+|\bchapters?\s+\d+", re.I)
+
+
+def proposition_shape(statement):
+    """'state' | 'event' | 'rule' — what KIND of claim this is.
+
+    The question behind it: can this become false later in the same book? An event that
+    happened stays happened. A capability is a rule of the world. A state is the one that
+    needs a time bound the ontology cannot give it.
+    """
+    s = statement or ""
+    if _ANCHORED.search(s):
+        return "event"
+    if _CAPABILITY.search(s):
+        return "rule"
+    if _STATE_ADJ.search(s) or _STATE_VERB.search(s):
+        return "state"
+    return "event"
+
+
+def shape_report(graph):
+    """State-shaped propositions, riskiest first — those something already depends on."""
+    rows = []
+    holders = {}
+    for r in graph["sections"].get("Epistemic States", []):
+        if r.get("prop-id"):
+            holders.setdefault(r["prop-id"], set()).add(r.get("holder", ""))
+    for r in graph["sections"].get("Propositions", []):
+        pid, stmt = r.get("prop-id"), r.get("statement", "")
+        if not pid or proposition_shape(stmt) != "state":
+            continue
+        rows.append((len(holders.get(pid, ())), pid, stmt))
+    rows.sort(key=lambda t: (-t[0], t[1]))
+    total = len([r for r in graph["sections"].get("Propositions", []) if r.get("prop-id")])
+    out = [f"STATE-SHAPED PROPOSITIONS — {len(rows)} of {total}", "=" * 58]
+    if not rows:
+        out.append("  none — every claim either happened, or is a rule of the world")
+        return "\n".join(out)
+    for n, pid, stmt in rows:
+        out.append(f"  [{n} holder{'' if n == 1 else 's'}] {pid}")
+        out.append(f"      {stmt}")
+    out += ["",
+            "These can become FALSE later in the same book, and a Proposition has no time",
+            "bounds to say when. Rewrite each as the event that made it true:",
+            "",
+            '  "The Founding Scrolls are missing."   ->  "The Founding Scrolls are taken from',
+            '                                             the vault before ch02."',
+            '  "Margot is inside the library."       ->  "Margot is in the library when it seals."',
+            "",
+            "Rows with holders are the urgent ones: something already believes them, so the",
+            "contradiction is already reachable. Rewriting a statement is a canon change, so",
+            "the tool will not do it for you — see reference/decisions.md 2.4."]
+    return "\n".join(out)
+
+
 def check_stance_contradiction(graph, report):
     """One holder who both knows a claim and believes it false.
 
@@ -1155,6 +1230,8 @@ def main(argv=None):
     ur.add_argument("graph")
     ur.add_argument("--chapters-dir", required=True)
     ur.add_argument("--min", type=int, default=2, help="ignore names seen fewer times (default 2)")
+    sh = sub.add_parser("shapes")
+    sh.add_argument("graph")
     cf = sub.add_parser("conflicts")
     cf.add_argument("graph")
     cf.add_argument("--overlap", type=float, default=0.45, help="content-word similarity floor (default 0.45)")
@@ -1343,6 +1420,9 @@ def main(argv=None):
         Path(args.graph).write_text(merged, encoding="utf-8")
         print(f"RESULT: applied {len(accept)} row(s) to {args.graph}; previous version kept at "
               f"{Path(prior).name}; validate reports 0 error(s)")
+        return 0
+    if args.command == "shapes":
+        print(shape_report(parse_graph(Path(args.graph).read_text(encoding="utf-8"))))
         return 0
     if args.command in ("unresolved", "conflicts"):
         import story_graph_candidates as sgc     # lazy: nothing else needs it
