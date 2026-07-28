@@ -449,6 +449,37 @@ def verify_spans(graph, sources, chapters_dir, report):
             report.error(f"Evidence [{sid}]: quote not found in {chapter.name} — graph-vs-source mismatch")
 
 
+def check_span_relevance(graph, report):
+    """Flag a receipt that shares NO content word with the claim it supposedly backs.
+
+    This cannot tell you a quote proves a claim — that is a reading, and the whole point
+    of decisions.md part 3. It can tell you the two are not even about the same thing,
+    which is a different and entirely mechanical question.
+
+    Deliberately set at ZERO shared words, not one or two. On this book that fires once;
+    at "<= 1 word" it fires six times and starts flagging legitimate short spans. A
+    checker that cries wolf gets ignored, and this one is worth listening to: the case it
+    catches is "The Deep Stacks distort space and direction" backed by "Margot's
+    flashlight cut a narrow cone through it".
+    """
+    try:
+        import story_graph_candidates as sgc
+    except ImportError:
+        return                                     # candidate tooling absent; skip quietly
+    quotes = {r.get("span-id"): (r.get("quote") or "")
+              for r in graph["sections"].get("Evidence", []) if r.get("span-id")}
+    for r in graph["sections"].get("Propositions", []):
+        stmt = r.get("statement", "")
+        st = sgc._tokens(stmt)
+        if len(st) < 3:
+            continue
+        for sid in _span_ids(r.get("span", "")):
+            q = quotes.get(sid)
+            if q and not (st & sgc._tokens(q)):
+                report.warn(f"Propositions [{r.get('prop-id')}]: span '{sid}' shares no "
+                            f"content word with the claim — check it actually supports it")
+
+
 def load_spe_anchors(spe_dir):
     """Return the set of anchor ids in <spe_dir>/narrative_state/anchors/*.yaml,
     or None when the catalog directory is absent (checks degrade to warnings)."""
@@ -500,6 +531,7 @@ def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""
     check_epistemic(graph, entity_ids, prop_ids, span_ids, report)
     check_open_loops(graph, canon_ch, span_ids, report)
     check_logistics(graph, entity_ids, location_ids, span_ids, report)
+    check_span_relevance(graph, report)
     check_commit_log(graph, report)
     if "spe" in graph["modules"]:
         check_physics(graph, spe_dir, report)

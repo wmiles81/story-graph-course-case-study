@@ -208,11 +208,89 @@ def _sentences(text):
     for block in re.split(r"\n\s*\n", body):
         # A divider line is a boundary, not prose.
         for chunk in re.split(r"^\s*[-*_=]{3,}\s*$", block, flags=re.M):
-            for s in re.split(r"(?<=[.!?])\s+", chunk):
-                s = " ".join(s.split())
-                if 40 <= len(s) <= 320:
+            # An ellipsis is not a sentence end. Splitting on it cut "The Scrolls
+            # contain... inconvenient truths." into two fragments, both under the floor,
+            # so a sentence the graph itself cites as evidence could never be offered.
+            # The ellipsis is swapped out before splitting and back after, so it simply
+            # is not sentence punctuation. No lookaround needed — and a lookbehind pair
+            # that both requires and forbids `[.!?]` matches nothing, which silently
+            # turned every paragraph into one over-long "sentence" and dropped it.
+            for s in re.split(r"(?<=[.!?])\s+", chunk.replace("...", "…")):
+                s = " ".join(s.split()).replace("…", "...")
+                # 25, not 40: a real line of dialogue is short. '"The lexivore is bound to
+                # B1.' is 29 characters and is a cited evidence span in this very graph.
+                if 25 <= len(s) <= 320:
                     out.append(s)
     return out
+
+
+# Verbs that mark a STANCE rather than an event. A sentence showing what someone knows,
+# believes or hides is usually built on one of these, and it often shares almost no other
+# words with the claim it bears on — "if he knew the truth about the missing scrolls"
+# against "The Founding Scrolls were hidden rather than stolen".
+STANCE = {
+    "knew", "know", "knows", "known", "believe", "believed", "believes", "belief",
+    "think", "thought", "thinks", "realise", "realised", "realize", "realized",
+    "understood", "understand", "understands", "suspect", "suspected", "suspects",
+    "remember", "remembered", "remembers", "forgot", "forgotten", "wonder", "wondered",
+    "doubt", "doubted", "assume", "assumed", "guess", "guessed", "denied", "deny",
+    "denial", "lie", "lied", "lying", "hid", "hidden", "hide", "hiding", "conceal",
+    "concealed", "pretend", "pretended", "secret", "secrets", "truth", "admit",
+    "admitted", "confess", "confessed", "told", "tell", "said", "explained", "swore",
+    "convinced", "certain", "sure", "unaware", "ignorant", "learned", "discovered",
+}
+
+
+def _idf(stoks):
+    """Rarity weight per token, over this chapter's own sentences.
+
+    Counting shared tokens flat treats "scrolls" and "library" as equally informative in a
+    book about a library. The diagnostic word is the rare one, and weighting by rarity is
+    what lets a claim find the one sentence that is really about it.
+    """
+    import math
+    n = max(1, len(stoks))
+    df = {}
+    for st in stoks:
+        for t in st:
+            df[t] = df.get(t, 0) + 1
+    return {t: math.log(1 + n / c) for t, c in df.items()}
+
+
+def _shortlist(claim_tokens, sents, stoks, idf, per_claim, seed_quote="",
+               stance_boost=False, window=1):
+    """Sentence indices to offer for one claim, best first, then their neighbours.
+
+    Kept in ONE place because both kinds need exactly the same guarantee — that what is
+    shown and what can be filled in are the same list — and two copies of that is how
+    they drift apart.
+    """
+    weight = lambda t: idf.get(t, 1.0)
+    denom = sum(weight(t) for t in claim_tokens) or 1.0
+    scored = []
+    for i, st in enumerate(stoks):
+        s = sum(weight(t) for t in (claim_tokens & st)) / denom
+        if stance_boost and (st & STANCE):
+            # A stance sentence is worth surfacing even on a thin lexical match; this
+            # lifts it over topical filler without letting it outrank a real match.
+            s += 0.25
+        if s > 0:
+            scored.append((s, -i))
+    scored.sort(reverse=True)                      # ties -> earliest sentence
+    seeds = [-negi for _, negi in scored[:per_claim]]
+    if seed_quote:
+        # The graph may already know: a claim with an evidence span was anchored by
+        # someone who read the scene, and the stance reacting to it sits beside it.
+        hit = next((i for i, s in enumerate(sents) if sg.quote_found(s, seed_quote)), None)
+        if hit is not None and hit not in seeds:
+            seeds.insert(0, hit)
+    picked, seen = [], set()
+    for i in seeds:
+        for j in [i] + [d for w in range(1, window + 1) for d in (i + w, i - w)]:
+            if 0 <= j < len(sents) and j not in seen:
+                seen.add(j)
+                picked.append(j)
+    return sorted(picked[:per_claim * 2])           # truncate by priority, then read order
 
 
 def _ctx_evidence(graph, chapter_text, limit, per_claim=6):
@@ -227,22 +305,17 @@ def _ctx_evidence(graph, chapter_text, limit, per_claim=6):
     ct = sgc._tokens(chapter_text)
     sents = _sentences(chapter_text)
     stoks = [sgc._tokens(s) for s in sents]
+    idf = _idf(stoks)
     claims = []
     for r in _unbacked(graph):
         t = sgc._tokens(r.get("statement", ""))
         if len(t) < 3 or len(t & ct) / len(t) < 0.6:
             continue
-        ranked = sorted(((len(t & st) / max(1, len(t)), i) for i, st in enumerate(stoks)),
-                        reverse=True)[:per_claim]
-        # _sents must hold EXACTLY the sentences shown, in the same order. When these two
-        # lists could differ, a model returning an index it was never offered got a row
-        # filled from a sentence with no relation to the claim — and that quote is real
-        # prose, so the gate waves it through. Shown-vs-fillable must not diverge.
-        shown = [(n + 1, sents[i]) for n, (score, i) in enumerate(ranked) if score > 0]
-        cands = [{"n": k, "s": t} for k, (_, t) in enumerate(shown, 1)]
-        if cands:
+        picked = _shortlist(t, sents, stoks, idf, per_claim)
+        if picked:
             claims.append({"prop-id": r["prop-id"], "statement": r["statement"],
-                           "candidates": cands, "_sents": [t for _, t in shown]})
+                           "candidates": [{"n": k, "s": sents[i]} for k, i in enumerate(picked, 1)],
+                           "_sents": [sents[i] for i in picked]})
     return claims[:limit] or None
 
 
@@ -315,6 +388,7 @@ def _ctx_epistemic(graph, chapter_text, ch_no, limit, per_claim=6):
             for r in _rows_of(graph, "Epistemic States")}
     sents = _sentences(chapter_text)
     stoks = [sgc._tokens(s) for s in sents]
+    idf = _idf(stoks)
     ev_quotes = {e.get("span-id"): (e.get("quote") or "")
                  for e in _rows_of(graph, "Evidence") if e.get("span-id")}
     claims = []
@@ -325,41 +399,15 @@ def _ctx_epistemic(graph, chapter_text, ch_no, limit, per_claim=6):
         t = sgc._tokens(r.get("statement", ""))
         if len(t) < 3 or len(t & ct) / len(t) < 0.5:
             continue
-        # Retrieval for a STANCE is not retrieval for a fact. Ranking purely by overlap
-        # with the claim surfaces sentences that restate it, while the line showing what
-        # someone BELIEVES is usually a reaction or a denial sharing almost no words with
-        # it — "Not now. Not ever." has zero content words in common with "Jonah's wolf
-        # identifies Margot as his mate", and that pair is this book's central irony.
-        # So: seed with the best matches, then include their neighbours, because a
-        # character reacts to a thing next to where the thing happens.
-        # Ties break by POSITION, earliest first. `reverse=True` on (score, i) ordered
-        # ties by higher index, which silently dropped "The way the wolf knew the scent of
-        # *mate*." — the sentence this graph already cites as this claim's evidence.
-        ranked = sorted(((len(t & st) / max(1, len(t)), -i) for i, st in enumerate(stoks)),
-                        reverse=True)
-        seeds = [-negi for score, negi in ranked[:per_claim] if score > 0]
-        # The graph may already know the answer: a claim with an evidence span was
-        # anchored by someone who read the scene. That sentence is the best possible seed,
-        # and the stance that reacts to it is usually within a line or two of it.
-        for sid in sg._span_ids(r.get("span", "")):
-            q = ev_quotes.get(sid, "")
-            if q:
-                hit = next((i for i, s in enumerate(sents) if sg.quote_found(s, q)), None)
-                if hit is not None and hit not in seeds:
-                    seeds.insert(0, hit)
-        picked, seen_i = [], set()
-        for i in seeds:
-            for j in (i, i + 1, i - 1):
-                if 0 <= j < len(sents) and j not in seen_i:
-                    seen_i.add(j)
-                    picked.append(j)
-        # Truncate by PRIORITY, then sort for reading. Sorting first threw away the
-        # ordering the seeds encode, so the chapter's opening scene crowded out the
-        # sentence the graph itself had cited as this claim's evidence.
-        picked = sorted(picked[:per_claim * 2])
-        cands = [{"n": k, "s": sents[i]} for k, i in enumerate(picked, 1)]
-        if cands:
-            claims.append({"prop-id": pid, "statement": r["statement"], "candidates": cands,
+        seed = next((ev_quotes.get(sid, "") for sid in sg._span_ids(r.get("span", ""))
+                     if ev_quotes.get(sid)), "")
+        # Stance boost and a wider window: what someone BELIEVES is shown by a reaction,
+        # which is near the event rather than in the sentence that reports it.
+        picked = _shortlist(t, sents, stoks, idf, per_claim, seed_quote=seed,
+                            stance_boost=True, window=2)
+        if picked:
+            claims.append({"prop-id": pid, "statement": r["statement"],
+                           "candidates": [{"n": k, "s": sents[i]} for k, i in enumerate(picked, 1)],
                            "_sents": [sents[i] for i in picked]})
     if not claims or not present:
         return None

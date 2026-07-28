@@ -199,3 +199,62 @@ def test_noise_stays_below_the_signal_on_the_real_manuscript():
     g2 = {r["id"] for r in g["sections"]["Entities"] if r.get("id")}
     if "henderson" in g2:
         assert "Henderson" not in names, "a modelled entity must stop being unresolved"
+
+
+# ------------------------------------------------- retrieval quality (Phase D follow-up)
+
+
+def test_every_recorded_evidence_span_is_reachable_as_a_candidate():
+    """Ground truth the graph supplies about itself: a sentence it cites as evidence must
+    be offerable as a candidate. Two were not — one lost to an ellipsis being treated as a
+    sentence end, one to a length floor set above real dialogue — and no ranking can find
+    a sentence that was never in the pool."""
+    import story_graph_propose as sp
+    if not CHAPTERS.is_dir():
+        pytest.skip("book-3 chapters not present")
+    g = sg.parse_graph(FIXTURE.read_text(encoding="utf-8"))
+    ev = {e["span-id"]: (e.get("locator", ""), e.get("quote", ""))
+          for e in g["sections"]["Evidence"] if e.get("span-id")}
+    total = unreachable = 0
+    for p in g["sections"]["Propositions"]:
+        for sid in sg._span_ids(p.get("span", "")):
+            loc, q = ev.get(sid, ("", ""))
+            if not (loc and q):
+                continue
+            ch = CHAPTERS / f"{loc}.md"
+            if not ch.is_file():
+                continue
+            total += 1
+            sents = sp._sentences(ch.read_text(encoding="utf-8"))
+            if not any(sg.quote_found(s, q) for s in sents):
+                unreachable += 1
+    assert total and unreachable == 0, f"{unreachable}/{total} cited spans cannot be offered"
+
+
+def test_an_ellipsis_is_not_a_sentence_end():
+    import story_graph_propose as sp
+    text = "He paused for a while. The Scrolls contain... inconvenient truths. She looked away."
+    assert any("inconvenient truths" in s and "Scrolls contain" in s for s in sp._sentences(text))
+
+
+def test_short_dialogue_is_still_a_candidate():
+    """'"The lexivore is bound to B1.' is 29 characters and is a cited span in this graph."""
+    import story_graph_propose as sp
+    text = 'They stopped at the door and listened hard. "The lexivore is bound to B1. It cannot follow."'
+    assert any("lexivore is bound" in s for s in sp._sentences(text))
+
+
+def test_a_span_sharing_no_word_with_its_claim_is_flagged():
+    """Cannot confirm a quote PROVES a claim — that is a reading. Can say the two are not
+    about the same thing, which is mechanical."""
+    g = sg.parse_graph(make_graph(
+        Propositions=("## Propositions\n| prop-id | statement | canon-status | governing-source | span |\n"
+                      "|---|---|---|---|---|\n"
+                      "| p1 | The Deep Stacks distort space and direction | true | ms | ev1 |\n"
+                      "| p2 | The wolf recognises her scent | true | ms | ev2 |\n"),
+        Evidence=("## Evidence\n| span-id | source-id | locator | quote | note |\n|---|---|---|---|---|\n"
+                  "| ev1 | ms | ch01 | Margot's flashlight cut a narrow cone | |\n"
+                  "| ev2 | ms | ch01 | The wolf knew her scent at once | |\n")))
+    rep = sg.Report()
+    sg.check_span_relevance(g, rep)
+    assert len(rep.warnings) == 1 and "p1" in rep.warnings[0]
