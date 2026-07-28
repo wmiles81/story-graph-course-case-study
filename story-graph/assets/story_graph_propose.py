@@ -185,13 +185,23 @@ def _unbacked(graph):
 
 
 def _sentences(text):
-    """Chapter sentences, long enough to be evidence and short enough to be a span."""
+    """Chapter sentences, long enough to be evidence and short enough to be a span.
+
+    Split PARAGRAPH FIRST, then sentence. Running the sentence split across the whole
+    body glued text either side of a scene divider into one "sentence" — candidates like
+    'The struggle is over.* --- "We have to walk past them,"' that no reader could find
+    as a passage. Those were offered to the model, chosen, and then correctly rejected by
+    the gate: rows wasted on a defect in the shortlist rather than a bad judgement.
+    """
     body = "\n".join(ln for ln in text.splitlines() if not ln.lstrip().startswith("#"))
     out = []
-    for s in re.split(r"(?<=[.!?])\s+", body):
-        s = " ".join(s.split())
-        if 40 <= len(s) <= 320:
-            out.append(s)
+    for block in re.split(r"\n\s*\n", body):
+        # A divider line is a boundary, not prose.
+        for chunk in re.split(r"^\s*[-*_=]{3,}\s*$", block, flags=re.M):
+            for s in re.split(r"(?<=[.!?])\s+", chunk):
+                s = " ".join(s.split())
+                if 40 <= len(s) <= 320:
+                    out.append(s)
     return out
 
 

@@ -287,3 +287,15 @@ def test_an_entity_we_never_offered_is_dropped(world):
     reply = json.dumps({"entities": [{"name": "Nobody", "id": "nobody",
                                       "type": "Character", "confidence": "high"}]})
     assert _gen(world, "entities", reply) == []
+
+
+def test_a_candidate_sentence_never_spans_a_scene_divider(tmp_path):
+    """Splitting sentences across the whole body glued text either side of a `---` into
+    one 'sentence'. Those were offered to the model, chosen, then rejected by the gate —
+    rows wasted on a bad shortlist rather than a bad judgement. Every candidate this
+    produces must be findable in the prose by the same check the gate uses."""
+    text = ('The struggle is over.\n\n---\n\n"We have to walk past them," Margot said, '
+            'gripping his arm tightly.\n\nRain kept on falling over the quiet town square.\n')
+    for s in sp._sentences(text):
+        assert sg.quote_found(text, s), f"offered a candidate the gate would reject: {s!r}"
+    assert not any("---" in s for s in sp._sentences(text))
