@@ -461,6 +461,13 @@ def check_span_relevance(graph, report):
     checker that cries wolf gets ignored, and this one is worth listening to: the case it
     catches is "The Deep Stacks distort space and direction" backed by "Margot's
     flashlight cut a narrow cone through it".
+
+    Know what it does NOT measure. Reviewing 58 generated spans by hand found that word
+    overlap barely tracks quality once the generator is any good — three of the strongest
+    scored 0.00, including "The Iron Horse is the source of the Feral Signal" backed by
+    "He's running a repeater off the locomotive's engine." Perfect evidence, no shared
+    word. So this catches a span that is about nothing related; it cannot rank spans, and
+    a low score is not a verdict.
     """
     try:
         import story_graph_candidates as sgc
