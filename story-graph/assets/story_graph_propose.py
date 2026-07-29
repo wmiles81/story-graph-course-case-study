@@ -472,7 +472,17 @@ def _ctx_epistemic(graph, chapter_text, ch_no, limit, per_claim=6):
         if not pid or anchored.get(pid, 0) > ch_no:
             continue                                   # not yet true at this point in the book
         t = sgc._tokens(r.get("statement", ""))
-        if len(t) < 3 or len(t & ct) / len(t) < 0.5:
+        # 0.4, not 0.5: a claim is written in the AUTHOR's words, so the nouns match the
+        # prose and the verbs do not. "Valerius activates a backup Feral Signal…" missed
+        # on `activates`/`manufactured`/`public` while matching Valerius, Feral and Signal,
+        # and five of Book 3's late-act claims were unreachable in every chapter for that
+        # reason. Measured on the 73 chapter-anchored claims: 0.5 offered 67 in their own
+        # chapter, 0.4 offers 70. Only the ranking below makes a looser gate safe — the
+        # extra low-relevance claims now sort to the bottom and fall off, where before they
+        # would have crowded out the good ones by prop-id order.
+        # IDF-weighting this overlap was tried and is far worse (27/73): the paraphrase
+        # verbs that never appear in the prose are rare, so IDF hands them the most weight.
+        if len(t) < 3 or len(t & ct) / len(t) < 0.4:
             continue
         seed = next((ev_quotes.get(sid, "") for sid in sg._span_ids(r.get("span", ""))
                      if ev_quotes.get(sid)), "")
@@ -481,12 +491,35 @@ def _ctx_epistemic(graph, chapter_text, ch_no, limit, per_claim=6):
         picked = _shortlist(t, sents, stoks, idf, per_claim, seed_quote=seed,
                             stance_boost=True, window=2)
         if picked:
-            claims.append({"prop-id": pid, "statement": r["statement"],
-                           "candidates": [{"n": k, "s": sents[i]} for k, i in enumerate(picked, 1)],
-                           "_sents": [sents[i] for i in picked]})
+            # Rank, because `claims[:limit]` used to truncate in prop-id order — which is
+            # roughly story order, so every chapter's list filled up with early-book claims
+            # and the late-book ones fell off the end. Measured on Book 3: the four most
+            # load-bearing claims in the manuscript (blast radius 49-58, the Grey Guard
+            # siege) were offered in ZERO of 30 chapters, so no judge could ever record who
+            # believed them. Order by how much this chapter is actually ABOUT the claim,
+            # then break ties toward claims nobody holds yet — closing that gap is the
+            # whole point of the pass.
+            # The fraction alone SATURATES: "Margot watched the room" is 3 generic tokens
+            # and scores a perfect 1.0, tying a 6-token claim naming Valerius and the dam —
+            # and on a tie the id tie-break below silently restored the very ordering this
+            # ranking exists to remove. Counting matched content words breaks that tie
+            # toward the claim the chapter is more specifically about.
+            claims.append((
+                len(t & ct) / len(t)
+                + 0.1 * len(t & ct)
+                + (2.0 if anchored.get(pid) == ch_no else 0.0)
+                + (1.0 if not any(k[0] == pid for k in have) else 0.0),
+                pid,                                   # stable tie-break, keeps runs reproducible
+                {"prop-id": pid, "statement": r["statement"],
+                 "candidates": [{"n": k, "s": sents[i]} for k, i in enumerate(picked, 1)],
+                 "_sents": [sents[i] for i in picked]}))
     if not claims or not present:
         return None
-    return {"claims": claims[:limit], "holders": sorted(present)[:25], "have": have}
+    claims.sort(key=lambda c: (-c[0], c[1]))
+    kept = [c[-1] for c in claims[:limit]]
+    # A cap that hides what it cut reads as "this chapter has nothing else to say".
+    return {"claims": kept, "holders": sorted(present)[:25], "have": have,
+            "dropped": [c[1] for c in claims[limit:]]}
 
 
 def _prompt_epistemic(ctx, chapter_text, locator, ch_no):
@@ -522,11 +555,20 @@ def _prompt_epistemic(ctx, chapter_text, locator, ch_no):
     ])
 
 
-def _rows_epistemic(answer, ctx, locator, ch_no, graph):
+def _rows_epistemic(answer, ctx, locator, ch_no, graph, source_id="", seq=None):
     # Mirrors _ctx_epistemic: only minds hold beliefs, plus the reader.
     ids = {r["id"] for r in _rows_of(graph, "Entities")
            if r.get("id") and r.get("type") in ("Character", "Faction")} | sg.RESERVED_HOLDERS
     by_id = {c["prop-id"]: c for c in ctx["claims"]}
+    seq = [1] if seq is None else seq
+    # The judge picked a REAL sentence and the gate proved it exists — then the row landed
+    # as `span: provisional` and the quote was thrown away, so `validate` could only ever
+    # answer "claim is unverified". Every epistemic row this tool had ever produced was
+    # permanently unverifiable for that reason (183 of 183 on Book 3). Persist the basis as
+    # an Evidence row and point the stance at it, exactly as the evidence path already does.
+    # Deduped per (locator, quote): four holders agreeing on one sentence is one receipt,
+    # not four.
+    minted = {}
     out = []
     for s in (answer or {}).get("states", []) or []:
         pid, holder = (s.get("prop-id") or "").strip(), (s.get("holder") or "").strip()
@@ -542,13 +584,27 @@ def _rows_epistemic(answer, ctx, locator, ch_no, graph):
             continue
         if not (1 <= n <= len(claim["_sents"])):
             continue
+        quote = claim["_sents"][n - 1]
+        span = ""
+        if source_id:
+            span = minted.get((locator, quote))
+            if not span:
+                span = f"ev-{pid}-{locator}-e{seq[0]}"
+                seq[0] += 1
+                minted[(locator, quote)] = span
+                out.append({"section": "Evidence",
+                            "values": {"span-id": span, "source-id": source_id,
+                                       "locator": locator, "quote": quote,
+                                       "note": "proposed (epistemic basis)"},
+                            "basis": {"locator": locator, "quote": quote},
+                            "confidence": "high"})
         out.append({"section": "Epistemic States",
                     # since-ch is the chapter being read, NOT whatever the model says. A
                     # per-chapter pass observes a stance in THIS chapter; trusting the model
                     # here produced "since ch81" for a 30-chapter book.
                     "values": {"prop-id": pid, "holder": holder, "mode": mode,
-                               "since-ch": str(ch_no), "span": ""},
-                    "basis": {"locator": locator, "quote": claim["_sents"][n - 1]},
+                               "since-ch": str(ch_no), "span": span},
+                    "basis": {"locator": locator, "quote": quote},
                     "reasoning": s.get("why", ""), "confidence": s.get("confidence", "high")})
     return out
 
@@ -664,9 +720,13 @@ def generate(kind, graph_path, chapters_dir, chat=None, model="?", provider="?",
                 continue
             shown = [{"prop-id": c["prop-id"], "statement": c["statement"],
                       "candidates": c["candidates"]} for c in ctx["claims"]]
+            if ctx["dropped"]:
+                log(f"  {locator}: {len(ctx['dropped'])} further claim(s) passed the relevance "
+                    f"gate but exceeded --limit {limit}: {', '.join(ctx['dropped'][:6])}"
+                    f"{' …' if len(ctx['dropped']) > 6 else ''}")
             answer = resolve(locator, {"claims": shown, "holders": ctx["holders"],
-                                       "chapter": ch_no},
+                                       "chapter": ch_no, "omitted_over_limit": ctx["dropped"]},
                              _prompt_epistemic(ctx, text, locator, ch_no), _digest(text))
             if answer is not None:
-                emit(locator, _rows_epistemic(answer, ctx, locator, ch_no, graph))
+                emit(locator, _rows_epistemic(answer, ctx, locator, ch_no, graph, src, [1]))
     return written

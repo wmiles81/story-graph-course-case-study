@@ -133,7 +133,28 @@ def test_epistemic_generator_filters_unknown_holders_and_modes(world):
         {"prop-id": "p1", "holder": "jonah-harrow", "mode": "knows", "sentence": 99},
     ]})
     p = _gen(world, "epistemic", reply)[0]
-    assert [(r["values"]["holder"], r["values"]["mode"]) for r in p["rows"]] == [("margot-vance", "knows")]
+    stances = [r for r in p["rows"] if r["section"] == "Epistemic States"]
+    assert [(r["values"]["holder"], r["values"]["mode"]) for r in stances] == [("margot-vance", "knows")]
+
+
+def test_a_stance_row_keeps_the_receipt_it_was_judged_on(world):
+    """The judge picked a real sentence and the gate proved it exists — and the row used to
+    land as `span: provisional`, discarding it, so `validate` could only ever answer
+    "unverified". On Book 3 that was 183 of 183 stance rows permanently unverifiable."""
+    reply = json.dumps({"states": [
+        {"prop-id": "p1", "holder": "margot-vance", "mode": "knows", "sentence": 1},
+        {"prop-id": "p1", "holder": "jonah-harrow", "mode": "believes", "sentence": 1},
+    ]})
+    p = _gen(world, "epistemic", reply)[0]
+    ev = [r for r in p["rows"] if r["section"] == "Evidence"]
+    stances = [r for r in p["rows"] if r["section"] == "Epistemic States"]
+    assert len(ev) == 1, "two holders agreeing on one sentence is ONE receipt, not two"
+    assert ev[0]["values"]["quote"] == QUOTE
+    span = ev[0]["values"]["span-id"]
+    assert all(s["values"]["span"] == span for s in stances), "every stance must cite it"
+    assert "provisional" not in span
+    # and the receipt is emitted BEFORE the rows citing it, since verification is in order
+    assert p["rows"].index(ev[0]) < min(p["rows"].index(s) for s in stances)
 
 
 def test_epistemic_rows_never_auto_pass_even_when_perfect(world):
@@ -142,7 +163,9 @@ def test_epistemic_rows_never_auto_pass_even_when_perfect(world):
     p = _gen(world, "epistemic", reply)[0]
     p["_file"] = "x.json"
     verdicts = sgp.verify(p, world["graph"], world["chapters"])
-    assert [v for _, v, _ in verdicts] == [sgp.HUMAN], verdicts
+    # Two rows now (the receipt and the stance) and NEITHER may auto-pass: an Evidence row
+    # is a transcription the gate can check, but which claim it supports is still a reading.
+    assert [v for _, v, _ in verdicts] == [sgp.HUMAN, sgp.HUMAN], verdicts
 
 
 def test_epistemic_skips_states_the_graph_already_has(world):
@@ -376,3 +399,84 @@ def test_an_edge_that_would_close_a_cycle_is_rejected(tmp_path):
                    "set": {"depends-on": "c"}, "basis": {"locator": "", "quote": ""}}]}
     verdicts = sgp.verify(p, str(g), "")
     assert verdicts[0][1] == sgp.FAIL and "cycle" in verdicts[0][2], verdicts
+
+
+# ------------------------------------------- epistemic claim selection (the silent-cap bug)
+
+
+def _limitworld(tmp_path, n_filler=24):
+    """A chapter that is plainly ABOUT one late-numbered claim, plus filler claims that
+    each clear the relevance gate on generic words. Filler ids sort BEFORE the real one."""
+    ch = tmp_path / "chapters"
+    ch.mkdir()
+    (ch / "ch09.md").write_text(
+        "The convoy stopped at the ridge. Valerius raised the Feral Signal above the dam "
+        "and the Grey Guard legion answered him. Margot watched the Feral Signal climb.\n\n"
+        "Margot said nothing. Jonah watched the room. The vault was cold and the room "
+        "was cold and Margot watched the vault.\n", encoding="utf-8")
+    props = ("## Propositions\n| prop-id | statement | canon-status | governing-source | span |\n"
+             "|---|---|---|---|---|\n")
+    for i in range(n_filler):                      # p-001.. — generic, all gate-passing
+        props += f"| p-{i:03d} | Margot watched the room | true | ms | provisional |\n"
+    props += "| p-900 | Valerius raised the Feral Signal above the dam | true | ms | provisional |\n"
+    # since-ch 1, not 9: an epistemic row anchors its claim, and an anchor on THIS chapter
+    # legitimately outranks the unheld bonus — which would mask the tie-break under test.
+    epi = ("## Epistemic States\n| prop-id | holder | mode | since-ch | span |\n|---|---|---|---|---|\n"
+           "| p-000 | reader | knows | 1 | provisional |\n")
+    ents = ("## Entities\n| id | type | status | voice | note |\n|---|---|---|---|---|\n"
+            "| margot-vance | Character | active | - | Margot |\n"
+            "| jonah-harrow | Character | active | - | Jonah |\n")
+    g = tmp_path / "g.md"
+    g.write_text(make_graph(Entities=ents, Propositions=props, **{"Epistemic States": epi}),
+                 encoding="utf-8")
+    return g, ch
+
+
+def test_the_claim_a_chapter_is_about_survives_the_limit(tmp_path):
+    """The bug this pins: `claims[:limit]` truncated in prop-id order, which is roughly
+    story order, so a chapter's list filled with early-book claims and the late-book ones
+    fell off. On Book 3 that hid the four most load-bearing claims in the manuscript
+    (blast radius 49-58) from ALL 30 chapters — no judge could record who believed them.
+    p-900 sorts last and is the only claim this chapter is actually about."""
+    g, ch = _limitworld(tmp_path)
+    graph = sg.parse_graph(g.read_text(encoding="utf-8"))
+    ctx = sp._ctx_epistemic(graph, (ch / "ch09.md").read_text(encoding="utf-8"), 9, limit=6)
+    offered = [c["prop-id"] for c in ctx["claims"]]
+    assert "p-900" in offered, f"the chapter's own claim was truncated away: {offered}"
+    assert offered[0] == "p-900", f"it should rank first, not merely survive: {offered}"
+    assert len(offered) == 6, "the limit must still be honoured"
+
+
+def test_a_claim_dropped_by_the_limit_is_reported_not_hidden(tmp_path):
+    """A cap that says nothing reads as 'this chapter has nothing else to say'."""
+    g, ch = _limitworld(tmp_path)
+    graph = sg.parse_graph(g.read_text(encoding="utf-8"))
+    ctx = sp._ctx_epistemic(graph, (ch / "ch09.md").read_text(encoding="utf-8"), 9, limit=6)
+    assert len(ctx["dropped"]) == 19, ctx["dropped"]      # 25 gate-passing, 6 shown
+    assert all(p.startswith("p-") for p in ctx["dropped"])
+    assert "p-900" not in ctx["dropped"], "the ranked-first claim must never be the dropped one"
+
+
+def test_a_claim_with_no_holder_outranks_one_already_held(tmp_path):
+    """Filling the holder gap is the entire point of the pass, so an unheld claim wins a
+    tie against an identical claim that already has a holder."""
+    g, ch = _limitworld(tmp_path)
+    graph = sg.parse_graph(g.read_text(encoding="utf-8"))
+    ctx = sp._ctx_epistemic(graph, (ch / "ch09.md").read_text(encoding="utf-8"), 9, limit=25)
+    offered = [c["prop-id"] for c in ctx["claims"]]
+    # p-000 is the only filler that already carries a reader row; identical text otherwise.
+    assert offered.index("p-000") > offered.index("p-001"), offered
+
+
+def test_the_relevance_gate_admits_a_claim_written_in_the_authors_words(tmp_path):
+    """Nouns match the prose; the author's verbs do not. At the old 0.5 gate this claim
+    was unreachable in every chapter of Book 3."""
+    g, ch = _limitworld(tmp_path)
+    graph = sg.parse_graph(g.read_text(encoding="utf-8"))
+    props = graph["sections"]["Propositions"]
+    props.append({"prop-id": "p-901",
+                  "statement": "Valerius activates a manufactured Feral Signal above the dam",
+                  "canon-status": "true", "governing-source": "ms", "span": "provisional"})
+    ctx = sp._ctx_epistemic(graph, (ch / "ch09.md").read_text(encoding="utf-8"), 9, limit=30)
+    assert "p-901" in [c["prop-id"] for c in ctx["claims"]], \
+        "'activates'/'manufactured' never appear in the prose, but Valerius/Feral/Signal/dam do"

@@ -298,8 +298,12 @@ def verify(proposal, graph_path, chapters_dir="", max_attribution=40):
             continue
 
         # --- cited spans must already exist ---------------------------------------
+        # `batch_spans` as well as the graph: an Evidence row added earlier in THIS file is
+        # about to exist, and rows are verified in file order. `_verify_set` already allowed
+        # that (which is why proposing evidence works); the add-a-row path here did not, so
+        # a stance row citing its own freshly-minted receipt failed as undeclared.
         cited = [s for s in sg._span_ids(vals.get("span", "")) if s]
-        unknown_spans = [s for s in cited if s not in spans]
+        unknown_spans = [s for s in cited if s not in spans | batch_spans]
         if unknown_spans:
             bad(f"span(s) not declared in Evidence: {', '.join(unknown_spans)}")
             continue

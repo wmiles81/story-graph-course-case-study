@@ -162,3 +162,64 @@ D  resolve-identity            S     gated by C's unresolved list
 candidate generators are all deterministic. That's a substantial amount of the value
 available before a single token is spent, and it's the sequence that makes the AI stages
 worth running when they arrive.
+
+---
+
+## Outcome — all stages shipped
+
+Measured on the Book 3 fixture (30 chapters, 122 propositions), `validate` at 0 errors
+throughout:
+
+| | before | after |
+|---|---|---|
+| Propositions carrying `depends-on` | 29 | **102** |
+| Epistemic rows | 60 | **183** |
+| …carrying a manuscript-verified receipt | 0 | **123** |
+| Evidence rows | 70 | 112 |
+| Propositions with at least one holder | 27% | **60%** |
+| Claims a per-chapter epistemic pass can reach | 71/122 | **119/122** |
+| …offered in their own anchor chapter | 37/73 | **70/73** |
+| Tests | 254 | 264 |
+
+### Three defects the run exposed, all now fixed
+
+Each was invisible until the generators were driven at full scale over a real manuscript,
+and each had been silently degrading output the whole time:
+
+1. **The epistemic claim shortlist truncated in prop-id order.** `claims[:limit]` cut the
+   list after the relevance gate but *before* any ranking, and prop-id is roughly story
+   order — so every chapter's list filled with early-book claims. Book 3's four most
+   load-bearing claims (blast radius 49–58, the entire Grey Guard siege) were offered in
+   **zero of 30 chapters**, so no judge could ever record who believed them. Now ranked by
+   how much the chapter is about the claim, then toward claims that still have no holder.
+2. **The relevance gate penalised well-written propositions.** A claim is phrased in the
+   author's words, so its nouns match the prose and its verbs do not — "Valerius *activates*
+   a *manufactured* Feral Signal" missed on exactly those words while matching Valerius,
+   Feral and Signal. 0.5 → 0.4 moved anchor-chapter reachability 67 → 70 of 73. IDF-weighting
+   this overlap was tried and measured **far worse** (27/73): the paraphrase verbs that never
+   appear in the prose are rare, so IDF hands them the most weight.
+3. **Verified quotes were thrown away on apply.** The judge picked a numbered sentence and
+   the gate proved it existed — then the row landed as `span: provisional`, so `validate`
+   could only ever answer "claim is unverified". Every epistemic row the tool had ever
+   produced was permanently unverifiable for this reason. The basis is now persisted as an
+   Evidence row (deduped: four holders agreeing on one sentence is one receipt) and the
+   stance points at it. Book 3's warning count fell 258 → 135 as a direct result.
+
+A fourth, smaller one: the gate's add-a-row path checked cited spans against the graph only,
+not against Evidence added earlier in the same proposal — `_verify_set` already allowed that,
+which is why proposing *evidence* worked and a stance citing its own fresh receipt did not.
+
+### What is deliberately not finished
+
+- **Holder coverage reached 60%, not the 70% target.** The gap is claims whose shortlist
+  offers adjacent-but-not-supporting prose — `000091` "Snowfall Creek collectively refuses
+  Valerius's surrender demand" retrieves the sentences where Valerius *makes* the demand,
+  not where the town refuses. Those were declined rather than anchored to a quote that does
+  not support them. Closing the gap needs better retrieval, not a looser judge.
+- **Two claims are reachable in no chapter at all** (`000072`, `000079`): under 40% token
+  overlap with every chapter in the book.
+- **`valerius` has no entity row** despite driving 10+ propositions across ch19–29, so he
+  cannot be named as a holder of anything. `unresolved` should have caught this; that it
+  did not is worth a look.
+- **60 of 183 epistemic rows remain `provisional`** — the original imported ones. Nobody has
+  verified those, and the graph correctly says so.

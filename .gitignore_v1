@@ -9,10 +9,6 @@ series/
 venv/
 env/
 
-# agent/session scratch state — untracked but visible, which is how it gets
-# swept into a commit by `git add -A`
-.omc/
-
 # secrets — the app persists the AI provider key here; never commit it
 .env
 .env.*
