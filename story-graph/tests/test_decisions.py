@@ -325,3 +325,50 @@ def test_a_graph_without_the_column_scores_exactly_as_before():
     rep = sg.Report()
     sg.check_dependencies(g, {"p1"}, rep)
     assert rep.errors == []
+
+
+# ------------------------------------------------- the mode guides must not rot
+
+
+def _guides():
+    """The per-mode guides: everything in reference/ except preserved versions and
+    decisions.md, which IS the decision layer rather than a mode that points at one."""
+    return [f for f in sorted((SKILL / "reference").glob("*.md"))
+            if "_v" not in f.stem and f.name != "decisions.md"]
+
+
+def test_mode_guides_only_cite_commands_that_exist():
+    """A guide naming a subcommand that was renamed or never shipped sends an agent down
+    a path with no floor. Documentation rot is the failure this project keeps finding, so
+    it gets a check rather than a promise."""
+    import re
+    cmds = set(re.findall(r'sub\.add_parser\("([^"]+)"\)',
+                          (SKILL / "assets" / "story_graph.py").read_text(encoding="utf-8")))
+    assert cmds, "no subcommands parsed — the check itself is broken"
+    bad = [(f.name, c) for f in _guides()
+           for c in set(re.findall(r"story_graph\.py (\w[\w-]*)", f.read_text(encoding="utf-8")))
+           if c not in cmds]
+    assert not bad, f"guides cite non-existent subcommands: {bad}"
+
+
+def test_mode_guides_only_cite_rules_that_exist():
+    """`decisions.md` is renumbered as it grows; a guide pointing at 2.5 when 2.5 has
+    moved is worse than no pointer, because it looks authoritative."""
+    import re
+    dec = DECISIONS.read_text(encoding="utf-8")
+    skill = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    bad = []
+    for f in _guides():
+        t = f.read_text(encoding="utf-8")
+        bad += [(f.name, f"decisions.md {s}") for s in set(re.findall(r"decisions\.md.{0,3}(\d\.\d)", t))
+                if f"## {s}" not in dec]
+        bad += [(f.name, f"SKILL.md '{s}'") for s in set(re.findall(r"SKILL\.md . \*([^*]+)\*", t))
+                if f"## {s}" not in skill and f"# {s}" not in skill]
+    assert not bad, f"guides cite missing sections: {bad}"
+
+
+def test_every_mode_guide_points_at_the_decision_layer():
+    """SKILL.md says load decisions.md in every mode. A guide that never mentions it
+    leaves the agent to re-derive the inclusion and resolution rules from scratch."""
+    missing = [f.name for f in _guides() if "decisions.md" not in f.read_text(encoding="utf-8")]
+    assert not missing, f"mode guides with no pointer to the decision layer: {missing}"

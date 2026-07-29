@@ -4,20 +4,6 @@ Use when a `Story-Graph.md` already exists and chapters sit above its
 `current-canon-chapter` high-water mark. This is the canon-commit loop: it walks
 each uncommitted chapter in order and folds its deltas into the graph.
 
-**Read `decisions.md` alongside this.** Catch-up writes the same kinds of row as the
-other modes and inherits the same rules — which claims need a receipt (1.1), what earns a
-Proposition at all (1.2), and that a new claim must name an EVENT rather than a state
-(2.4), because a state-shaped claim added now flips later and contradicts the rows you are
-about to commit.
-
-Two checks are worth running BEFORE you commit a batch, since both are cheap and both get
-expensive once rows cite the problem:
-
-```
-story_graph.py unresolved <graph> --chapters-dir <d>   # names the new chapters introduced
-story_graph.py shapes     <graph>                      # claims that cannot be pinned in time
-```
-
 ## Steps
 
 1. **Read the ontology** (`<SKILL_DIR>/assets/Story-Graph-Ontology-v2.md`),

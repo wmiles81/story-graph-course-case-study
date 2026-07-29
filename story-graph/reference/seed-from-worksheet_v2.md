@@ -4,12 +4,6 @@ Use when an NPE **YFD-RAW worksheet** (`*YFD-RAW*.md` or `master_story_document.
 exists but no `Story-Graph.md` does yet. The worksheet already states the story's
 facts, so seeding is transcription, not invention.
 
-**Read `decisions.md` alongside this.** Seeding is transcription, so most of its
-judgement calls do not arise — but two do, because a worksheet does not make them for you:
-resolving one person's several names to one id (2.1–2.2), and writing claims as EVENTS
-rather than states (2.4). A worksheet routinely says "Jackson is alive"; the graph wants
-the event that made it true, or it will contradict itself by the last act.
-
 ## Steps
 
 1. **Read the ontology first** — `<SKILL_DIR>/assets/Story-Graph-Ontology-v2.md`.
