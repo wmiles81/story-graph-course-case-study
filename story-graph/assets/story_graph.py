@@ -1305,6 +1305,11 @@ def main(argv=None):
     vp.add_argument("proposal")
     vp.add_argument("--graph", required=True)
     vp.add_argument("--chapters-dir", default="")
+    rj = sub.add_parser("reject-proposal")
+    rj.add_argument("proposal")
+    rj.add_argument("--graph", required=True)
+    rj.add_argument("--rows", required=True, help="row numbers you are rejecting")
+    rj.add_argument("--reason", default="", help="why — shown when the row is proposed again")
     ap = sub.add_parser("apply-proposal")
     ap.add_argument("proposal")
     ap.add_argument("--graph", required=True)
@@ -1415,6 +1420,25 @@ def main(argv=None):
         else:
             print("Nothing has touched the graph. Next: verify-proposal, then apply-proposal.")
         return 0
+    if args.command == "reject-proposal":
+        import story_graph_proposals as sgp
+        prop = sgp.load(args.proposal)
+        prop["_file"] = args.proposal
+        bad = [x for x in re.split(r"[,\s]+", args.rows) if x.strip() and not x.strip().isdigit()]
+        if bad:
+            print(f"ERROR: --rows takes row numbers; could not read {', '.join(map(repr, bad))}")
+            return 1
+        rows = sorted({int(x) for x in re.split(r"[,\s]+", args.rows) if x.strip()})
+        n = len(prop["rows"])
+        out_of_range = [i for i in rows if i < 1 or i > n]
+        if out_of_range:
+            print(f"ERROR: row number(s) {out_of_range} are outside this proposal (1-{n})")
+            return 1
+        sgp.ledger_append(args.graph, prop, rows, "rejected", args.reason)
+        print(f"RESULT: recorded {len(rows)} rejection(s) in "
+              f"{Path(sgp.ledger_path(args.graph)).name}. The graph is untouched; these rows "
+              f"will be marked as already decided the next time they are proposed.")
+        return 0
     if args.command in ("verify-proposal", "apply-proposal"):
         import story_graph_proposals as sgp     # lazy: nothing else needs it
         prop = sgp.load(args.proposal)
@@ -1422,7 +1446,8 @@ def main(argv=None):
         verdicts = sgp.verify(prop, args.graph, args.chapters_dir)
         if args.command == "verify-proposal":
             print(sgp.verify_report(verdicts, prop,
-                                    parse_graph(Path(args.graph).read_text(encoding='utf-8'))))
+                                    parse_graph(Path(args.graph).read_text(encoding='utf-8')),
+                                    sgp.ledger_read(args.graph)))
             return 1 if any(v == sgp.FAIL for _, v, _ in verdicts) else 0
         ok = {i for i, v, _ in verdicts if v != sgp.FAIL}
         if args.accept == "pass":
@@ -1502,6 +1527,7 @@ def main(argv=None):
         prior = _next_version_path(args.graph)
         Path(prior).write_text(text, encoding="utf-8")   # never overwrite: keep the old one
         Path(args.graph).write_text(merged, encoding="utf-8")
+        sgp.ledger_append(args.graph, prop, accept, "accepted")
         print(f"RESULT: applied {len(accept)} row(s) to {args.graph}; previous version kept at "
               f"{Path(prior).name}; validate reports 0 error(s)")
         return 0

@@ -71,6 +71,10 @@ Run `story_graph.py` (stdlib; `compile`/`query`/`audit`/`impact` also want `pip 
   writes a quote — code numbers real sentences and the model picks one, so a fabricated
   quote has no way in. Rows that assert a *reading* (a belief, an entity's type, that a
   quote proves a claim) are always `NEEDS-HUMAN`, never auto-applied.
+- **Review once** — `reject-proposal` records a decision (with your reason) in an
+  append-only `<graph>-review.jsonl`; `verify-proposal` then skips what you have already
+  decided and tells you how many rows are genuinely new. Re-running a generator costs you
+  the new rows, not all of them again.
 - **Check claim shape** — `shapes` lists propositions that can become false later in the
   same book ("The Founding Scrolls are missing"), ranked by how many holders already
   believe them. A Proposition has no time bounds, so these manufacture contradictions that

@@ -74,6 +74,85 @@ def load(path):
     return d
 
 
+# ------------------------------------------------------------------------- the ledger
+#
+# Review had no memory. Reject a row, re-run the generator, and it comes back — so the
+# same bad rows get read again every pass, and reviewing becomes the bottleneck rather
+# than generating. The ledger makes review CUMULATIVE: decide once, and a later run shows
+# only what is genuinely new.
+
+
+def ledger_path(graph_path):
+    """Beside the graph, and shared across its versions: applying a proposal rolls the
+    graph to `_v7`, and a decision made against `_v6` must still count."""
+    p = Path(graph_path)
+    stem = re.sub(r"_v\d+$", "", p.stem)
+    return p.with_name(stem + "-review.jsonl")
+
+
+def row_key(row):
+    """Exact identity: this assertion, backed by this passage."""
+    sec = row.get("section", "")
+    if _op(row) == "set":
+        ident = "|".join(f"{k}={v}" for k, v in sorted((row.get("key") or {}).items()))
+        ident += "->" + "|".join(f"{k}={v}" for k, v in sorted((row.get("set") or {}).items()))
+    else:
+        ident = "|".join(_key(sec, row.get("values") or {}))
+    quote = " ".join(((row.get("basis") or {}).get("quote") or "").split())
+    return f"{sec}::{ident}::{quote[:120]}"
+
+
+def claim_key(row):
+    """The assertion alone, whatever passage was cited for it.
+
+    Kept separate from row_key on purpose. "This stance is wrong" should stay decided
+    however the generator re-quotes it; "that quote doesn't support it" deserves another
+    look when a better quote turns up. So a claim-level match is reported as a HINT and
+    never as a block — the tool surfaces, the human decides.
+    """
+    sec = row.get("section", "")
+    if _op(row) == "set":
+        return f"{sec}::" + "|".join(f"{k}={v}" for k, v in sorted((row.get("key") or {}).items()))
+    return f"{sec}::" + "|".join(_key(sec, row.get("values") or {}))
+
+
+def ledger_read(graph_path):
+    """(by exact row, by claim) -> the recorded decision."""
+    p = ledger_path(graph_path)
+    by_row, by_claim = {}, {}
+    if not p.exists():
+        return by_row, by_claim
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            d = json.loads(line)
+        except ValueError:
+            continue                      # a corrupt line must not lose the whole ledger
+        if d.get("row_key"):
+            by_row[d["row_key"]] = d
+        if d.get("claim_key"):
+            by_claim.setdefault(d["claim_key"], []).append(d)
+    return by_row, by_claim
+
+
+def ledger_append(graph_path, proposal, indices, decision, reason="", when=""):
+    """Append-only, one JSON object per line: a log, not a database."""
+    p = ledger_path(graph_path)
+    g = proposal.get("generated") or {}
+    with p.open("a", encoding="utf-8") as fh:
+        for i in indices:
+            row = proposal["rows"][i - 1]
+            fh.write(json.dumps({
+                "decision": decision, "reason": reason, "when": when,
+                "row_key": row_key(row), "claim_key": claim_key(row),
+                "section": row.get("section", ""), "scope": g.get("scope", ""),
+                "model": g.get("model", ""), "proposal": Path(proposal.get("_file", "")).name,
+            }, sort_keys=True) + "\n")
+    return len(indices)
+
+
 def _op(row):
     return (row.get("op") or "add").lower()
 
@@ -525,8 +604,10 @@ def _judgement_context(row, graph):
     return lines
 
 
-def verify_report(verdicts, proposal, graph=None):
+def verify_report(verdicts, proposal, graph=None, ledger=None):
     counts = {PASS: 0, HUMAN: 0, FAIL: 0}
+    by_row, by_claim = ledger or ({}, {})
+    seen, hints, fresh = [], [], []
     out = [f"VERIFY — {len(proposal['rows'])} proposed row(s)", "=" * 58]
     for i, verdict, reason in verdicts:
         counts[verdict] += 1
@@ -535,12 +616,34 @@ def verify_report(verdicts, proposal, graph=None):
             label = " / ".join(str(v) for v in (row.get("key") or {}).values()) + "  <- update"
         else:
             label = " / ".join(x for x in _key(row.get("section", ""), row.get("values") or {}) if x)
+        prior = by_row.get(row_key(row))
+        if prior:
+            seen.append((i, prior))
+            out.append(f"  [{'SEEN ' + prior['decision']:^11}] {i:>3}. {row.get('section', '?')}: {label}")
+            if prior.get("reason"):
+                out.append(f"                    previously: {prior['reason']}")
+            continue
+        near = [d for d in by_claim.get(claim_key(row), []) if d["decision"] == "rejected"]
+        if near:
+            hints.append(i)
+        elif verdict != FAIL:
+            fresh.append(i)
         out.append(f"  [{verdict:^11}] {i:>3}. {row.get('section', '?')}: {label}")
         out.append(f"                    {reason}")
+        if near:
+            out.append(f"                    ! you rejected this same claim before "
+                       f"({near[0].get('reason') or 'no reason recorded'}) — new quote, so it is "
+                       f"shown rather than hidden")
         if verdict == HUMAN:
             out += [f"                    {ln}" for ln in _judgement_context(row, graph)]
     out.append("")
     out.append(f"  {counts[PASS]} pass · {counts[HUMAN]} need a human · {counts[FAIL]} rejected")
+    if seen:
+        out.append(f"  {len(seen)} already decided and skipped — review is cumulative")
+    if hints:
+        out.append(f"  {len(hints)} re-propose a claim you rejected before, with a different quote")
+    if by_row and fresh:
+        out.append(f"  {len(fresh)} genuinely NEW row(s) to read: {','.join(map(str, fresh))}")
     if counts[HUMAN]:
         out.append("  NEEDS-HUMAN is not a soft pass: those rows cite a real quote, but what the "
                    "quote\n  MEANS is a reading, and no checker confirms a reading.")

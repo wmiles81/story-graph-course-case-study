@@ -439,3 +439,81 @@ def test_accept_all_says_out_loud_that_it_is_taking_unreviewed_rows(world, tmp_p
     sg.main(["apply-proposal", str(pf), "--graph", world["graph"],
              "--chapters-dir", world["chapters"], "--accept", "all"])
     assert "NEEDS-HUMAN row(s)" in capsys.readouterr().out
+
+
+# ------------------------------------------------------------------ the decision ledger
+
+
+def _pf(tmp_path, rows, scope="ch05"):
+    pf = tmp_path / "p.json"
+    pf.write_text(json.dumps(_prop(rows, scope=scope)), encoding="utf-8")
+    return pf
+
+
+def test_a_rejection_is_remembered_so_review_is_cumulative(world, tmp_path, capsys):
+    """Review had no memory: reject a row, re-run the generator, read it again. Across a
+    30-chapter book that made reviewing the bottleneck rather than generating."""
+    pf = _pf(tmp_path, [_epi(holder="jonah"), _epi(holder="margot-vance")])
+    assert sg.main(["reject-proposal", str(pf), "--graph", world["graph"], "--rows", "1",
+                    "--reason", "the quote shows anger, not belief"]) == 0
+    capsys.readouterr()
+    assert sg.main(["verify-proposal", str(pf), "--graph", world["graph"],
+                    "--chapters-dir", world["chapters"]]) in (0, 1)
+    out = capsys.readouterr().out
+    assert "SEEN rejected" in out
+    assert "already decided and skipped" in out
+    assert "the quote shows anger, not belief" in out
+
+
+def test_the_same_claim_with_a_new_quote_is_flagged_not_hidden(world, tmp_path, capsys):
+    """"This stance is wrong" should stay decided; "that quote doesn't support it"
+    deserves another look. The tool cannot tell which reason was meant, so a claim-level
+    match is a HINT and never a block."""
+    pf = _pf(tmp_path, [_epi(holder="jonah")])
+    sg.main(["reject-proposal", str(pf), "--graph", world["graph"], "--rows", "1",
+             "--reason", "wrong reading"])
+    other = tmp_path / "p2.json"
+    row = _epi(holder="jonah")
+    row["basis"]["quote"] = "Snow fell all morning."      # same claim, different passage
+    other.write_text(json.dumps(_prop([row])), encoding="utf-8")
+    capsys.readouterr()
+    sg.main(["verify-proposal", str(other), "--graph", world["graph"],
+             "--chapters-dir", world["chapters"]])
+    out = capsys.readouterr().out
+    assert "you rejected this same claim before" in out and "wrong reading" in out
+    assert "SEEN" not in out, "a different quote must not be auto-skipped"
+
+
+def test_applying_records_the_acceptance_too(world, tmp_path, capsys):
+    pf = _pf(tmp_path, [_epi(holder="jonah")])
+    assert sg.main(["apply-proposal", str(pf), "--graph", world["graph"],
+                    "--chapters-dir", world["chapters"], "--accept", "1"]) == 0
+    by_row, _ = sgp.ledger_read(world["graph"])
+    assert len(by_row) == 1 and list(by_row.values())[0]["decision"] == "accepted"
+
+
+def test_the_ledger_survives_the_graph_rolling_to_a_new_version(world):
+    """Applying rolls the graph to `_v7`; a decision made against `_v6` must still count,
+    or every apply silently forgets everything decided before it."""
+    a = sgp.ledger_path(world["graph"])
+    b = sgp.ledger_path(str(Path(world["graph"]).with_name("g_v7.md")))
+    assert a == b
+
+
+def test_a_corrupt_line_does_not_lose_the_ledger(world, tmp_path):
+    p = sgp.ledger_path(world["graph"])
+    p.write_text('{"row_key": "a", "decision": "rejected"}\n'
+                 "not json at all\n"
+                 '{"row_key": "b", "decision": "accepted"}\n', encoding="utf-8")
+    by_row, _ = sgp.ledger_read(world["graph"])
+    assert set(by_row) == {"a", "b"}
+
+
+@pytest.mark.parametrize("rows,fragment", [
+    ("banana", "takes row numbers"), ("0", "outside this proposal"), ("99", "outside this proposal"),
+])
+def test_reject_validates_its_row_numbers(world, tmp_path, capsys, rows, fragment):
+    pf = _pf(tmp_path, [_epi(holder="jonah")])
+    assert sg.main(["reject-proposal", str(pf), "--graph", world["graph"], "--rows", rows]) == 1
+    assert fragment in capsys.readouterr().out
+    assert not sgp.ledger_path(world["graph"]).exists()

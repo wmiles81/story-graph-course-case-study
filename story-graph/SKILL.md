@@ -381,6 +381,26 @@ now. The fix is always the same shape — say the event that made it true:
 
 Rewriting a statement is a canon change, so the tool reports and does not edit.
 
+## Review is cumulative
+
+```bash
+python3 <SKILL_DIR>/assets/story_graph.py reject-proposal <p.json> --graph <g> \
+    --rows 3,7 --reason "the quote shows anger, not belief"
+```
+
+Every accept and every rejection is appended to `<graph>-review.jsonl` beside the graph.
+`verify-proposal` then marks a row you have already decided as `SEEN`, and tells you how
+many rows are **genuinely new** — so re-running a generator costs you the new rows to read,
+not all of them again.
+
+Record the REASON. When the same claim comes back with a different quote, the row is shown
+with your reason attached rather than hidden: "this stance is wrong" should stay decided,
+but "that quote doesn't support it" deserves another look, and only you know which you
+meant.
+
+The ledger is append-only and shared across the graph's versions, so applying a proposal —
+which rolls the graph to a new `_v<N>` — never forgets what you decided before it.
+
 ## Finding what's missing (deterministic)
 
 Two candidate generators. Neither uses a model, neither writes to the graph, and both
