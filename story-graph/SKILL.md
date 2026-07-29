@@ -381,6 +381,25 @@ now. The fix is always the same shape — say the event that made it true:
 
 Rewriting a statement is a canon change, so the tool reports and does not edit.
 
+## Series graphs (one canon across books)
+
+A series graph numbers chapters continuously — Book 2 chapter 1 is series ch31 if Book 1
+ran to 30 — so it MUST carry a chapter-convention legend in the header, one blockquote
+line per book:
+
+```
+> B1 ch1-30 — series/books/book-1/phase-7-drafting/chapters
+> B2 ch31-50 — series/books/book-2/phase-7-drafting/chapters
+```
+
+`validate` reads it, so a series graph needs **no `--chapters-dir`**: each Evidence
+locator resolves to the right book's directory, whatever that book names its files. The
+ranges must ascend, must not overlap, and must point at directories that exist — a legend
+that lies sends the quote checker to the wrong book, which is worse than none.
+
+Without the legend a series graph is silently unverifiable, so a Canon Commit Log carrying
+`(B# chN)` mappings with no legend is an ERROR rather than a warning.
+
 ## Review is cumulative
 
 ```bash

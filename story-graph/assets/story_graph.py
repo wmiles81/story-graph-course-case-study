@@ -417,6 +417,88 @@ def quote_is_substantial(quote):
     return len(q) >= MIN_QUOTE_CHARS and len(q.split()) >= MIN_QUOTE_WORDS
 
 
+# A series graph is ONE cumulative canon: Book 2 chapter 1 continues after Book 1's last,
+# because the Canon Commit Log requires strictly increasing chapters. The ontology says
+# such a graph MUST carry a chapter-convention legend; nothing implemented it, so a series
+# graph's Evidence could never be verified — one `--chapters-dir` cannot span books, and
+# the on-disk numbering (1..20) does not match the series locators (ch31..ch50). That is
+# the whole safety model going quiet, which is the failure this project keeps finding.
+#
+#   > B1 ch1-30 — series/books/book-1/phase-7-drafting/chapters
+#   > B2 ch31-50 — series/books/book-2/phase-7-drafting/chapters
+#
+# Paths are relative to the graph file. The book label is free text; the range and the
+# path are what the tool needs.
+# `(?:ch)?` and not `ch?` — the latter is "c" followed by an optional "h", so it demanded
+# a literal c before the range's upper bound and never matched anything.
+_LEGEND_RE = re.compile(
+    r"^>\s*(?P<label>\S+)?\s*ch\s*(?P<lo>\d+)\s*[-–—]\s*(?:ch)?\s*(?P<hi>\d+)"
+    r"\s*[—–\-:|]\s*(?P<path>\S.*?)\s*$", re.I)
+
+
+def parse_chapter_legend(text):
+    """[(lo, hi, label, path)] from the header blockquote, in declared order."""
+    out = []
+    for line in text.splitlines():
+        if line.startswith("## "):
+            break                       # the legend lives in the header, above any section
+        m = _LEGEND_RE.match(line.strip())
+        if m:
+            out.append((int(m.group("lo")), int(m.group("hi")),
+                        (m.group("label") or "").strip(), m.group("path").strip()))
+    return out
+
+
+def check_series_legend(graph, text, graph_path, report):
+    """A legend that lies is worse than none: it sends the quote checker to the wrong book.
+
+    Ranges must ascend, must not overlap, and must point at directories that exist. A log
+    that carries `(B# chN)` mappings without a legend is a series graph missing the one
+    thing that makes it verifiable, so that is an error rather than a shrug.
+    """
+    legend = parse_chapter_legend(text)
+    log = "\n".join(_raw_section_lines(graph, "Canon Commit Log"))
+    looks_series = bool(re.search(r"\(B\s*\d+\s+ch\s*\d+\)", log, re.I))
+    if not legend:
+        if looks_series:
+            report.error("Canon Commit Log carries (B# chN) mappings but the header has no "
+                         "chapter-convention legend — a series graph's evidence cannot be "
+                         "verified without one")
+        return legend
+    base = Path(graph_path).resolve().parent
+    prev_hi = 0
+    for lo, hi, label, path in legend:
+        where = f"legend [{label or 'B?'} ch{lo}-{hi}]"
+        if hi < lo:
+            report.error(f"{where}: range runs backwards")
+        if lo <= prev_hi:
+            report.error(f"{where}: overlaps or repeats the previous range (ends ch{prev_hi})")
+        prev_hi = max(prev_hi, hi)
+        if not (base / path).is_dir() and not Path(path).is_dir():
+            report.error(f"{where}: '{path}' is not a directory (relative to the graph)")
+    return legend
+
+
+def resolve_series_chapter(locator, legend, graph_path):
+    """A series locator -> the file, via the legend.
+
+    ch31 in a graph whose legend says B2 covers ch31-50 is that book's chapter 1: the
+    series number minus the range start, plus one. Getting this off by one points every
+    quote check at the neighbouring chapter, which would verify just often enough to be
+    trusted.
+    """
+    m = re.search(r"(\d+)", locator or "")
+    if not m or not legend:
+        return None
+    n = int(m.group(1))
+    base = Path(graph_path).resolve().parent
+    for lo, hi, _label, path in legend:
+        if lo <= n <= hi:
+            d = (base / path) if (base / path).is_dir() else Path(path)
+            return _resolve_chapter(str(d), f"ch{n - lo + 1}")
+    return None
+
+
 def chapter_files(chapters_dir):
     """The chapter files in a directory, in STORY order.
 
@@ -470,7 +552,7 @@ def _resolve_chapter(chapters_dir, locator):
     return hits[0] if len(hits) == 1 else None
 
 
-def verify_spans(graph, sources, chapters_dir, report):
+def verify_spans(graph, sources, chapters_dir, report, legend=None, graph_path=""):
     for r in graph["sections"].get("Evidence", []):
         sid = r.get("span-id", "")
         src = r.get("source-id", "")
@@ -479,10 +561,15 @@ def verify_spans(graph, sources, chapters_dir, report):
         quote = r.get("quote", "").strip()
         if not quote:
             continue  # already an error from check_evidence
-        if not chapters_dir:
+        if not chapters_dir and not legend:
             report.warn(f"Evidence [{sid}]: could not verify manuscript quote (no --chapters-dir)")
             continue
-        chapter = _resolve_chapter(chapters_dir, r.get("locator", ""))
+        # A series graph resolves through its legend, which knows which BOOK a
+        # series-continuous chapter number lives in; a single --chapters-dir cannot.
+        chapter = (resolve_series_chapter(r.get("locator", ""), legend, graph_path)
+                   if legend else None)
+        if chapter is None and chapters_dir:
+            chapter = _resolve_chapter(chapters_dir, r.get("locator", ""))
         if chapter is None:
             report.warn(f"Evidence [{sid}]: could not verify — chapter file for '{r.get('locator','')}' not found")
             continue
@@ -706,10 +793,11 @@ def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""
     check_structure(graph, report)
     sources = check_sources(graph, report)
     check_authority(graph, sources, report)
+    legend = check_series_legend(graph, text, graph_path, report)
     entity_ids, location_ids = check_entities(graph, report)
     check_aliases(graph, entity_ids, report)
     span_ids = check_evidence(graph, sources, report)
-    verify_spans(graph, sources, chapters_dir, report)
+    verify_spans(graph, sources, chapters_dir, report, legend, graph_path)
     prop_ids = check_propositions(graph, sources, span_ids, report)
     check_epistemic(graph, entity_ids, prop_ids, span_ids, report)
     check_open_loops(graph, canon_ch, span_ids, report)

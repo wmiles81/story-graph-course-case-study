@@ -246,6 +246,28 @@ chapter-convention legend in the header block. See
 `Story-Graph-Ontology-v1.md` § *Multi-Book Series Graphs* for the full
 mechanism — v2 does not change it.
 
+**Legend format** (v2 makes the previously-unspecified shape concrete, because
+the validator now reads it). One blockquote line per book, in the header above
+the first `##` section:
+
+```
+> B1 ch1-30 — series/books/book-1/phase-7-drafting/chapters
+> B2 ch31-50 — series/books/book-2/phase-7-drafting/chapters
+```
+
+The label is free text; the range and the path are what the tool uses, and the
+path is relative to the graph file. Ranges must ascend and must not overlap,
+and each must point at a real directory — a legend that lies sends the quote
+checker to the wrong book, which is worse than no legend at all.
+
+Chapters are addressed by their SERIES number: with the legend above, `ch31`
+is Book 2's chapter 1. `validate` resolves each Evidence locator through the
+legend, so a series graph needs no `--chapters-dir`, and a quote cited at a
+Book 2 locator cannot be satisfied by prose that only exists in Book 1.
+
+A Canon Commit Log carrying `(B# chN)` mappings without a legend is an ERROR:
+it declares itself a series graph while making its own evidence unverifiable.
+
 ## Update Rules (Canon Commit)
 
 Canon changes only when a chapter reaches Final. A canon commit: extract the
