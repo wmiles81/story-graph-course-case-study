@@ -58,6 +58,80 @@ _SENT = re.compile(r"(?<=[.!?])[\"'”’]?\s+|\n+")
 _LEAD = re.compile(r"^[\"'“”‘’—–\-\s]*")
 
 
+# Determiners. A common noun accepts one; a proper name rejects it. "the Wolf", "a
+# Vampire", "three Trolls" are grammatical; "the Margot" is not.
+DETERMINERS = {
+    "the", "a", "an", "another", "every", "each", "some", "any", "no", "this", "that",
+    "these", "those", "both", "either", "neither", "one", "two", "three", "four", "five",
+    "six", "seven", "eight", "nine", "ten", "several", "many",
+    "my", "your", "his", "her", "its", "our", "their",
+    # Deliberately NOT here: more, most, few, other, such, which, what, whose. Each is a
+    # determiner in some frames and an adverb or pronoun in others, and "Thump twice more.
+    # Thump." scored a false hit on `more` before they were removed.
+}
+_WORDISH = re.compile(r"[A-Za-z][A-Za-z'\-]*")
+# Sentence boundary. Without it the pass reads across the full stop, so a word OPENING a
+# sentence inherits whatever preceded the period — which is how "Thump" acquired two
+# determiners it never had, from the "more." ending the sentence before it.
+_BOUNDARY = re.compile(r"[.!?;:,\"'“”‘’()\[\]—–]|\n")
+
+
+def determiner_profile(chapters_dir):
+    """token -> (uses, determiner-preceded, pluralised), over the whole manuscript.
+
+    This is the classic proper-noun test and it is the only mechanical signal found that
+    separates a NAME from a DESCRIPTION: "the Vampire" and "three Trolls" are grammatical,
+    "the Margot" is not.
+
+    A capitalisation test was tried first and is much weaker: this author capitalises
+    species and titles consistently, so "Keeper" and "Alpha" never appear lowercase and the
+    test misses them entirely. Determiners catch what case does not.
+    """
+    uses, det = {}, {}
+    for ch in _chapters(chapters_dir):
+        text = ch.read_text(encoding="utf-8", errors="replace")
+        for clause in _BOUNDARY.split(text):
+            words = _WORDISH.findall(clause)
+            for i, w in enumerate(words):
+                t = w.lower()
+                uses[t] = uses.get(t, 0) + 1
+                if i and words[i - 1].lower() in DETERMINERS:
+                    det[t] = det.get(t, 0) + 1
+    return {t: (uses[t], det.get(t, 0), uses.get(t + "s", 0)) for t in uses}
+
+
+def looks_like_description(phrase, profile, min_uses=5, threshold=0.25):
+    """True when a ONE-WORD candidate behaves like a common noun rather than a name.
+
+    Single tokens separate cleanly on Book 3 — descriptions 0.47-0.93, names 0.00-0.01, a
+    32x gap with nothing in between — so the call is safe there. One documented exception:
+    a proper name that idiomatically takes "the" ("the Archives") scores like a description
+    and has to be overruled by a reader.
+
+    Multi-word candidates are deliberately NOT classified, because neither available unit
+    works and both were measured:
+
+      * scoring the head noun calls "Main Street" a description (0.39 on `street`) and
+        "Iron- Jaw" one too (0.90 on `jaw`, mostly from "his jaw");
+      * scoring the whole phrase fixes those (0.11, 0.00) but then calls "the Grey Guard"
+        (0.91), "the Deep Stacks" (1.00) and "the Sonnet Glade" (1.00) descriptions — and
+        those are proper names. English lets a proper name of an institution or a place
+        take a determiner exactly as a common noun does, so no determiner test can tell
+        "the Grey Guard" from "the Gunship". That distinction needs a reader.
+
+    So a phrase stays on the main work list, unclassified. The asymmetry is deliberate
+    throughout: calling a description a name costs a glance, calling a NAME a description
+    hides the thing this command exists to find.
+    """
+    toks = [t for t in _norm(phrase).split() if t]
+    if len(toks) != 1:
+        return False
+    uses, det, plural = profile.get(toks[0], (0, 0, 0))
+    if uses < min_uses:
+        return False
+    return det / uses >= threshold or plural > 2
+
+
 def _chapters(chapters_dir):
     # Shared with the validator: numeric order, and only files that carry a chapter
     # number — a `word_count_tracker.md` sitting beside the prose is not a chapter.
@@ -321,16 +395,34 @@ def conflicts(graph, overlap=0.45, min_tokens=3):
     return same, cross, undated
 
 
-def unresolved_report(rows, min_count):
+def unresolved_report(rows, min_count, profile=None):
     if not rows:
         return f"UNRESOLVED — none (no proper noun appears {min_count}+ times without an entity)"
-    out = [f"UNRESOLVED — {len(rows)} proper noun(s) with no entity behind them, "
+    names = [r for r in rows
+             if not (profile and looks_like_description(r[0], profile))]
+    descs = [r for r in rows if r not in names]
+    out = [f"UNRESOLVED — {len(names)} probable name(s) with no entity behind them, "
            f"seen {min_count}+ times", "=" * 60]
-    for phrase, n, first in rows:
+    for phrase, n, first in names:
         out.append(f"  {n:>4}x  {phrase:<34} first in {first}")
     out.append("\nEach is either an entity you have not modelled, an alias you have not "
                "declared,\nor prose the extractor mistook for a name. Judgement decides "
                "which; this only\nguarantees the list is finite.")
+    if descs:
+        out += ["", f"DESCRIPTIONS — {len(descs)} common noun(s), not names", "=" * 60]
+        for phrase, n, first in descs:
+            uses, det, plural = profile.get(_norm(phrase).split()[-1], (0, 0, 0))
+            out.append(f"  {n:>4}x  {phrase:<24} first in {first:<6} "
+                       f"det {det}/{uses}"
+                       f"{f', {plural} plural' if plural else ''}")
+        out.append(
+            "\nThese take a determiner (\"the Wolf\", \"three Trolls\"), which a proper name "
+            "does\nnot — so they are DESCRIPTIONS, and they do not belong in an alias table. "
+            "An alias\nis a rigid designator: 'Sheriff Harrow' is Jonah in every scene. A "
+            "description\nresolves per scene against whoever qualifies — 'the Vampire' is "
+            "Aleksei only\nbecause he is the one vampire present, and in a room with two it "
+            "names neither.\nRecording one as an alias asserts a permanent identity the "
+            "prose never gave it.")
     return "\n".join(out)
 
 

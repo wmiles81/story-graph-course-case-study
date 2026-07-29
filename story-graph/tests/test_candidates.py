@@ -484,3 +484,94 @@ def test_the_book3_antagonist_is_now_reported(tmp_path):
     if "valerius" not in ids:
         assert "Valerius" in names, f"the antagonist must be reported; got {names[:6]}"
         assert names[0] == "Valerius", f"and he is the most frequent of them: {names[:4]}"
+
+
+# --------------------------------------------- name vs description (the determiner test)
+
+
+def _prof(tmp_path, prose):
+    ch = tmp_path / "chapters"
+    ch.mkdir(exist_ok=True)
+    (ch / "ch01.md").write_text(prose, encoding="utf-8")
+    return sgc.determiner_profile(ch)
+
+
+def test_a_determiner_taking_noun_is_a_description(tmp_path):
+    """A common noun accepts a determiner; a proper name rejects one. This is what tells
+    "the Vampire" from "Margot" without a model, and on Book 3 the two populations do not
+    overlap: descriptions 0.47-0.93, names 0.00-0.01."""
+    prose = ("The wolf paced. A wolf howled. Every wolf knows. The wolf turned. "
+             "Margot watched the wolf. Margot spoke. Margot left. Margot returned. "
+             "Margot waited and Margot listened.")
+    p = _prof(tmp_path, prose)
+    assert sgc.looks_like_description("Wolf", p) is True
+    assert sgc.looks_like_description("Margot", p) is False, "a name must never be demoted"
+
+
+def test_pluralisation_also_marks_a_common_noun(tmp_path):
+    """A name does not pluralise. Trolls/Troll is 41 occurrences on Book 3."""
+    p = _prof(tmp_path, "Troll one. Troll two. Troll three. Troll four. Troll five. "
+                        "Trolls came. Trolls left. Trolls again. Trolls more.")
+    uses, det, plural = p["troll"]
+    assert uses >= 5 and plural > 2, (uses, det, plural)   # the floor must be cleared first
+    assert sgc.looks_like_description("Troll", p) is True
+
+
+def test_a_multiword_candidate_is_never_classified(tmp_path):
+    """Neither unit works and both were measured. Scoring the head noun calls "Main Street"
+    a description (0.39 on `street`); scoring the whole phrase fixes that but then calls
+    "the Grey Guard" (0.91) and "the Deep Stacks" (1.00) descriptions, and those are proper
+    names. English lets a proper name take a determiner, so no determiner test can separate
+    "the Grey Guard" from "the Gunship" — that needs a reader. Unclassified is the safe
+    answer: the candidate stays on the main work list where a missed entity is visible."""
+    prose = ("The street was cold. A street sign. Every street here. The street again. "
+             "They walked down Main Street. Main Street was empty. Main Street ended. "
+             "The Grey Guard advanced. The Grey Guard held. A Grey Guard fell.")
+    p = _prof(tmp_path, prose)
+    assert sgc.looks_like_description("Main Street", p) is False
+    assert sgc.looks_like_description("Grey Guard", p) is False
+
+
+def test_a_rare_word_is_left_alone(tmp_path):
+    """Below the floor the ratio is noise, and the safe default is to keep it visible."""
+    p = _prof(tmp_path, "The gnome arrived. Margot waved.")
+    assert sgc.looks_like_description("Gnome", p) is False, "2 uses cannot support the call"
+
+
+def test_the_report_separates_names_from_descriptions(tmp_path):
+    prose = ("The wolf paced. A wolf howled. Every wolf knows. The wolf turned again. "
+             "This wolf waited. Some wolf answered. "
+             "Thump went the door. Thump again. Thump once more. Thump twice more. Thump.")
+    p = _prof(tmp_path, prose)
+    assert p["wolf"][0] >= 5, "the floor must be cleared for the split to be exercised"
+    rows = [("Wolf", 6, "ch01"), ("Thump", 5, "ch01")]
+    text = sgc.unresolved_report(rows, 2, p)
+    assert "DESCRIPTIONS" in text
+    names, descs = text.split("DESCRIPTIONS", 1)   # the closing note repeats the word
+    assert "Thump" in names and "Wolf" not in names
+    assert "Wolf" in descs
+    assert "rigid designator" in descs, "the report must say WHY it is not an alias"
+
+
+def test_a_proper_name_that_takes_the_is_a_known_miss(tmp_path):
+    """The documented limitation, pinned so it is not mistaken for a passing case. "the
+    Archives" is a place name and scores 0.81 on Book 3, so it lands in DESCRIPTIONS. Single
+    tokens are not immune to the multi-word problem — English simply allows "the" before
+    some proper nouns, and no determiner test will fix that."""
+    prose = ("The Archives held it. A Archives note. The Archives closed. The Archives "
+             "opened. The Archives burned. Margot ran the Archives.")
+    p = _prof(tmp_path, prose)
+    assert sgc.looks_like_description("Archives", p) is True, \
+        "documenting the miss, not endorsing it — a reader has to overrule this one"
+
+
+def test_a_determiner_does_not_cross_a_sentence_boundary(tmp_path):
+    """The bug this pins: the pass read straight through the full stop, so a word OPENING a
+    sentence inherited whatever preceded the period. "Thump twice more. Thump." scored two
+    determiners on `thump` from the `more.` before it, and a plain onomatopoeia was filed as
+    a common noun. Counting per clause fixes it."""
+    p = _prof(tmp_path, "Thump went the door. Thump again. Thump once more. "
+                        "Thump twice more. Thump. Thump.")
+    uses, det, _ = p["thump"]
+    assert (uses, det) == (6, 0), f"no Thump is preceded by a determiner; got det={det}"
+    assert sgc.looks_like_description("Thump", p) is False

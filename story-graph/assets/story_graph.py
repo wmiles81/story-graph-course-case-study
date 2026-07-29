@@ -1727,7 +1727,10 @@ def main(argv=None):
         graph = parse_graph(Path(args.graph).read_text(encoding="utf-8"))
         if args.command == "unresolved":
             rows = sgc.unresolved(graph, args.chapters_dir, _alias_cell, args.min)
-            print(sgc.unresolved_report(rows, args.min))
+            # The determiner profile splits probable names from descriptions. A description
+            # is not an alias, so putting the two in one list invites recording it as one.
+            print(sgc.unresolved_report(rows, args.min,
+                                        sgc.determiner_profile(args.chapters_dir)))
             if args.ambiguous_min:
                 amb = sgc.ambiguous_names(graph, args.chapters_dir, _alias_cell,
                                           args.ambiguous_min)
