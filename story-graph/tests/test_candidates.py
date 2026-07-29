@@ -258,3 +258,82 @@ def test_a_span_sharing_no_word_with_its_claim_is_flagged():
     rep = sg.Report()
     sg.check_span_relevance(g, rep)
     assert len(rep.warnings) == 1 and "p1" in rep.warnings[0]
+
+
+# ------------------------------------------- portability (found by running on a 2nd book)
+
+
+def test_chapters_are_found_whatever_the_project_calls_them(tmp_path):
+    """Book 2 names its files `chapter-1.md`. The resolver matched only `<locator>.md` and
+    `ch<NN>.md`, so every quote "could not be verified", every proposed row failed with
+    "no chapter file", and `deviations` found nothing to compare. All silent."""
+    ch = tmp_path / "ch"
+    ch.mkdir()
+    for n in (1, 2, 10):
+        (ch / f"chapter-{n}.md").write_text("prose", encoding="utf-8")
+    for loc, want in (("ch01", "chapter-1.md"), ("ch1", "chapter-1.md"),
+                      ("chapter-2", "chapter-2.md"), ("ch10", "chapter-10.md")):
+        got = sg._resolve_chapter(str(ch), loc)
+        assert got is not None and got.name == want, (loc, got)
+    assert sg._resolve_chapter(str(ch), "ch99") is None
+
+
+def test_the_conventional_naming_still_resolves(tmp_path):
+    ch = tmp_path / "ch"
+    ch.mkdir()
+    (ch / "ch01.md").write_text("prose", encoding="utf-8")
+    (ch / "ch30.md").write_text("prose", encoding="utf-8")
+    assert sg._resolve_chapter(str(ch), "ch01").name == "ch01.md"
+    assert sg._resolve_chapter(str(ch), "ch30").name == "ch30.md"
+
+
+def test_a_known_naming_convention_beats_a_fuzzy_number_match(tmp_path):
+    ch = tmp_path / "ch"
+    ch.mkdir()
+    (ch / "chapter-3.md").write_text("a", encoding="utf-8")
+    (ch / "3-draft.md").write_text("b", encoding="utf-8")
+    assert sg._resolve_chapter(str(ch), "ch03").name == "chapter-3.md"
+
+
+def test_an_ambiguous_number_resolves_to_nothing(tmp_path):
+    """Two unconventionally-named files both claiming chapter 3 is a question for a
+    human, not a coin-flip — and picking one silently is how the wrong prose ends up
+    verifying a quote."""
+    ch = tmp_path / "ch"
+    ch.mkdir()
+    (ch / "3-draft.md").write_text("a", encoding="utf-8")
+    (ch / "part-3-final.md").write_text("b", encoding="utf-8")
+    assert sg._resolve_chapter(str(ch), "ch03") is None
+
+
+def test_chapter_discovery_is_numeric_and_skips_non_chapters(tmp_path):
+    """`sorted()` put chapter-10 before chapter-2 the moment a project stopped
+    zero-padding, and Book 2 keeps a `word_count_tracker.md` beside its prose — feeding a
+    stats table to a proper-noun extractor pollutes the whole candidate pool."""
+    ch = tmp_path / "ch"
+    ch.mkdir()
+    for n in (1, 2, 10, 11):
+        (ch / f"chapter-{n}.md").write_text("prose", encoding="utf-8")
+    (ch / "word_count_tracker.md").write_text("| words | 500 |", encoding="utf-8")
+    (ch / "notes.md").write_text("nothing", encoding="utf-8")
+    got = [p.stem for p in sg.chapter_files(str(ch))]
+    assert got == ["chapter-1", "chapter-2", "chapter-10", "chapter-11"], got
+
+
+def test_unresolved_finds_the_cast_of_an_unseen_book_with_no_entities(tmp_path):
+    """The overfitting check: every threshold here was tuned on one supernatural book in
+    third-person past. Run against a first-person present-tense contemporary one, with an
+    EMPTY entity list, the top of the list must still be the actual cast."""
+    ch = tmp_path / "ch"
+    ch.mkdir()
+    (ch / "chapter-1.md").write_text(
+        "# Chapter 1: The Citation\n\n## Beat 1\n\n"
+        "If anyone asks, I am not hiding. I set the cumin down and thought of Julian.\n"
+        "\"You can't organize a heartbeat, El,\" my sister, Sarah, told me last week.\n"
+        "Julian would have laughed. Sarah never laughs. I told Julian so.\n"
+        "*   **11:00 AM:** Water the succulents.\n", encoding="utf-8")
+    g = _graph("")                                  # no entities at all
+    names = [r[0] for r in sgc.unresolved(g, ch, sg._alias_cell, min_count=2)]
+    assert "Julian" in names and "Sarah" in names, names
+    for junk in ("I", "Chapter", "Beat", "You", "If"):
+        assert junk not in names, f"'{junk}' is not a character"

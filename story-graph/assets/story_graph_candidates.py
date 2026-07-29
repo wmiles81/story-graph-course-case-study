@@ -59,7 +59,10 @@ _LEAD = re.compile(r"^[\"'“”‘’—–\-\s]*")
 
 
 def _chapters(chapters_dir):
-    return sorted(p for p in Path(chapters_dir).glob("*.md") if p.is_file())
+    # Shared with the validator: numeric order, and only files that carry a chapter
+    # number — a `word_count_tracker.md` sitting beside the prose is not a chapter.
+    import story_graph as sg
+    return sg.chapter_files(chapters_dir)
 
 
 def _norm(s):

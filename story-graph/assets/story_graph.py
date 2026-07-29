@@ -417,16 +417,57 @@ def quote_is_substantial(quote):
     return len(q) >= MIN_QUOTE_CHARS and len(q.split()) >= MIN_QUOTE_WORDS
 
 
-def _resolve_chapter(chapters_dir, locator):
+def chapter_files(chapters_dir):
+    """The chapter files in a directory, in STORY order.
+
+    Two assumptions that held only because Book 3 was tidy. First, not every `.md` beside
+    the chapters is prose — Book 2 keeps a `word_count_tracker.md` there, and feeding a
+    stats table to a proper-noun extractor pollutes the whole candidate pool. A chapter
+    carries a number; a tracker does not. Second, `sorted()` is lexicographic, so
+    `chapter-10` sorts before `chapter-2` the moment a project stops zero-padding.
+    """
+    out = []
     base = Path(chapters_dir)
-    m = re.fullmatch(r"ch(\d+)", (locator or "").strip())
-    candidates = [base / f"{locator}.md"]
+    if not base.is_dir():
+        return out
+    for p in base.glob("*.md"):
+        m = re.search(r"(\d+)", p.stem)
+        if m:
+            out.append((int(m.group(1)), p.name, p))
+    return [p for _, _, p in sorted(out)]
+
+
+def _resolve_chapter(chapters_dir, locator):
+    """Find the file a locator names, whatever the project calls its chapters.
+
+    Matching only `<locator>.md` and `ch<NN>.md` meant a manuscript using
+    `chapter-1.md` — an entirely ordinary convention — resolved to nothing, and the
+    consequences were all silent: every quote "could not be verified", every proposed row
+    failed with "no chapter file", `deviations` found nothing to compare. A tool that
+    quietly stops checking is worse than one that refuses, so the last resort is to match
+    on the chapter NUMBER, which is the only part every convention agrees on.
+    """
+    base = Path(chapters_dir)
+    loc = (locator or "").strip()
+    if not loc:
+        return None
+    m = re.search(r"(\d+)", loc)
+    tried = [base / f"{loc}.md"]
     if m:
-        candidates.append(base / f"ch{int(m.group(1)):02d}.md")
-    for c in candidates:
+        n = int(m.group(1))
+        tried += [base / f"ch{n:02d}.md", base / f"ch{n}.md",
+                  base / f"chapter-{n}.md", base / f"chapter-{n:02d}.md",
+                  base / f"chapter_{n}.md", base / f"Chapter {n}.md"]
+    for c in tried:
         if c.is_file():
             return c
-    return None
+    if m is None or not base.is_dir():
+        return None
+    # Nothing matched by name: fall back to the number carried in the filename, which is
+    # what every convention has in common.
+    hits = [p for p in sorted(base.glob("*.md"))
+            if (d := re.search(r"(\d+)", p.stem)) and int(d.group(1)) == int(m.group(1))]
+    return hits[0] if len(hits) == 1 else None
 
 
 def verify_spans(graph, sources, chapters_dir, report):

@@ -111,7 +111,7 @@ def _ctx_entities(graph, chapters_dir, limit, min_count=4):
     if not cands:
         return None
     texts = {p.stem: p.read_text(encoding="utf-8", errors="replace")
-             for p in sorted(Path(chapters_dir).glob("*.md"))}
+             for p in sg.chapter_files(chapters_dir)}
     lines = []
     for name, n, first in cands:
         sample = ""
@@ -556,7 +556,7 @@ def generate(kind, graph_path, chapters_dir, chat=None, model="?", provider="?",
 
     src = next((r["source-id"] for r in _rows_of(graph, "Sources")
                 if r.get("type") == "manuscript"), "ms")
-    files = sorted(Path(chapters_dir).glob("*.md"))
+    files = sg.chapter_files(chapters_dir)
     if chapters:
         want = {c.strip() for c in chapters}
         files = [f for f in files if f.stem in want]
