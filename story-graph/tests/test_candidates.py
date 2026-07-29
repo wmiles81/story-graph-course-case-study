@@ -17,6 +17,14 @@ ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "series/books/book-3/imported/Story-Graph-from-act1.md"
 CHAPTERS = ROOT / "series/books/book-3/phase-7-drafting/chapters"
 
+# The Book 3 manuscript is gitignored (unpublished, and this repo is public), so the two
+# tests below that need it skip on any fresh clone. These ship instead: a synthetic graph
+# + 3 chapters carrying the same traps at small scale, so the properties are checked
+# everywhere and Book 3 remains the real-scale run on the author's machine.
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
+MINI = FIXTURES / "mini-graph.md"
+MINI_CH = FIXTURES / "chapters"
+
 
 # ------------------------------------------------------------------ proper-noun extraction
 
@@ -180,6 +188,74 @@ def test_cli_overlap_default_matches_the_function_default():
     assert m, "no --overlap argument found"
     fn_default = inspect.signature(sgc.conflicts).parameters["overlap"].default
     assert float(m.group(1)) == fn_default
+
+
+# -------------------------------------------------------- against the shipped mini fixture
+
+
+def test_the_shipped_fixture_is_itself_a_valid_graph():
+    """Guards everything else in this section. If the fixture drifts out of the ontology,
+    the tests built on it are measuring the wrong thing — and its 7 quotes are hard-verified
+    against the shipped chapters here, so a typo in either cannot pass unnoticed."""
+    rep = sg.validate(str(MINI), chapters_dir=str(MINI_CH))
+    assert rep.errors == [], rep.errors
+    # exactly the two rows deliberately marked provisional — no accidental unverified claims
+    assert len(rep.warnings) == 2, rep.warnings
+    assert all("provisional" in w for w in rep.warnings), rep.warnings
+
+
+def test_a_frequent_unmodelled_name_surfaces_and_nothing_else_does():
+    """The whole point of `unresolved`, on a fixture that always ships. Halloran is named
+    9 times and has no entity row; the three modelled characters and every junk token the
+    real manuscript produced must stay out. A generator that returns everything is as
+    useless as one that returns nothing, so this asserts BOTH directions."""
+    g = sg.parse_graph(MINI.read_text(encoding="utf-8"))
+    rows = sgc.unresolved(g, MINI_CH, sg._alias_cell, min_count=2)
+    names = [r[0] for r in rows]
+
+    assert "Halloran" in names, "an unmodelled name appearing 9 times must be reported"
+    assert rows[0][0] == "Halloran" and rows[0][2] == "ch01", rows[0]
+
+    for junk in ("I'm", "You're", "They're", "Don't", "We're", "Get", "Do", "Look",
+                 "Chapter", "Beat", "Somebody", "Nobody", "Outside"):
+        assert junk not in names, f"'{junk}' is not a character"
+    for modelled in ("Delia", "Delia Foss", "Emmett", "Emmett Rourke", "Priya", "Priya Raman"):
+        assert modelled not in names, f"'{modelled}' is modelled and must not be unresolved"
+
+
+def test_every_cited_span_is_reachable_on_the_shipped_fixture():
+    """Same ground-truth property as the Book 3 test below, but it runs on a clone. The
+    fixture deliberately cites the two sentences that were unreachable in the real book:
+    one broken by an ellipsis, one shorter than the old length floor."""
+    import story_graph_propose as sp
+    g = sg.parse_graph(MINI.read_text(encoding="utf-8"))
+    ev = {e["span-id"]: (e.get("locator", ""), e.get("quote", ""))
+          for e in g["sections"]["Evidence"] if e.get("span-id")}
+    total, unreachable = 0, []
+    for p in g["sections"]["Propositions"]:
+        for sid in sg._span_ids(p.get("span", "")):
+            loc, q = ev.get(sid, ("", ""))
+            if not (loc and q):
+                continue
+            ch = MINI_CH / f"{loc}.md"
+            assert ch.is_file(), f"fixture cites a chapter it does not ship: {loc}"
+            total += 1
+            if not any(sg.quote_found(s, q) for s in sp._sentences(ch.read_text(encoding="utf-8"))):
+                unreachable.append((sid, q))
+    assert total == 7, f"fixture should cite 7 spans, cited {total}"
+    assert unreachable == [], f"cannot be offered as candidates: {unreachable}"
+
+
+def test_the_two_historic_retrieval_regressions_are_pinned_by_the_fixture():
+    """Named explicitly so deleting either quote from the fixture fails loudly rather than
+    quietly reducing what the reachability test covers."""
+    import story_graph_propose as sp
+    quotes = {e["quote"] for e in sg.parse_graph(MINI.read_text(encoding="utf-8"))["sections"]["Evidence"]}
+    assert "The March entries are... incomplete on purpose" in quotes, "ellipsis case dropped"
+    assert "The vault key never left me" in quotes, "short-dialogue case dropped"
+    sents = sp._sentences((MINI_CH / "ch01.md").read_text(encoding="utf-8"))
+    assert any("March entries are..." in s and "incomplete on purpose" in s for s in sents), \
+        "an ellipsis must not split the sentence"
 
 
 # ------------------------------------------------------------------- against the real book

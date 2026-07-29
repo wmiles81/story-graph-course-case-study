@@ -189,12 +189,29 @@ def test_explicit_aliases_column_wins_over_note():
     assert sg._alias_cell(g["sections"]["Entities"][0]) == ["Evie", "the prosecutor"]
 
 
+def _no_alias_collisions(path):
+    rep = sg.Report()
+    g = sg.parse_graph(path.read_text(encoding="utf-8"))
+    ids = {r["id"] for r in g["sections"]["Entities"] if r.get("id")}
+    sg.check_aliases(g, ids, rep)
+    return g, rep
+
+
+def test_shipped_fixture_has_no_alias_collisions():
+    """Runs on every clone. The Book 3 version below is gitignored, so without this the
+    alias checker had no end-to-end test on a real graph outside the author's machine."""
+    mini = Path(__file__).resolve().parent / "fixtures/mini-graph.md"
+    g, rep = _no_alias_collisions(mini)
+    assert rep.errors == [], rep.errors
+    # and the aliases are really being parsed — a guard that ate them would pass vacuously
+    by_id = {r["id"]: sg._alias_cell(r) for r in g["sections"]["Entities"] if r.get("id")}
+    assert by_id["delia-foss"] == ["Delia", "Ms. Foss"], by_id["delia-foss"]
+    assert sum(len(v) for v in by_id.values()) >= 4, by_id
+
+
 def test_book3_fixture_has_no_alias_collisions_left():
     f = Path(__file__).resolve().parents[2] / "series/books/book-3/imported/Story-Graph-from-act1.md"
     if not f.exists():
         pytest.skip("book-3 fixture not present")
-    rep = sg.Report()
-    g = sg.parse_graph(f.read_text(encoding="utf-8"))
-    ids = {r["id"] for r in g["sections"]["Entities"] if r.get("id")}
-    sg.check_aliases(g, ids, rep)
+    _, rep = _no_alias_collisions(f)
     assert rep.errors == [], rep.errors
