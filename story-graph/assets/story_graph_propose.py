@@ -433,6 +433,11 @@ def _prompt_epistemic(ctx, chapter_text, locator, ch_no):
         "Use 'reader' for what the audience has been shown, which is often more than any "
         "character knows.",
         "",
+        "Some claims below describe events LATER in the book than this chapter — 87 of this "
+        "book's propositions carry no chapter anchor, so they cannot be filtered out for you. "
+        "If a claim has not happened yet by this chapter, leave it out entirely. Nobody can "
+        "hold a belief about an event that has not occurred.",
+        "",
         "Every row must name the numbered sentence that SHOWS the stance — the line where "
         "the character says, thinks, or acts on it. If a stance is merely plausible and no "
         "listed sentence shows it, leave the claim out.",

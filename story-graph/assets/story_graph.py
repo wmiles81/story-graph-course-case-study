@@ -488,7 +488,13 @@ def check_span_relevance(graph, report):
 # "the vault contains the Scrolls" is mutable but "the library contains active old magic"
 # is a permanent property of the world, and nothing mechanical separates them. Including
 # them flagged 5 permanent world-rules and gained no real find.
-_STATE_VERB = re.compile(r"\b(possess(?:es)?|owns?|remains?|stays?|keeps?|retains?)\b", re.I)
+# Concealment and custody are ONGOING, so they can stop being true — "Margot conceals the
+# journal" ends the moment she shows it, and a full-book run duly proposed believes-false
+# rows on it at ch30 when the secret was out.
+# `guards`/`protects` are deliberately absent: this book has a faction called the Grey
+# GUARD, and matching the noun flagged four of its plot events as mutable states.
+_STATE_VERB = re.compile(r"\b(possess(?:es)?|owns?|remains?|stays?|keeps?|retains?|"
+                         r"conceals?|hides?|withholds?)\b", re.I)
 # `is/are` + state, but NOT `was/were`: "the Scrolls WERE hidden rather than stolen" is a
 # settled fact about the past and can never flip, while "the Scrolls ARE hidden" can.
 # No open `in \w+` either — it read "is in love" as a location and flagged a realisation.
@@ -520,38 +526,68 @@ def proposition_shape(statement):
     return "event"
 
 
+def unanchored_propositions(graph):
+    """Claims with no chapter anchor at all — no evidence locator, no epistemic since-ch.
+
+    They cannot be placed in time, so nothing can tell whether they have happened yet. A
+    generator offered them for belief in EVERY chapter, and produced rows like "the reader
+    believes-false that Jonah and Margot consummate their relationship" in chapter one —
+    about an event forty pages away. That is not a bad reading; it is an unanswerable
+    question.
+    """
+    import story_graph_candidates as sgc
+    anchored = sgc._prop_chapter(graph)
+    return [(r["prop-id"], r.get("statement", ""))
+            for r in graph["sections"].get("Propositions", [])
+            if r.get("prop-id") and r["prop-id"] not in anchored]
+
+
 def shape_report(graph):
-    """State-shaped propositions, riskiest first — those something already depends on."""
-    rows = []
+    """Claims that cannot be pinned in time, in two flavours, riskiest first.
+
+    Both break the same thing — a stance on the claim cannot be dated — but they break it
+    differently: a state-shaped claim flips, while an unanchored one was never placed.
+    """
     holders = {}
     for r in graph["sections"].get("Epistemic States", []):
         if r.get("prop-id"):
             holders.setdefault(r["prop-id"], set()).add(r.get("holder", ""))
+    rows = []
     for r in graph["sections"].get("Propositions", []):
         pid, stmt = r.get("prop-id"), r.get("statement", "")
-        if not pid or proposition_shape(stmt) != "state":
-            continue
-        rows.append((len(holders.get(pid, ())), pid, stmt))
+        if pid and proposition_shape(stmt) == "state":
+            rows.append((len(holders.get(pid, ())), pid, stmt))
     rows.sort(key=lambda t: (-t[0], t[1]))
-    total = len([r for r in graph["sections"].get("Propositions", []) if r.get("prop-id")])
-    out = [f"STATE-SHAPED PROPOSITIONS — {len(rows)} of {total}", "=" * 58]
+    props = [r for r in graph["sections"].get("Propositions", []) if r.get("prop-id")]
+    total = len(props)
+    out = [f"CLAIM SHAPE — {total} propositions", "=" * 58, "",
+           f"STATE-SHAPED ({len(rows)}) — can become FALSE later in the same book"]
     if not rows:
         out.append("  none — every claim either happened, or is a rule of the world")
-        return "\n".join(out)
     for n, pid, stmt in rows:
         out.append(f"  [{n} holder{'' if n == 1 else 's'}] {pid}")
         out.append(f"      {stmt}")
+    try:
+        un = unanchored_propositions(graph)
+    except ImportError:
+        un = []
+    out += ["", f"UNANCHORED ({len(un)} of {total}) — no evidence locator, no epistemic "
+                f"since-ch,", "  so nothing can say whether they have happened yet"]
+    for pid, stmt in un[:12]:
+        out.append(f"  {pid}  {stmt[:66]}")
+    if len(un) > 12:
+        out.append(f"  … and {len(un) - 12} more")
     out += ["",
-            "These can become FALSE later in the same book, and a Proposition has no time",
-            "bounds to say when. Rewrite each as the event that made it true:",
+            "A Proposition has no time bounds. Fix a state-shaped claim by rewriting it as the",
+            "event that made it true; fix an unanchored one by citing evidence, or by naming",
+            "the chapter in the statement:",
             "",
-            '  "The Founding Scrolls are missing."   ->  "The Founding Scrolls are taken from',
-            '                                             the vault before ch02."',
-            '  "Margot is inside the library."       ->  "Margot is in the library when it seals."',
+            '  "The Founding Scrolls are missing."  ->  "The Founding Scrolls are discovered',
+            '                                            missing from the vault in ch02."',
             "",
-            "Rows with holders are the urgent ones: something already believes them, so the",
+            "Rows with holders are urgent: something already believes them, so the",
             "contradiction is already reachable. Rewriting a statement is a canon change, so",
-            "the tool will not do it for you — see reference/decisions.md 2.4."]
+            "the tool reports and never edits — see reference/decisions.md 2.4."]
     return "\n".join(out)
 
 

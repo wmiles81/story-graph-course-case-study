@@ -215,3 +215,33 @@ def test_the_report_ranks_by_what_already_depends_on_the_claim():
 def test_a_graph_of_event_shaped_claims_reports_clean():
     g = _graph(props="| p1 | Jonah takes the Treaty in ch09 | true | ms | provisional |\n")
     assert "none —" in sg.shape_report(g)
+
+
+def test_concealment_is_a_state_not_an_event():
+    """"Margot conceals the journal" ends the moment she shows it — a full-book run
+    proposed believes-false rows on it at ch30, when the secret was already out."""
+    assert sg.proposition_shape("Margot conceals her grandmother's journal from Jonah.") == "state"
+    assert sg.proposition_shape("Margot hides the journal from Jonah.") == "state"
+
+
+def test_a_faction_named_guard_is_not_a_stative_verb():
+    """Adding `guards`/`protects` matched the NOUN in this book's Grey Guard and flagged
+    four of its plot events as mutable states. Precision first: a checker that is wrong
+    a third of the time is one nobody reads."""
+    for s in ["The Grey Guard arrives as an anti-magic siege legion under Valerius.",
+              "The Escher-floor trap contains the first Grey Guard vanguard.",
+              "Jonah uses an obsolete AM transmitter to bypass the Grey Guard jamming field."]:
+        assert sg.proposition_shape(s) == "event", s
+
+
+def test_unanchored_propositions_are_reported_separately():
+    """A different defect from being state-shaped: not that the claim flips, but that it
+    was never placed in time — so a generator offers it for belief in every chapter,
+    including forty pages before it happens."""
+    g = _graph(props=("| p1 | Jonah takes the Treaty | true | ms | provisional |\n"
+                      "| p2 | Margot solves the riddle | true | ms | provisional |\n"),
+               epi="| p1 | reader | knows | 9 | provisional |\n")
+    un = [pid for pid, _ in sg.unanchored_propositions(g)]
+    assert un == ["p2"], un
+    out = sg.shape_report(g)
+    assert "UNANCHORED (1 of 2)" in out and "p2" in out
