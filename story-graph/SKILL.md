@@ -391,6 +391,18 @@ Rewriting a statement is a canon change, so the tool reports and does not edit.
 
 ## Saying what a claim rests on
 
+`propose dependencies` sends the WHOLE proposition table at once — no shortlist. That is
+deliberate: retrieval by word overlap is the wrong signal here, because causally linked
+claims routinely share no vocabulary. Half of one book's hand-made edges sat at 0.11
+similarity, where the candidate pool is already 477 pairs. A table of 122 claims is ~2k
+tokens, so the judge can simply see all of it.
+
+A dependency edge cites no quote, because "the Purge needs the breach" is written in no
+single sentence. The gate exempts it from the quote check on the basis of the COLUMN, not
+a flag the row can set, and the checks that do apply are structural: every id must
+resolve, and an edge that would close a cycle is rejected.
+
+
 Propositions take an optional `depends-on` column listing the prop-ids this claim needs in
 order to be true. `queue` then ranks by what would have to be REVISITED if a claim moved,
 not by how many characters happen to hold an opinion about it — weight is transitive, so a

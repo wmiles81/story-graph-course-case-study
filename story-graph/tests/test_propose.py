@@ -299,3 +299,80 @@ def test_a_candidate_sentence_never_spans_a_scene_divider(tmp_path):
     for s in sp._sentences(text):
         assert sg.quote_found(text, s), f"offered a candidate the gate would reject: {s!r}"
     assert not any("---" in s for s in sp._sentences(text))
+
+
+# ----------------------------------------------------------------- kind: dependencies
+
+
+def _depworld(tmp_path):
+    g = tmp_path / "g.md"
+    g.write_text(make_graph(
+        Propositions=("## Propositions\n| prop-id | statement | canon-status | governing-source | span | depends-on |\n"
+                      "|---|---|---|---|---|---|\n"
+                      "| a | the vault was sealed in 1974 | true | ms | provisional | |\n"
+                      "| b | only a Keeper can open the vault | true | ms | provisional | |\n"
+                      "| c | Margot took the Scrolls | true | ms | provisional | b |\n"),
+    ).replace("| current-canon-chapter | 0 |", "| current-canon-chapter | 30 |"), encoding="utf-8")
+    return g
+
+
+def test_dependency_candidates_skip_claims_that_already_have_an_edge(tmp_path):
+    """`c` is already answered; re-asking wastes the judge's attention and invites a
+    second edge on a cell that is no longer empty."""
+    g = _depworld(tmp_path)
+    ctx = sp._ctx_dependencies(sg.parse_graph(g.read_text(encoding="utf-8")))
+    assert ctx["open"] == {"a", "b"} and ctx["already"] == {"c": ["b"]}
+    assert {x["prop-id"] for x in ctx["claims"]} == {"a", "b", "c"}, "context still shows all"
+
+
+def test_dependency_rows_drop_what_cannot_be_written(tmp_path):
+    g = _depworld(tmp_path)
+    graph = sg.parse_graph(g.read_text(encoding="utf-8"))
+    ctx = sp._ctx_dependencies(graph)
+    answer = {"edges": [{"claim": "b", "needs": "a"},        # good
+                        {"claim": "a", "needs": "a"},        # self
+                        {"claim": "b", "needs": "zzz"},      # unknown id
+                        {"claim": "c", "needs": "a"},        # cell already filled
+                        {"claim": "b", "needs": "a"}]}       # duplicate
+    rows = sp._rows_dependencies(answer, ctx, graph)
+    assert [(r["key"]["prop-id"], r["set"]["depends-on"]) for r in rows] == [("b", "a")]
+
+
+def test_a_dependency_edge_needs_a_human_but_not_a_quote(tmp_path):
+    """A dependency is a claim about the story's STRUCTURE — "the Purge needs the breach"
+    is written in no single sentence — so there is no quote to gate on. The checks that
+    do apply are structural, and the direction still needs a person."""
+    g = _depworld(tmp_path)
+    p = {"kind": "dependencies", "generated": {"scope": "all"}, "_file": "d.json",
+         "rows": [{"section": "Propositions", "op": "set", "key": {"prop-id": "b"},
+                   "set": {"depends-on": "a"}, "basis": {"locator": "", "quote": ""}}]}
+    verdicts = sgp.verify(p, str(g), "")
+    assert [v for _, v, _ in verdicts] == [sgp.HUMAN], verdicts
+    assert "direction is a reading" in verdicts[0][2]
+
+
+def test_nothing_can_smuggle_another_cell_past_the_quote_gate(tmp_path):
+    """The exemption is keyed off the column being EXACTLY depends-on. Pair it with any
+    other cell and the quote gate applies again, so a row cannot opt itself out."""
+    g = _depworld(tmp_path)
+    p = {"kind": "dependencies", "generated": {"scope": "all"}, "_file": "d.json",
+         "rows": [{"section": "Propositions", "op": "set", "key": {"prop-id": "b"},
+                   "set": {"depends-on": "a", "canon-status": "false"},
+                   "basis": {"locator": "", "quote": ""}}]}
+    verdicts = sgp.verify(p, str(g), "")
+    # Which guard catches it is not the point — the overwrite check happens to fire
+    # first. The property is that the dependency exemption does NOT apply, so the row
+    # cannot reach the graph by pairing an exempt column with a non-exempt one.
+    assert verdicts[0][1] == sgp.FAIL
+    assert "direction is a reading" not in verdicts[0][2], "must not get the exemption"
+
+
+def test_an_edge_that_would_close_a_cycle_is_rejected(tmp_path):
+    """`c` already needs `b`. Proposing that `b` needs `c` closes a loop, and while a
+    cycle exists "what rests on this" has no answer."""
+    g = _depworld(tmp_path)
+    p = {"kind": "dependencies", "generated": {"scope": "all"}, "_file": "d.json",
+         "rows": [{"section": "Propositions", "op": "set", "key": {"prop-id": "b"},
+                   "set": {"depends-on": "c"}, "basis": {"locator": "", "quote": ""}}]}
+    verdicts = sgp.verify(p, str(g), "")
+    assert verdicts[0][1] == sgp.FAIL and "cycle" in verdicts[0][2], verdicts

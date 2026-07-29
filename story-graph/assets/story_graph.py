@@ -1473,7 +1473,7 @@ def main(argv=None):
     vz.add_argument("--out", required=True)
     vz.add_argument("--prop", default="")
     pr = sub.add_parser("propose")
-    pr.add_argument("kind", choices=["entities", "evidence", "epistemic"])
+    pr.add_argument("kind", choices=["entities", "evidence", "epistemic", "dependencies"])
     pr.add_argument("graph")
     pr.add_argument("--chapters-dir", required=True)
     pr.add_argument("--ask", action="store_true",

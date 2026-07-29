@@ -418,6 +418,18 @@ def _verify_set(row, sec, graph, spans, chapters_dir, bad):
     if problem:
         bad(problem)
         return None
+    # A dependency edge is a claim about the STORY'S STRUCTURE, not about a passage —
+    # "the Purge needs the breach" is not written in any one sentence. So there is no
+    # quote to gate on, and the checks that DO apply are structural: every id must
+    # resolve and the edges must not form a cycle, both enforced by the consequence pass.
+    # Keyed off the column rather than a flag on the row, so nothing can opt itself out
+    # of the quote gate by asserting it is structural.
+    if set(sets) == {"depends-on"}:
+        if sec != "Propositions":
+            bad("depends-on belongs to Propositions")
+            return None
+        return (HUMAN, f"dependency edge {'/'.join(key.values())} needs {sets['depends-on']} "
+                       f"— direction is a reading no checker can confirm")
     quote = ((row.get("basis") or {}).get("quote") or "").strip()
     locator = ((row.get("basis") or {}).get("locator") or "").strip()
     if not quote:

@@ -29,7 +29,8 @@ import story_graph as sg
 import story_graph_candidates as sgc
 from story_graph_decisions import _json_from
 
-PROMPT_VERSION = {"entities": "entities/1", "evidence": "evidence/1", "epistemic": "epistemic/1"}
+PROMPT_VERSION = {"entities": "entities/1", "evidence": "evidence/1",
+                  "epistemic": "epistemic/1", "dependencies": "dependencies/1"}
 
 # What an answer file must contain. The judge picks by NUMBER; it never writes a quote.
 ANSWER_SHAPE = {
@@ -39,6 +40,7 @@ ANSWER_SHAPE = {
     "evidence": '{"evidence": [{"prop-id": "...", "sentence": <number, or 0 for none>}]}',
     "epistemic": '{"states": [{"prop-id": "...", "holder": "...", '
                  '"mode": "knows|believes|believes-false|suspects", "sentence": <number>}]}',
+    "dependencies": '{"edges": [{"claim": "<prop-id>", "needs": "<prop-id>"}]}',
 }
 
 SYSTEM = (
@@ -181,6 +183,79 @@ def _rows_entities(answer, ctx, graph):
             "reasoning": f"'{cand['name']}' appears {cand['count']}x with no entity row",
             "confidence": (e.get("confidence") or "high").lower(),
         })
+    return out
+
+
+# -------------------------------------------------------------------- kind: dependencies
+
+
+def _ctx_dependencies(graph, limit=200):
+    """Every proposition that has no `depends-on` yet, with the ones that do for context.
+
+    No shortlist, and that is the point. Retrieval by lexical overlap is the WRONG signal
+    here: half of Book 3's hand-made edges sit at 0.11 similarity or below — "The Purge
+    activates on the ch02 breach" and "The Scrolls are discovered missing" are causally
+    linked and share almost no words. A threshold low enough to catch them returns 477
+    pairs; one small enough to review misses half the real edges.
+
+    A proposition table is ~2k tokens, so the whole set fits in one prompt and the judge
+    can see relationships no similarity score would surface.
+    """
+    rows = [r for r in _rows_of(graph, "Propositions") if r.get("prop-id")]
+    if not rows:
+        return None
+    have = {r["prop-id"]: sg._span_ids(r.get("depends-on", "")) for r in rows}
+    open_ = [r["prop-id"] for r in rows if not have[r["prop-id"]]]
+    if not open_:
+        return None
+    return {"claims": [{"prop-id": r["prop-id"], "statement": r.get("statement", "")}
+                       for r in rows][:limit],
+            "already": {k: v for k, v in have.items() if v},
+            "open": set(open_)}
+
+
+def _prompt_dependencies(ctx, graph):
+    known = "\n".join(f"  {k} needs {', '.join(v)}" for k, v in sorted(ctx["already"].items()))
+    return "\n".join([
+        "Here is every claim in one story's canon. Which claims NEED another claim in order",
+        "to be true? Read `X needs Y` as: if Y were false, X would stop making sense.",
+        "",
+        json.dumps(ctx["claims"], indent=1),
+        "",
+        ("Edges already recorded, as examples of the shape wanted:\n" + known) if known else "",
+        "",
+        "Two tests before you write an edge. Say it aloud — \"X, because Y\" and \"Y, because",
+        "X\"; exactly one is true. Then delete each in turn: removing the foundation makes the",
+        "other claim nonsense, while removing the dependent leaves the foundation untouched.",
+        "",
+        "CO-OCCURRENCE IS NOT DEPENDENCY. Two claims can share a scene, a chapter, a",
+        "character and a location and still need nothing from each other. Most pairs are",
+        "unrelated; a judge hunting for links will invent them. Propose only edges you would",
+        "defend one at a time, and none at all rather than a plausible guess.",
+        "",
+        'Answer: {"edges": [{"claim": "<prop-id>", "needs": "<prop-id>"}]}',
+    ])
+
+
+def _rows_dependencies(answer, ctx, graph):
+    ids = {c["prop-id"] for c in ctx["claims"]}
+    stmt = {c["prop-id"]: c["statement"] for c in ctx["claims"]}
+    seen, out = set(), []
+    for e in (answer or {}).get("edges", []) or []:
+        a, b = (e.get("claim") or "").strip(), (e.get("needs") or "").strip()
+        if a not in ids or b not in ids or a == b or a not in ctx["open"]:
+            continue                      # unknown id, self-edge, or the cell is not empty
+        if (a, b) in seen:
+            continue
+        seen.add((a, b))
+        # A dependency is a claim about the STORY's structure, not about a passage, so
+        # there is no quote to cite. The basis is the claim it points at, and the gate
+        # sends it to a human like every other reading.
+        out.append({"section": "Propositions", "op": "set", "key": {"prop-id": a},
+                    "set": {"depends-on": b},
+                    "basis": {"locator": "", "quote": ""},
+                    "reasoning": f'"{stmt[a][:60]}" needs "{stmt[b][:60]}"',
+                    "confidence": e.get("confidence", "high")})
     return out
 
 
@@ -543,6 +618,16 @@ def generate(kind, graph_path, chapters_dir, chat=None, model="?", provider="?",
             "rows": rows}, indent=1), encoding="utf-8")
         written.append(str(p))
         log(f"  {p.name}: {len(rows)} row(s)")
+
+    if kind == "dependencies":
+        ctx = _ctx_dependencies(graph, limit=200)
+        if not ctx:
+            log("  every proposition already has a depends-on, or there are none")
+            return written
+        answer = resolve("all", {"claims": ctx["claims"]}, _prompt_dependencies(ctx, graph))
+        if answer is not None:
+            emit("all", _rows_dependencies(answer, ctx, graph))
+        return written
 
     if kind == "entities":
         ctx = _ctx_entities(graph, chapters_dir, limit, min_count)
