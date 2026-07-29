@@ -381,6 +381,20 @@ now. The fix is always the same shape — say the event that made it true:
 
 Rewriting a statement is a canon change, so the tool reports and does not edit.
 
+## Saying what a claim rests on
+
+Propositions take an optional `depends-on` column listing the prop-ids this claim needs in
+order to be true. `queue` then ranks by what would have to be REVISITED if a claim moved,
+not by how many characters happen to hold an opinion about it — weight is transitive, so a
+claim underpinning a chain outranks a popular one.
+
+Read it as "this needs that": the Purge Protocol fires *because* the Scrolls left
+containment, so the Purge claim depends on the discovery claim. Getting the direction
+backwards inverts the whole ranking and nothing can catch it for you.
+
+The column is optional and backward compatible — a graph without it scores exactly as
+before. Ids must resolve and the edges must not form a cycle; both are validation errors.
+
 ## Series graphs (one canon across books)
 
 A series graph numbers chapters continuously — Book 2 chapter 1 is series ch31 if Book 1

@@ -238,6 +238,27 @@ A reverse-engineered or not-yet-on-page fact should be marked **provisional**
 rather than backed by a fabricated quote; an unsupported load-bearing row that
 is not marked provisional is an ERROR, never silently accepted.
 
+## Proposition Dependencies (optional)
+
+A Proposition may carry an optional `depends-on` column: a space- or comma-separated list
+of prop-ids this claim needs in order to be true. Read it as **"this needs that"** — the
+Purge Protocol fires because the Scrolls left containment, so the Purge claim depends on
+the discovery claim.
+
+The column is **optional and backward compatible**: every table here is parsed by column
+NAME, so a graph written before this existed keeps validating unchanged and scores exactly
+as it did. No version bump, no migration.
+
+It exists because dependency is the difference between a claim being *popular* and being
+*load-bearing*. Ranking by holders alone made a foundational claim nobody had an opinion
+about indistinguishable from an inert one — 49 of 122 propositions in a real graph scored
+zero. `blast_radius` walks these edges transitively, so a claim underpinning a chain
+outranks a claim with more believers.
+
+Validated: every id must resolve to a declared proposition, a claim may not depend on
+itself, and the edges must not form a cycle — while a cycle exists, "what rests on this"
+has no answer.
+
 ## Multi-Book Series Graphs
 
 Carried forward unchanged from v1: a graph may cover an entire series as one

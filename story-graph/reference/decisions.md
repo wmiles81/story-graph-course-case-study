@@ -180,21 +180,33 @@ Where a state genuinely matters at a moment in time, that is what **Logistics** 
 chapter: entity, location, condition) and **Relationships** (with a `trend`) are for.
 Use them instead of a state-shaped proposition.
 
-## 2.5 The one-hop ceiling — know what the weight does not see
+## 2.5 Say what a claim rests on
 
-`queue` now ranks the ratification backlog by dependency weight, heaviest first, and says
-what rests on each row. The weight is **one hop**: holders + evidence spans, +3 where the
-claim participates in dramatic irony, or how overdue a setup is.
+`queue` ranks the ratification backlog by dependency weight — holders, evidence spans,
++3 where the claim carries dramatic irony, and **2 per claim that rests on it**.
 
-**Ontology v2 has no proposition → proposition edge.** A claim that silently underpins
-another claim therefore scores **0**. So:
+Record that last part yourself, in the optional `depends-on` column on Propositions:
 
-- a score of 0 means *"nothing visibly depends on this"*, **not** *"this doesn't matter"*
-- the ranking is only as good as the epistemic layer feeding it. With holders on 18% of
-  propositions, most of the queue currently scores 0 and the order is barely informative.
-  It sharpens exactly as the epistemic layer fills in.
+| prop-id | statement | … | depends-on |
+|---|---|---|---|
+| p-000007 | The Scrolls are discovered missing from the vault in ch02. | … | |
+| p-000009 | The Purge Protocol will erase the library after twelve hours. | … | p-000007 |
+| p-000010 | Returning the Scrolls through B4 can stop the Purge Protocol. | … | p-000009 |
 
----
+Read it as **"this claim needs that one to be true"**. The direction is easy to reverse and
+the tool cannot catch you doing it, so say it aloud when you write the row: the Purge fires
+*because* the Scrolls left containment, so p-000009 depends on p-000007.
+
+Weight is transitive. p-000007 above carries three dependents, one of them two hops away,
+and that took it from score 3 to 10 — past a claim with four believers and an irony bonus.
+Which is the point: **a believer can be revised in place, but a dependent claim has to be
+revisited or it quietly becomes false.**
+
+Without this column a foundational claim nobody has an opinion about scores zero, exactly
+like an inert one. On Book 3 that was 49 of 122 propositions.
+
+Two rules the validator enforces: every id must resolve, and the edges must not form a
+cycle. While a cycle exists, "what rests on this" has no answer.
 
 # Part 3 — What is checked vs. what you must decide
 

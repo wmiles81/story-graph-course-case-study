@@ -799,6 +799,7 @@ def validate(graph_path, ontology="", genres_dir="", spe_dir="", chapters_dir=""
     span_ids = check_evidence(graph, sources, report)
     verify_spans(graph, sources, chapters_dir, report, legend, graph_path)
     prop_ids = check_propositions(graph, sources, span_ids, report)
+    check_dependencies(graph, prop_ids, report)
     check_epistemic(graph, entity_ids, prop_ids, span_ids, report)
     check_open_loops(graph, canon_ch, span_ids, report)
     check_logistics(graph, entity_ids, location_ids, span_ids, report)
@@ -1214,26 +1215,119 @@ def _next_version_path(path):
     return str(p.parent / f"{stem}_v{n}{p.suffix}")
 
 
+def dependency_edges(graph):
+    """prop -> the claims it RESTS ON, from the optional `depends-on` column.
+
+    Direction matters and is easy to get backwards: `depends-on` on P lists what P needs
+    in order to be true, so breaking one of those breaks P. The interesting query is the
+    reverse — what falls over if THIS claim moves — which is why transitive_dependents
+    exists rather than callers walking this map directly.
+    """
+    out = {}
+    for r in graph["sections"].get("Propositions", []):
+        pid = r.get("prop-id")
+        if pid:
+            out[pid] = [d for d in _span_ids(r.get("depends-on", "")) if d]
+    return out
+
+
+def _dependency_cycle(edges):
+    """The first cycle as a readable path, or None. A cycle makes 'what rests on this'
+    unanswerable, so it has to be an error rather than a traversal that loops."""
+    WHITE, GREY, BLACK = 0, 1, 2
+    colour = {p: WHITE for p in edges}
+    stack = []
+
+    def walk(p):
+        colour[p] = GREY
+        stack.append(p)
+        for q in edges.get(p, ()):
+            if q not in colour:
+                continue                      # undeclared: reported separately, not a cycle
+            if colour[q] == GREY:
+                return stack[stack.index(q):] + [q]
+            if colour[q] == WHITE:
+                hit = walk(q)
+                if hit:
+                    return hit
+        colour[p] = BLACK
+        stack.pop()
+        return None
+
+    for p in sorted(edges):
+        if colour[p] == WHITE:
+            hit = walk(p)
+            if hit:
+                return hit
+    return None
+
+
+def transitive_dependents(graph):
+    """prop -> every claim that rests on it, directly or through a chain.
+
+    This is the number the ratification queue was missing. A claim nobody has an opinion
+    about looked identical to a claim nothing depends on, and those are entirely
+    different things — the second is inert, the first may be holding up the plot.
+    """
+    edges = dependency_edges(graph)
+    rev = {}
+    for p, deps in edges.items():
+        for d in deps:
+            rev.setdefault(d, set()).add(p)
+    out = {}
+    for p in edges:
+        seen, stack = set(), list(rev.get(p, ()))
+        while stack:
+            q = stack.pop()
+            if q in seen or q == p:
+                continue
+            seen.add(q)
+            stack.extend(rev.get(q, ()))
+        out[p] = seen
+    return out
+
+
+def check_dependencies(graph, prop_ids, report):
+    edges = dependency_edges(graph)
+    for pid, deps in sorted(edges.items()):
+        for d in deps:
+            if d == pid:
+                report.error(f"Propositions [{pid}]: depends-on lists itself")
+            elif d not in prop_ids:
+                report.error(f"Propositions [{pid}]: depends-on '{d}' is not a declared proposition")
+    cycle = _dependency_cycle(edges)
+    if cycle:
+        report.error("Propositions: depends-on forms a cycle (" + " -> ".join(cycle) +
+                     ") — 'what rests on this' has no answer while that is true")
+
+
 def blast_radius(graph):
     """Per-proposition dependency weight: what has to be revisited if this claim moves
     or flips. Stdlib; no kuzu.
 
-    Mind the ceiling, because it bounds every use of this: ontology v2 has no
-    proposition -> proposition edge, so the walk is ONE HOP and cannot go transitive.
-    A claim that quietly underpins another claim scores as weightless here. That gap is
-    the reason "load-bearing" can't be computed as a dependency today — see
-    reference/decisions.md.
+    No longer one hop. With the optional `depends-on` column populated, this walks the
+    dependency chain, so a claim underpinning four others outranks a claim four people
+    merely have an opinion about — the difference between structural importance and
+    popularity, and the reason 49 of Book 3's 122 propositions used to score zero.
+
+    A dependent counts double a holder, deliberately. A believer can be revised in place;
+    a dependent CLAIM has to be revisited or it quietly becomes false, and that is the
+    cost this number exists to predict. With no `depends-on` anywhere the term is zero and
+    the score is exactly what it always was.
     """
     S = graph["sections"]
     out = {}
+    deps = transitive_dependents(graph)
 
     def cell(pid):
-        return out.setdefault(pid, {"holders": 0, "evidence": 0, "irony": False, "score": 0})
+        return out.setdefault(pid, {"holders": 0, "evidence": 0, "dependents": 0,
+                                    "irony": False, "score": 0})
 
     for r in S.get("Propositions", []):
         pid = r.get("prop-id")
         if pid:
             cell(pid)["evidence"] += len(_span_ids(r.get("span", "")))
+            cell(pid)["dependents"] = len(deps.get(pid, ()))
     modes = {}
     for r in S.get("Epistemic States", []):
         pid = r.get("prop-id")
@@ -1247,7 +1341,8 @@ def blast_radius(graph):
     for c in out.values():
         # irony is weighted because breaking it is the failure a reader actually feels,
         # and it is the one that no later validation pass will catch for you.
-        c["score"] = c["holders"] + c["evidence"] + (3 if c["irony"] else 0)
+        c["score"] = (c["holders"] + c["evidence"] + 2 * c["dependents"]
+                      + (3 if c["irony"] else 0))
     return out
 
 
@@ -1276,6 +1371,9 @@ def unratified_ranked(graph):
             why.append(f"{c['holders']} holder{'' if c['holders'] == 1 else 's'}")
         if c.get("evidence"):
             why.append(f"{c['evidence']} span{'' if c['evidence'] == 1 else 's'}")
+        if c.get("dependents"):
+            n = c["dependents"]
+            why.append(f"{n} claim{'' if n == 1 else 's'} rest on it")
         if c.get("irony"):
             why.append("dramatic irony")
         score = c.get("score", 0)
@@ -1668,9 +1766,9 @@ def main(argv=None):
         print(f"Ratification queue — {len(rows)} unratified (provisional) row(s), heaviest first:")
         for sec, lab, score, why in rows:
             print(f"  [{score:>3}] [{sec}] {lab} — {why}")
-        print("\nWeight is a ONE-HOP count (holders + spans, +3 for irony, or how overdue a setup is).\n"
-              "Ontology v2 has no proposition->proposition edge, so a claim that silently\n"
-              "underpins another claim scores 0 here. See reference/decisions.md.")
+        print("\nWeight = holders + spans + 2 per claim that rests on it (transitive, via the\n"
+              "`depends-on` column) + 3 for dramatic irony, or how overdue a setup is.\n"
+              "A claim with no `depends-on` pointing at it still scores 0 — see decisions.md 2.5.")
         return 0
     if args.command == "freeze":
         report = freeze_graph(args.graph, args.version, args.out, args.force, args.at)

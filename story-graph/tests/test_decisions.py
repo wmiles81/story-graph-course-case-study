@@ -2,6 +2,8 @@
 that turns the ratification queue from a list into a work plan."""
 from pathlib import Path
 
+import pytest
+
 import story_graph as sg
 from conftest import make_graph
 
@@ -36,7 +38,8 @@ def test_blast_radius_counts_holders_evidence_and_weights_irony():
     assert b["p1"]["holders"] == 2 and b["p1"]["evidence"] == 2
     assert b["p1"]["irony"] is True, "reader knows + a holder believes-false is irony"
     assert b["p1"]["score"] == 2 + 2 + 3
-    assert b["p2"] == {"holders": 0, "evidence": 0, "irony": False, "score": 0}
+    assert b["p2"] == {"holders": 0, "evidence": 0, "dependents": 0,
+                       "irony": False, "score": 0}
 
 
 def test_agreement_is_not_irony():
@@ -245,3 +248,80 @@ def test_unanchored_propositions_are_reported_separately():
     assert un == ["p2"], un
     out = sg.shape_report(g)
     assert "UNANCHORED (1 of 2)" in out and "p2" in out
+
+
+# --------------------------------------------- depends-on: structural weight, not popularity
+
+
+def _dep(props, epi=""):
+    body = ("## Propositions\n| prop-id | statement | canon-status | governing-source | span | depends-on |\n"
+            "|---|---|---|---|---|---|\n" + props)
+    kw = {"Propositions": body}
+    if epi:
+        kw["Epistemic States"] = ("## Epistemic States\n| prop-id | holder | mode | since-ch | span |\n"
+                                  "|---|---|---|---|---|\n" + epi)
+    return sg.parse_graph(make_graph(**kw))
+
+
+def test_dependents_are_counted_through_the_chain():
+    """A claim underpinning a chain is load-bearing however few people have an opinion
+    about it — the whole point of the edge."""
+    g = _dep("| a | the vault was sealed in 1974 | true | ms | provisional | |\n"
+             "| b | only a Keeper can open it | true | ms | provisional | a |\n"
+             "| c | Margot must have taken the Scrolls | true | ms | provisional | b |\n"
+             "| d | unrelated weather fact | true | ms | provisional | |\n")
+    dep = sg.transitive_dependents(g)
+    assert dep["a"] == {"b", "c"}, dep["a"]
+    assert dep["b"] == {"c"} and dep["c"] == set() and dep["d"] == set()
+
+
+def test_structure_outranks_popularity_in_the_queue():
+    """The failure this fixes: 49 of Book 3's 122 propositions scored zero, including
+    foundational ones, because ranking counted believers only."""
+    g = _dep("| root | the vault was sealed in 1974 | true | ms | provisional | |\n"
+             "| mid | only a Keeper can open it | true | ms | provisional | root |\n"
+             "| leaf | Margot took the Scrolls | true | ms | provisional | mid |\n"
+             "| popular | the town is cold in winter | true | ms | provisional | |\n",
+             epi=("| popular | reader | knows | 1 | provisional |\n"
+                  "| popular | jonah | knows | 1 | provisional |\n"))
+    b = sg.blast_radius(g)
+    assert b["root"]["dependents"] == 2 and b["root"]["score"] == 4
+    assert b["popular"]["holders"] == 2 and b["popular"]["score"] == 2
+    ranked = [lab for _, lab, _, _ in sg.unratified_ranked(g)]
+    assert ranked.index("root") < ranked.index("popular")
+    why = next(w for _, lab, _, w in sg.unratified_ranked(g) if lab == "root")
+    assert "2 claims rest on it" in why
+
+
+def test_a_dependency_cycle_is_an_error():
+    """While a cycle exists, "what rests on this" has no answer, so the traversal must
+    refuse rather than loop."""
+    g = _dep("| a | x | true | ms | provisional | c |\n"
+             "| b | y | true | ms | provisional | a |\n"
+             "| c | z | true | ms | provisional | b |\n")
+    rep = sg.Report()
+    sg.check_dependencies(g, {"a", "b", "c"}, rep)
+    assert any("cycle" in e for e in rep.errors), rep.errors
+    assert sg.transitive_dependents(g)["a"] == {"b", "c"}, "must terminate, not hang"
+
+
+@pytest.mark.parametrize("row,fragment", [
+    ("| a | x | true | ms | provisional | a |\n", "lists itself"),
+    ("| a | x | true | ms | provisional | nope |\n", "not a declared proposition"),
+])
+def test_bad_dependency_references_are_errors(row, fragment):
+    rep = sg.Report()
+    sg.check_dependencies(_dep(row), {"a"}, rep)
+    assert any(fragment in e for e in rep.errors), rep.errors
+
+
+def test_a_graph_without_the_column_scores_exactly_as_before():
+    """Backward compatibility is the whole reason this needed no version bump: an old
+    graph has no `depends-on`, so the new term is zero and nothing moves."""
+    g = _graph(props="| p1 | x | true | ms | provisional |\n",
+               epi="| p1 | reader | knows | 1 | provisional |\n")
+    b = sg.blast_radius(g)
+    assert b["p1"]["dependents"] == 0 and b["p1"]["score"] == 1
+    rep = sg.Report()
+    sg.check_dependencies(g, {"p1"}, rep)
+    assert rep.errors == []

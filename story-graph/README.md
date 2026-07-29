@@ -92,6 +92,11 @@ Run `story_graph.py` (stdlib; `compile`/`query`/`audit`/`impact` also want `pip 
   produces a number instead of an opinion. `validate` also checks alias consistency
   mechanically — it can't tell you two names are one person, but it will tell you the
   graph has claimed both readings at once.
+- **Say what rests on what** — an optional `depends-on` column on Propositions records
+  that one claim needs another. `queue` then ranks by structural importance rather than
+  popularity: a claim underpinning a chain outranks one that merely has believers, because
+  a believer can be revised in place while a dependent claim has to be revisited or it
+  quietly becomes false.
 - **Ratify** — `queue` (what's still provisional) and `freeze` (stamp a versioned canon baseline).
 - **Audit & revise** — `audit` (continuity detectors), `impact` (what depends on a claim), `deviations` (where the prose has drifted from canon).
 - **Visualize** — `visualize` writes a self-contained node-link HTML page.
