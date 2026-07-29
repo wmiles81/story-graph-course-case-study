@@ -229,12 +229,20 @@ in one scene, about one town, in one chapter, still need nothing from each other
 hunting for a link will find one, so require the "because" sentence to be true out loud
 before writing the edge.
 
-**A claim that reads as a standing rule cannot carry a dependency reliably.** "The Purge
-Protocol will erase the library after twelve hours" is either a mechanism the library has
-always had — depending on nothing — or this particular running countdown, which depends on
-the Scrolls leaving containment. Two competent readers split on it, and no test above
-resolves the ambiguity, because the ambiguity is in the CLAIM. That is the same defect
-`shapes` exists to catch: fix the sentence rather than argue about the edge.
+**Split a mechanism from its firing before writing an edge.** "The Purge Protocol will
+erase the library after twelve hours" reads two ways: the failsafe the library has always
+had, which depends on nothing, or this particular countdown, which depends on the Scrolls
+leaving containment. The prose calls it "a failsafe", so both readings are fair and no test
+above resolves them — the ambiguity is in the CLAIM, not in the judgement.
+
+Name the activation and it settles:
+
+> "The Purge Protocol activates on the ch02 vault breach and will erase the library within
+> twelve hours."
+
+That is now unambiguous, event-shaped (2.4), and can carry its edge. **When two careful
+readers disagree about direction, suspect the sentence before the judge** — a disagreement
+about an edge is usually a claim doing two jobs.
 
 Two rules the validator enforces: every id must resolve, and the edges must not form a
 cycle. While a cycle exists, "what rests on this" has no answer.
