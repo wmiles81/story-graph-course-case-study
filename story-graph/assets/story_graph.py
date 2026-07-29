@@ -1505,6 +1505,8 @@ def main(argv=None):
     ur.add_argument("graph")
     ur.add_argument("--chapters-dir", required=True)
     ur.add_argument("--min", type=int, default=2, help="ignore names seen fewer times (default 2)")
+    ur.add_argument("--ambiguous-min", type=int, default=2,
+                    help="also list names claimed by 2+ entities (default 2; 0 disables)")
     sh = sub.add_parser("shapes")
     sh.add_argument("graph")
     cf = sub.add_parser("conflicts")
@@ -1726,6 +1728,11 @@ def main(argv=None):
         if args.command == "unresolved":
             rows = sgc.unresolved(graph, args.chapters_dir, _alias_cell, args.min)
             print(sgc.unresolved_report(rows, args.min))
+            if args.ambiguous_min:
+                amb = sgc.ambiguous_names(graph, args.chapters_dir, _alias_cell,
+                                          args.ambiguous_min)
+                print()
+                print(sgc.ambiguous_report(amb, args.ambiguous_min))
         else:
             same, cross, undated = sgc.conflicts(graph, args.overlap)
             props = [r for r in graph["sections"].get("Propositions", []) if r.get("prop-id")]

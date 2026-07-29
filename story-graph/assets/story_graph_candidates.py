@@ -73,20 +73,82 @@ def _tokens(s):
     return {t for t in _norm(s).split() if t and t not in STOP}
 
 
-def entity_index(graph, alias_cell):
-    """token -> {entity ids}, from canonical ids and declared aliases. Token-level so
-    "Jonah" reaches `jonah-harrow`; SKILL.md already resolves this way for imports."""
-    idx, known = {}, set()
+def _owner_tokens(eid):
+    """Tokens that name the OWNER in a possessive id, not the thing itself.
+
+    `keeper-s-label-gun` is the label gun belonging to the Keeper — it is not a surface
+    form of "Keeper". Indexing the owner made the owner unfindable: "Keeper" appears 34
+    times in Book 3 as Margot's title and `unresolved` never reported it, because the
+    label gun had already claimed the token. `X-s-Y` is unambiguous, so this needs no
+    judgement.
+    """
+    parts = eid.split("-")
+    return {p for i, p in enumerate(parts) if i + 1 < len(parts) and parts[i + 1] == "s"}
+
+
+def entity_surfaces(graph, alias_cell):
+    """Surface forms OWNED by an entity, in two kinds.
+
+    The old index was one flat `token -> {ids}` map built by exploding every surface form,
+    canonical id and alias alike, into loose tokens. Nothing owned anything, so tokens from
+    unrelated entities competed in a shared namespace and the most trivial one won. That is
+    how Book 3 lost its antagonist: `the-ego-of-inquisitors-a-tragedy` — the book Valerius is
+    turned into in ch29 — carries the note "Valerius book", which contributed the token
+    `valerius` to the same bag a Character named Valerius would have. He appears 145 times
+    across 15 chapters, has no entity row, and `unresolved` never once reported him.
+
+    Ownership fixes it structurally rather than by special case:
+
+    - `exact` — a WHOLE surface form (the canonical id read as words, or any declared alias)
+      maps to the entities that declare it. Two entities declaring one form is a collision,
+      which `check_aliases` already reports.
+    - `components` — single tokens derived from the canonical id ONLY, never from an alias.
+      An id is a name, so its parts are names for the thing: `margot-vance` legitimately
+      yields "Margot". An alias is a PHRASE, and a phrase's parts are not names for it, so
+      "Valerius book" yields the whole phrase and nothing else. Possessive owners are
+      excluded too — `keeper-s-label-gun` is not a surface form of "Keeper".
+
+    Returns (exact, components, known).
+    """
+    exact, components, known = {}, {}, set()
     for r in graph["sections"].get("Entities", []):
         eid = r.get("id", "")
         if not eid:
             continue
         known.add(eid)
-        surfaces = [eid.replace("-", " ")] + list(alias_cell(r))
-        for s in surfaces:
-            for t in _tokens(s):
-                idx.setdefault(t, set()).add(eid)
-    return idx, known
+        for surf in [eid.replace("-", " ")] + list(alias_cell(r)):
+            toks = _tokens(surf)
+            if toks:
+                exact.setdefault(frozenset(toks), set()).add(eid)
+        owners = _owner_tokens(eid)
+        for t in _tokens(eid.replace("-", " ")):
+            if t not in owners and t != "s":
+                components.setdefault(t, set()).add(eid)
+    return exact, components, known
+
+
+def resolve_name(phrase, exact, components):
+    """(kind, owners) for one prose name. kind is exact | component | ambiguous | none.
+
+    A component match must account for EVERY token of the phrase and land on exactly one
+    entity: "Miss Vance" does not resolve to `margot-vance` on the strength of `vance`
+    alone, because `miss` belongs to nothing — it is an undeclared surface form, and saying
+    so is the correct answer. `ambiguous` is a real outcome, not a failure: "Treaty" is a
+    component of two different treaties and picking one silently is how the wrong entity
+    ends up in a row.
+    """
+    toks = _tokens(phrase)
+    if not toks:
+        return "none", set()
+    if frozenset(toks) in exact:
+        return "exact", set(exact[frozenset(toks)])
+    owners = {e for t in toks for e in components.get(t, ())}
+    owners = {e for e in owners if all(e in components.get(t, ()) for t in toks)}
+    if len(owners) == 1:
+        return "component", owners
+    if owners:
+        return "ambiguous", owners
+    return "none", set()
 
 
 def proper_nouns(text):
@@ -134,20 +196,44 @@ def proper_nouns(text):
 
 
 def unresolved(graph, chapters_dir, alias_cell, min_count=2):
-    """Proper nouns with no entity behind them, most frequent first."""
-    idx, _ = entity_index(graph, alias_cell)
+    """Proper nouns owned by no entity, most frequent first."""
+    exact, comp, _ = entity_surfaces(graph, alias_cell)
     hits, first = {}, {}
     for ch in _chapters(chapters_dir):
         text = ch.read_text(encoding="utf-8", errors="replace")
         for phrase, n in proper_nouns(text).items():
-            toks = _tokens(phrase)
-            if not toks or any(t in idx for t in toks):
-                continue                                   # some token reaches an entity
+            if resolve_name(phrase, exact, comp)[0] != "none":
+                continue
             hits[phrase] = hits.get(phrase, 0) + n
             first.setdefault(phrase, ch.stem)
     rows = [(p, n, first[p]) for p, n in hits.items() if n >= min_count]
     rows.sort(key=lambda t: (-t[1], t[0]))
     return rows
+
+
+def ambiguous_names(graph, chapters_dir, alias_cell, min_count=2):
+    """Prose names whose component match is claimed by more than one entity.
+
+    Under the ownership model this is the only remaining way a name can fail to land on a
+    single entity, and it is a question for a human rather than a coin-flip: "Treaty" is a
+    component of both `original-integration-treaty` and `treaty-evidence-copies`, and
+    picking one silently is how the wrong entity ends up cited in a row.
+    """
+    exact, comp, _ = entity_surfaces(graph, alias_cell)
+    types = {r["id"]: r.get("type", "?") for r in graph["sections"].get("Entities", [])
+             if r.get("id")}
+    hits, meta = {}, {}
+    for ch in _chapters(chapters_dir):
+        for phrase, n in proper_nouns(ch.read_text(encoding="utf-8", errors="replace")).items():
+            kind, owners = resolve_name(phrase, exact, comp)
+            if kind != "ambiguous":
+                continue
+            hits[phrase] = hits.get(phrase, 0) + n
+            meta.setdefault(phrase, (ch.stem, sorted(owners)))
+    out = [(p, n, meta[p][0], meta[p][1], [types.get(e, "?") for e in meta[p][1]])
+           for p, n in hits.items() if n >= min_count]
+    out.sort(key=lambda t: (-t[1], t[0]))
+    return out
 
 
 NEG = re.compile(r"\b(not|never|no|none|nothing|nobody|cannot|can't|isn't|wasn't|didn't|"
@@ -245,6 +331,19 @@ def unresolved_report(rows, min_count):
     out.append("\nEach is either an entity you have not modelled, an alias you have not "
                "declared,\nor prose the extractor mistook for a name. Judgement decides "
                "which; this only\nguarantees the list is finite.")
+    return "\n".join(out)
+
+
+def ambiguous_report(rows, min_count):
+    if not rows:
+        return f"AMBIGUOUS — none (no name seen {min_count}+ times is claimed by 2+ entities)"
+    out = [f"AMBIGUOUS — {len(rows)} name(s) claimed by more than one entity", "=" * 72]
+    for phrase, n, first, ents, types in rows:
+        who = ", ".join(f"{e} ({t})" for e, t in zip(ents, types))
+        out.append(f"  {n:>4}x  {phrase:<22} first in {first:<6} -> {who}")
+    out.append("\nEach is a question, not a failure: the prose uses one name and the graph "
+               "offers\ntwo owners for it. Declare the surface form on the entity that "
+               "actually bears it,\nor record an ambiguity — do not let a checker pick.")
     return "\n".join(out)
 
 

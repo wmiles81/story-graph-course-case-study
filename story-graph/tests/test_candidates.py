@@ -413,3 +413,74 @@ def test_unresolved_finds_the_cast_of_an_unseen_book_with_no_entities(tmp_path):
     assert "Julian" in names and "Sarah" in names, names
     for junk in ("I", "Chapter", "Beat", "You", "If"):
         assert junk not in names, f"'{junk}' is not a character"
+
+
+# ----------------------------------------- alias ownership (the Valerius absorption bug)
+
+
+def _surf(entities):
+    return sgc.entity_surfaces(_graph(entities), sg._alias_cell)
+
+
+def test_an_object_named_after_its_owner_does_not_absorb_the_owner():
+    """The bug that hid Book 3's antagonist. `the-ego-of-inquisitors-a-tragedy` is the book
+    Valerius is turned into in ch29; its note reads "Valerius book". The old flat index
+    exploded that alias into loose tokens, so `valerius` pointed at the BOOK — and a
+    character appearing 145 times across 15 chapters, with no entity row of his own, was
+    never once reported by `unresolved`. An alias is a phrase; its parts are not names."""
+    exact, comp, _ = _surf("| the-ego-of-inquisitors-a-tragedy | Object | active | - | Valerius book |\n")
+    assert sgc.resolve_name("Valerius", exact, comp)[0] == "none", \
+        "a token from a multi-token ALIAS must not resolve"
+    assert sgc.resolve_name("Valerius book", exact, comp)[0] == "exact", \
+        "the whole declared phrase must still resolve"
+
+
+def test_a_possessive_id_does_not_absorb_its_owner():
+    """`keeper-s-label-gun` is the gun belonging to the Keeper, not a surface form of
+    "Keeper" — which appears 34 times in Book 3 as Margot's title and was never reported."""
+    exact, comp, _ = _surf("| keeper-s-label-gun | Object | active | - |  |\n")
+    assert sgc.resolve_name("Keeper", exact, comp)[0] == "none"
+    assert sgc.resolve_name("label gun", exact, comp)[0] == "component", "the thing itself resolves"
+
+
+def test_a_component_of_a_canonical_id_still_resolves():
+    """The behaviour the flat index existed for, which must survive: an id IS a name, so
+    its parts are names for the thing. Losing this would flood the list with every first
+    name in the book."""
+    exact, comp, _ = _surf("| margot-vance | Character | active | - |  |\n"
+                           "| siege-golem | Character | active | - |  |\n")
+    for name, want in (("Margot", "margot-vance"), ("Vance", "margot-vance"),
+                       ("Golem", "siege-golem")):
+        kind, who = sgc.resolve_name(name, exact, comp)
+        assert (kind, who) == ("component", {want}), (name, kind, who)
+
+
+def test_a_name_two_entities_claim_is_ambiguous_not_a_coin_flip():
+    """Book 3 has `original-integration-treaty` and `treaty-evidence-copies`; the prose says
+    "Treaty" 11 times. Silently picking one is how the wrong entity gets cited."""
+    exact, comp, _ = _surf("| original-integration-treaty | Object | active | - |  |\n"
+                           "| treaty-evidence-copies | Object | active | - |  |\n")
+    kind, who = sgc.resolve_name("Treaty", exact, comp)
+    assert kind == "ambiguous"
+    assert who == {"original-integration-treaty", "treaty-evidence-copies"}
+
+
+def test_a_component_match_must_account_for_every_token():
+    """"Miss Vance" is an undeclared surface form: `vance` is owned but `miss` is not, and
+    partial credit is what let one shared token stand in for a whole name."""
+    exact, comp, _ = _surf("| margot-vance | Character | active | - | Ms. Vance |\n")
+    assert sgc.resolve_name("Miss Vance", exact, comp)[0] == "none"
+    assert sgc.resolve_name("Ms. Vance", exact, comp)[0] == "exact", "declared, so it resolves"
+
+
+def test_the_book3_antagonist_is_now_reported(tmp_path):
+    """End-to-end on the real manuscript: the name must reach the top of the work list."""
+    if not (CHAPTERS.is_dir() and FIXTURE.exists()):
+        pytest.skip("book-3 not present")
+    g = sg.parse_graph(FIXTURE.read_text(encoding="utf-8"))
+    ids = {r["id"] for r in g["sections"]["Entities"] if r.get("id")}
+    rows = sgc.unresolved(g, CHAPTERS, sg._alias_cell, min_count=10)
+    names = [r[0] for r in rows]
+    if "valerius" not in ids:
+        assert "Valerius" in names, f"the antagonist must be reported; got {names[:6]}"
+        assert names[0] == "Valerius", f"and he is the most frequent of them: {names[:4]}"
