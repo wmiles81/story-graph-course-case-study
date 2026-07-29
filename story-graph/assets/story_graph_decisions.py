@@ -38,6 +38,17 @@ ASKS = {
     "basis": ("Does the scene actually support the claim, or is the claim an inference with no "
               "line to point at?",
               '{"supported": true|false}'),
+    # Direction is the judgement no checker can make. `depends-on` means "this needs that",
+    # and reversing it inverts the whole ratification ranking with nothing to catch it.
+    "dependency": ("Does one of these claims NEED the other in order to be true? Answer which "
+                   "way the dependency runs, or 'neither' when both can stand alone.\n"
+                   "The order they are listed in carries NO information — do not assume the first "
+                   "is the foundation. Test it two ways: say 'A, because B' and 'B, because A' "
+                   "aloud, since exactly one is true; and delete each in turn, since removing the "
+                   "foundation makes the other claim nonsense while removing the dependent leaves "
+                   "the foundation untouched. Co-occurring in one scene is not dependency, and a claim "
+                   "phrased as a standing rule may genuinely depend on nothing.",
+                   '{"depends": "a-needs-b" | "b-needs-a" | "neither"}'),
 }
 
 SYSTEM = ("You maintain a story graph: a structured model of a manuscript's hidden state. "
@@ -96,10 +107,13 @@ def check_corpus(cases):
         if not c["expect"]:
             problems.append(f"{w} no Expect block — this case can never fail")
         for k in c["expect"]:
-            if k not in ("entity_count", "ambiguity", "rows", "verdict", "supported"):
+            if k not in ("entity_count", "ambiguity", "rows", "verdict", "supported",
+                         "depends"):
                 problems.append(f"{w} unknown expectation key '{k}'")
         if c["ask"] == "basis" and not c["claim"]:
             problems.append(f"{w} a 'basis' case needs a Claim section")
+        if c["ask"] == "dependency" and not c["claim"]:
+            problems.append(f"{w} a 'dependency' case needs a Claim section naming A and B")
     # Controls: a category with only one answer can be passed by always saying it.
     for cat in {c["category"] for c in cases}:
         vals = [tuple(sorted(c["expect"].items())) for c in cases if c["category"] == cat]
@@ -178,6 +192,10 @@ def grade(case, answer):
             got = str(answer.get("verdict", "")).strip().lower()
             ok = got == want.strip().lower()
             notes.append(f"verdict want {want} got {got or '-'}")
+        elif k == "depends":
+            got = str(answer.get("depends", "")).strip().lower()
+            ok = got == want.strip().lower()
+            notes.append(f"depends want {want} got {got or '-'}")
         elif k == "supported":
             got = bool(answer.get("supported"))
             ok = got == (want.strip().lower() in ("yes", "true"))

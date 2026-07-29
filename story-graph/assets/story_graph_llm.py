@@ -20,6 +20,7 @@ one global.
 from __future__ import annotations
 
 import json
+import re
 
 # Provider-neutral, OpenAI-compatible endpoints. Local servers need no key.
 PROVIDERS = [
@@ -34,8 +35,25 @@ _PROV = {p["name"]: p for p in PROVIDERS}
 
 
 def provider(name):
-    """The provider record, or None. Callers treat None as 'unknown provider'."""
-    return _PROV.get(name)
+    """The provider record for a name — or for ANY OpenAI-compatible base URL.
+
+    The three named entries are conveniences, not a whitelist. They came from what the
+    browser app happened to offer, and letting that list gate the skill would put a
+    viewer's constraint on the orchestrator: whoever is running a pass should pick the
+    endpoint that suits the task, including one nobody here has heard of.
+
+    Anything starting with http:// or https:// is taken as a base URL. It counts as local
+    when it points at this machine, which is the only thing "local" is used to decide —
+    whether a key is required and how long to wait.
+    """
+    if name in _PROV:
+        return _PROV[name]
+    if not name or not re.match(r"https?://", name):
+        return None
+    host = re.sub(r"^https?://", "", name).split("/")[0].split(":")[0].lower()
+    local = host in ("localhost", "127.0.0.1", "::1", "0.0.0.0", "host.docker.internal")
+    return {"name": name, "label": name, "base": name.rstrip("/"),
+            "env": "" if local else "OPENAI_API_KEY", "local": local, "adhoc": True}
 
 
 # --------------------------------------------------------------------------- .env
@@ -111,14 +129,21 @@ def oai(base, path, key="", payload=None, timeout=60):
         return json.loads(r.read().decode("utf-8"))
 
 
-def chat(name, model, system, user, max_tokens=2048, key="", timeout=None):
+def chat(name, model, system, user, max_tokens=2048, key="", timeout=None,
+         temperature=0):
     """One chat completion. Returns the assistant's text.
 
     Local servers get a much longer default: the first call also pays for loading the
     model off disk, which on a laptop routinely exceeds any timeout tuned for a cloud API.
     """
-    p = _PROV[name]
-    payload = {"model": model, "max_tokens": max_tokens,
+    p = provider(name)
+    if p is None:
+        raise ValueError(f"unknown provider {name!r} — use a name or an OpenAI-compatible base URL")
+    # Actually SEND it. Every proposal file this project has written records
+    # "temperature": 0 in its provenance and none of them were generated that way — a
+    # reproducibility claim that was documented, believed, and false. It also made scored
+    # runs vary between passes, which turned run-to-run noise into apparent findings.
+    payload = {"model": model, "max_tokens": max_tokens, "temperature": temperature,
                "messages": [{"role": "system", "content": system},
                             {"role": "user", "content": user}]}
     if timeout is None:
@@ -134,7 +159,7 @@ def chat(name, model, system, user, max_tokens=2048, key="", timeout=None):
 
 def models(name, key=""):
     """The provider's live model catalogue as a list of ids."""
-    p = _PROV.get(name)
+    p = provider(name)
     if not p:
         return []
     d = oai(p["base"], "/models", key, None, timeout=20)
@@ -145,7 +170,7 @@ def reachable(name, key=""):
     """Can we actually use this provider right now? A cloud provider needs a key; a
     local one needs something listening, which we probe with a short timeout so an
     absent local server costs the caller a moment rather than a hang."""
-    p = _PROV.get(name)
+    p = provider(name)
     if not p:
         return False
     if not p["local"]:

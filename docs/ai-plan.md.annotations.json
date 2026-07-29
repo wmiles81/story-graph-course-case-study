@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "annotations": [
+    {
+      "id": "1qqg552w",
+      "text": " already has a working provider-neutral client that the user specified: OpenRouter + local Ollama (",
+      "comment": "The models are not constrained to those identified in the visualizer. the orchestrator agent can make that choice based on the task.",
+      "color": "#4a9eff",
+      "createdAt": "2026-07-28T14:58:59.862Z",
+      "lineNumber": 23
+    },
+    {
+      "id": "1qqg552w",
+      "text": ") + LM Studio (",
+      "comment": "The models are not constrained to those identified in the visualizer. the orchestrator agent can make that choice based on the task.",
+      "color": "#4a9eff",
+      "createdAt": "2026-07-28T14:58:59.862Z",
+      "lineNumber": 23
+    },
+    {
+      "id": "1qqg552w",
+      "text": "), OpenAI-compatible chat over stdlib ",
+      "comment": "The models are not constrained to those identified in the visualizer. the orchestrator agent can make that choice based on the task.",
+      "color": "#4a9eff",
+      "createdAt": "2026-07-28T14:58:59.862Z",
+      "lineNumber": 23
+    },
+    {
+      "id": "1qqg552w",
+      "text": ", certifi SSL context, ",
+      "comment": "The models are not constrained to those identified in the visualizer. the orchestrator agent can make that choice based on the task.",
+      "color": "#4a9eff",
+      "createdAt": "2026-07-28T14:58:59.862Z",
+      "lineNumber": 23
+    },
+    {
+      "id": "1qqg552w",
+      "text": " persistence. ",
+      "comment": "The models are not constrained to those identified in the visualizer. the orchestrator agent can make that choice based on the task.",
+      "color": "#4a9eff",
+      "createdAt": "2026-07-28T14:58:59.862Z",
+      "lineNumber": 23
+    },
+    {
+      "id": "1qqg552w",
+      "text": "No SDK, no Anthropic-only path.",
+      "comment": "The models are not constrained to those identified in the visualizer. the orchestrator agent can make that choice based on the task.",
+      "color": "#4a9eff",
+      "createdAt": "2026-07-28T14:58:59.862Z",
+      "lineNumber": 23
+    },
+    {
+      "id": "1qqg552w",
+      "text": " Move it out so the CLI and the app share one implementation.",
+      "comment": "The models are not constrained to those identified in the visualizer. the orchestrator agent can make that choice based on the task.",
+      "color": "#4a9eff",
+      "createdAt": "2026-07-28T14:58:59.862Z",
+      "lineNumber": 23
+    }
+  ]
+}

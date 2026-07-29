@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "annotations": [
+    {
+      "id": "w86mcxw6",
+      "text": "Act III:",
+      "comment": "Not writing or marketing. keep the focus tight.",
+      "color": "#4a9eff",
+      "createdAt": "2026-07-24T20:40:36.632Z",
+      "lineNumber": 13
+    },
+    {
+      "id": "w86mcxw6",
+      "text": " Can the graph become a practical operating system for writing, editing, continuity, and marketing?",
+      "comment": "Not writing or marketing. keep the focus tight.",
+      "color": "#4a9eff",
+      "createdAt": "2026-07-24T20:40:36.632Z",
+      "lineNumber": 13
+    },
+    {
+      "id": "dbl5v0pm",
+      "text": "Can the system detect manuscript changes and update the graph safely, incrementally, and transparently?",
+      "comment": "And call out deviations",
+      "color": "#4a9eff",
+      "createdAt": "2026-07-24T20:40:36.632Z",
+      "lineNumber": 17
+    }
+  ]
+}

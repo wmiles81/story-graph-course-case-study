@@ -205,6 +205,37 @@ revisited or it quietly becomes false.**
 Without this column a foundational claim nobody has an opinion about scores zero, exactly
 like an inert one. On Book 3 that was 49 of 122 propositions.
 
+### Getting the direction right
+
+Two tests, and neither uses the order the claims were handed to you in:
+
+**Say it aloud.** "A, because B" and "B, because A". Exactly one is true.
+
+> "The Purge fires *because* the Scrolls left containment." ✓
+> "The Scrolls left containment *because* the Purge fires." ✗
+
+**Delete one and see what collapses.** Remove the foundation and the dependent claim stops
+making sense; remove the dependent and the foundation is untouched.
+
+> Delete "Margot possesses the journal" → "Margot conceals the journal" is nonsense.
+> Delete "Margot conceals the journal" → "Margot possesses the journal" is unaffected.
+
+Chronology is a hint, not the rule. It usually agrees — you are freed *after* being
+captured — but the narrative often shows the dependent claim first, because the
+concealment is the interesting part and the possession is assumed.
+
+The commonest error is neither direction: **co-occurrence is not dependency.** Two claims
+in one scene, about one town, in one chapter, still need nothing from each other. A judge
+hunting for a link will find one, so require the "because" sentence to be true out loud
+before writing the edge.
+
+**A claim that reads as a standing rule cannot carry a dependency reliably.** "The Purge
+Protocol will erase the library after twelve hours" is either a mechanism the library has
+always had — depending on nothing — or this particular running countdown, which depends on
+the Scrolls leaving containment. Two competent readers split on it, and no test above
+resolves the ambiguity, because the ambiguity is in the CLAIM. That is the same defect
+`shapes` exists to catch: fix the sentence rather than argue about the edge.
+
 Two rules the validator enforces: every id must resolve, and the edges must not form a
 cycle. While a cycle exists, "what rests on this" has no answer.
 

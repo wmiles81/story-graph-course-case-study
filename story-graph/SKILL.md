@@ -333,6 +333,14 @@ it is the first thing a weak judge abandons.
 `--provider/--model` still exists for headless or batch runs. It is the weakest link when
 the model is small, and it is not the main path.
 
+**`--provider` is not a fixed list.** `openrouter`, `ollama` and `lmstudio` are shorthands;
+any OpenAI-compatible base URL works — `--provider https://your-endpoint/v1`. The choice
+belongs to whoever is orchestrating the pass, not to the three endpoints a viewer app
+happened to offer.
+
+Requests go out at **temperature 0**, so a pass is reproducible and a re-run tells you
+about your change rather than about sampling.
+
 ## Proposals: how generated rows reach canon
 
 **A generated row is a file on disk, never an edit to the graph.** Anything produced by

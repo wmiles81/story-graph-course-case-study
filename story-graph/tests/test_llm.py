@@ -97,9 +97,13 @@ def test_chat_sends_openai_shape_and_returns_the_text(calls):
     assert out == "hello"
     body = calls[-1]["body"]
     assert body["model"] == "llama3" and body["max_tokens"] == 64
+    # Sent, not merely recorded: proposal files claimed temperature 0 in their provenance
+    # while every request went out at the provider's default.
+    assert body["temperature"] == 0
     assert body["messages"] == [{"role": "system", "content": "SYS"},
                                 {"role": "user", "content": "USER"}]
-    assert set(body) == {"model", "max_tokens", "messages"}, "no vendor-specific fields"
+    assert set(body) == {"model", "max_tokens", "temperature", "messages"}, \
+        "no vendor-specific fields"
     assert calls[-1]["url"].startswith("http://localhost:11434/v1")
 
 
