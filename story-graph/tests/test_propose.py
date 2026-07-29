@@ -480,3 +480,34 @@ def test_the_relevance_gate_admits_a_claim_written_in_the_authors_words(tmp_path
     ctx = sp._ctx_epistemic(graph, (ch / "ch09.md").read_text(encoding="utf-8"), 9, limit=30)
     assert "p-901" in [c["prop-id"] for c in ctx["claims"]], \
         "'activates'/'manufactured' never appear in the prose, but Valerius/Feral/Signal/dam do"
+
+
+def test_an_anchored_claim_outranks_a_long_unanchored_one(tmp_path):
+    """The count term is capped so it cannot reach the anchor bonus. Uncapped it earns 0.1
+    per matched token, so a deliberately wordy claim matching in full would outrank the
+    claim the chapter is provably anchored to. Book 3's longest statement is 13 tokens, so
+    nothing there crossed the line — the ordering held by accident of one corpus."""
+    ch = tmp_path / "chapters"
+    ch.mkdir()
+    long_claim = ("Valerius raised the manufactured Feral Signal above the condemned dam "
+                  "while the Grey Guard legion answered and the convoy waited")
+    (ch / "ch09.md").write_text(
+        f"The convoy stopped. {long_claim} and nobody moved.\n\n"
+        "Margot watched the vault. The room was cold.\n", encoding="utf-8")
+    props = ("## Propositions\n| prop-id | statement | canon-status | governing-source | span |\n"
+             "|---|---|---|---|---|\n"
+             f"| p-500 | {long_claim} | true | ms | provisional |\n"
+             "| p-501 | Margot watched the vault | true | ms | provisional |\n")
+    epi = ("## Epistemic States\n| prop-id | holder | mode | since-ch | span |\n|---|---|---|---|---|\n"
+           "| p-501 | reader | knows | 9 | provisional |\n")     # anchors p-501 to ch09
+    ents = ("## Entities\n| id | type | status | voice | note |\n|---|---|---|---|---|\n"
+            "| margot-vance | Character | active | - | Margot |\n")
+    g = tmp_path / "g.md"
+    g.write_text(make_graph(Entities=ents, Propositions=props, **{"Epistemic States": epi}),
+                 encoding="utf-8")
+    graph = sg.parse_graph(g.read_text(encoding="utf-8"))
+    ctx = sp._ctx_epistemic(graph, (ch / "ch09.md").read_text(encoding="utf-8"), 9, limit=10)
+    offered = [c["prop-id"] for c in ctx["claims"]]
+    assert offered[0] == "p-501", (
+        f"the chapter-anchored claim must rank first; got {offered}. A long unanchored claim "
+        "outranking it means the count term is no longer bounded below the anchor bonus.")

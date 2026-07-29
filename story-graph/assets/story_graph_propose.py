@@ -504,9 +504,14 @@ def _ctx_epistemic(graph, chapter_text, ch_no, limit, per_claim=6):
             # and on a tie the id tie-break below silently restored the very ordering this
             # ranking exists to remove. Counting matched content words breaks that tie
             # toward the claim the chapter is more specifically about.
+            # Capped at 0.9 so it can never reach the anchor bonus below. Uncapped, a long
+            # statement earns 0.1 per matched token, and a 20-token claim matching in full
+            # would outrank a claim this chapter is provably anchored to. Book 3's longest
+            # statement is 13 tokens, so nothing here crosses 2.0 — the ordering held by
+            # accident of one corpus rather than by construction, which is not a guarantee.
             claims.append((
                 len(t & ct) / len(t)
-                + 0.1 * len(t & ct)
+                + 0.1 * min(len(t & ct), 9)
                 + (2.0 if anchored.get(pid) == ch_no else 0.0)
                 + (1.0 if not any(k[0] == pid for k in have) else 0.0),
                 pid,                                   # stable tie-break, keeps runs reproducible
