@@ -575,3 +575,64 @@ def test_a_determiner_does_not_cross_a_sentence_boundary(tmp_path):
     uses, det, _ = p["thump"]
     assert (uses, det) == (6, 0), f"no Thump is preceded by a determiner; got det={det}"
     assert sgc.looks_like_description("Thump", p) is False
+
+
+# ------------------------------------------------- descriptors resolve through a trait
+
+
+def _traitgraph(rows):
+    body = "## Entities\n| id | type | status | voice | traits | note |\n|---|---|---|---|---|---|\n"
+    return sgc.trait_index(sg.parse_graph(make_graph(Entities=body + rows)))
+
+
+def test_a_descriptor_resolves_through_a_trait_not_an_alias():
+    """The home descriptions never had. "the Vampire" reaches Aleksei because he IS one —
+    an attribute, not a name — which is exactly why it could not go in the alias table."""
+    t = _traitgraph("| aleksei-petrov | Character | active | - | vampire |  |\n")
+    assert sgc.resolve_descriptor("Vampire", t) == ("resolved", {"aleksei-petrov"})
+    assert sgc.resolve_descriptor("the Vampire", t)[0] == "resolved"
+
+
+def test_two_bearers_of_a_trait_is_ambiguous_never_a_guess():
+    """"the Alpha" fits Jonah and Jackson both. A wrong resolution is invisible once
+    written, so this reports and stops."""
+    t = _traitgraph("| jonah-harrow | Character | active | - | alpha |  |\n"
+                    "| jackson-harrow | Character | active | - | alpha |  |\n")
+    kind, who = sgc.resolve_descriptor("Alpha", t)
+    assert kind == "ambiguous" and who == {"jonah-harrow", "jackson-harrow"}
+
+
+def test_a_plural_reaches_the_singular_trait():
+    """The prose says "Trolls"; making the author also write `trolls` would be a tax with
+    no information in it."""
+    t = _traitgraph("| grishka | Character | active | - | troll |  |\n")
+    assert sgc.resolve_descriptor("Trolls", t) == ("resolved", {"grishka"})
+
+
+def test_a_descriptor_with_no_trait_behind_it_stays_homeless():
+    t = _traitgraph("| grishka | Character | active | - | troll |  |\n")
+    assert sgc.resolve_descriptor("Gunship", t) == ("none", set())
+
+
+def test_traits_are_not_read_as_aliases():
+    """The whole point of the separation: a trait must not make the descriptor resolve as a
+    NAME, or the distinction collapses back into the bug it was built to fix."""
+    body = ("## Entities\n| id | type | status | voice | traits | note |\n|---|---|---|---|---|---|\n"
+            "| aleksei-petrov | Character | active | - | vampire |  |\n")
+    g = sg.parse_graph(make_graph(Entities=body))
+    exact, comp, _ = sgc.entity_surfaces(g, sg._alias_cell)
+    assert sgc.resolve_name("Vampire", exact, comp)[0] == "none", \
+        "a trait is not a surface form"
+
+
+def test_the_report_groups_resolved_ambiguous_and_homeless(tmp_path):
+    prose = ("The vampire waited. A vampire smiled. Every vampire lies. The vampire left. "
+             "This vampire stayed. The gunship turned. A gunship fired. Two gunship runs. "
+             "The gunship climbed. Some gunship noise.")
+    p = _prof(tmp_path, prose)
+    body = ("## Entities\n| id | type | status | voice | traits | note |\n|---|---|---|---|---|---|\n"
+            "| aleksei-petrov | Character | active | - | vampire |  |\n")
+    g = sg.parse_graph(make_graph(Entities=body))
+    text = sgc.unresolved_report([("Vampire", 5, "ch01"), ("Gunship", 5, "ch01")], 2, p, g)
+    assert "accounted for by a trait" in text and "aleksei-petrov" in text
+    assert "no trait behind them" in text and "Gunship" in text.split("no trait behind them")[1]

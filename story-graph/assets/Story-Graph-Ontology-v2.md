@@ -136,6 +136,16 @@ case-insensitively).
   span` — `canon-status` from the vocabulary above; `governing-source` a
   `source-id`; `span` a `span-id` (required when `canon-status` is `true` or
   `false`; see *Evidence Span Rules*).
+- **Entities**: an optional **`traits`** column carries attributes a DESCRIPTION can
+  resolve through — `vampire`, `alpha`, `librarian`, `troll`, `;`-separated. This is
+  not an alias list and must not be used as one. An alias is a rigid designator
+  ("Sheriff Harrow" is Jonah in every scene); a description is not ("the Vampire"
+  reaches Aleksei because he IS one, and would reach someone else in a book with a
+  different cast). Recording a description as an alias asserts an identity the prose
+  never gave it. A descriptor resolves only when exactly ONE entity carries the
+  trait; two candidates is reported as ambiguous and left alone, because which one a
+  scene means is a reading. Plurals match the singular trait, so "Trolls" reaches
+  `troll`. See `story_graph.py unresolved`.
 - **Epistemic States**: `prop-id | holder | mode | since-ch | span` —
   `prop-id` must resolve to a declared Proposition; `holder` an Entity id or
   the reserved id `reader`; `mode` from the vocabulary above; `span` required

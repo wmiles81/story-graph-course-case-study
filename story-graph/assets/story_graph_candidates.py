@@ -201,6 +201,46 @@ def entity_surfaces(graph, alias_cell):
     return exact, components, known
 
 
+def trait_index(graph):
+    """trait token -> {entity ids that carry it}, from the optional `traits` column.
+
+    A description resolves through an ATTRIBUTE, not a name: "the Vampire" reaches Aleksei
+    because he is one, and it would reach a different character in a book with a different
+    cast. That is why a descriptor cannot live in the alias table — an alias is a rigid
+    designator and this is not. Traits are plain tokens, so one trait serves every
+    descriptor built on it: `alpha` answers "the Alpha", "an Alpha" and "Alpha-class".
+    """
+    idx = {}
+    for r in graph["sections"].get("Entities", []):
+        eid = r.get("id", "")
+        if not eid:
+            continue
+        for seg in (r.get("traits") or "").split(";"):
+            for t in _tokens(seg):
+                idx.setdefault(t, set()).add(eid)
+    return idx
+
+
+def resolve_descriptor(phrase, traits):
+    """(kind, owners) for a description. kind is resolved | ambiguous | none.
+
+    Resolves only when exactly one entity carries the trait. Two candidates is reported,
+    never guessed: "the Alpha" fits both Jonah and Jackson, and which one a given scene
+    means is a reading. Getting it wrong is worse than leaving it open, because a wrong
+    resolution is invisible once written.
+    """
+    toks = [t for t in _norm(phrase).split() if t]
+    # The prose says "Trolls" and the trait says `troll`; a plural is the same attribute, and
+    # making the author write both spellings would be a tax with no information in it.
+    forms = {t for t in toks} | {t[:-1] for t in toks if len(t) > 3 and t.endswith("s")}
+    owners = {e for t in forms for e in traits.get(t, ())}
+    if len(owners) == 1:
+        return "resolved", owners
+    if owners:
+        return "ambiguous", owners
+    return "none", set()
+
+
 def resolve_name(phrase, exact, components):
     """(kind, owners) for one prose name. kind is exact | component | ambiguous | none.
 
@@ -395,7 +435,7 @@ def conflicts(graph, overlap=0.45, min_tokens=3):
     return same, cross, undated
 
 
-def unresolved_report(rows, min_count, profile=None):
+def unresolved_report(rows, min_count, profile=None, graph=None):
     if not rows:
         return f"UNRESOLVED — none (no proper noun appears {min_count}+ times without an entity)"
     names = [r for r in rows
@@ -409,20 +449,39 @@ def unresolved_report(rows, min_count, profile=None):
                "declared,\nor prose the extractor mistook for a name. Judgement decides "
                "which; this only\nguarantees the list is finite.")
     if descs:
-        out += ["", f"DESCRIPTIONS — {len(descs)} common noun(s), not names", "=" * 60]
-        for phrase, n, first in descs:
-            uses, det, plural = profile.get(_norm(phrase).split()[-1], (0, 0, 0))
-            out.append(f"  {n:>4}x  {phrase:<24} first in {first:<6} "
-                       f"det {det}/{uses}"
-                       f"{f', {plural} plural' if plural else ''}")
-        out.append(
-            "\nThese take a determiner (\"the Wolf\", \"three Trolls\"), which a proper name "
-            "does\nnot — so they are DESCRIPTIONS, and they do not belong in an alias table. "
-            "An alias\nis a rigid designator: 'Sheriff Harrow' is Jonah in every scene. A "
-            "description\nresolves per scene against whoever qualifies — 'the Vampire' is "
-            "Aleksei only\nbecause he is the one vampire present, and in a room with two it "
-            "names neither.\nRecording one as an alias asserts a permanent identity the "
-            "prose never gave it.")
+        traits = trait_index(graph) if graph is not None else {}
+        buckets = {"resolved": [], "ambiguous": [], "none": []}
+        for row in descs:
+            kind, owners = resolve_descriptor(row[0], traits)
+            buckets[kind].append((row, sorted(owners)))
+        if buckets["resolved"]:
+            out += ["", f"DESCRIPTIONS — {len(buckets['resolved'])} accounted for by a trait"]
+            for (phrase, n, _), owners in buckets["resolved"]:
+                out.append(f"  {n:>4}x  {phrase:<24} -> {owners[0]}")
+        if buckets["ambiguous"]:
+            out += ["", f"DESCRIPTIONS — {len(buckets['ambiguous'])} ambiguous: 2+ entities "
+                        f"carry the trait", "=" * 60]
+            for (phrase, n, first), owners in buckets["ambiguous"]:
+                out.append(f"  {n:>4}x  {phrase:<20} first in {first:<6} -> "
+                           f"{', '.join(owners)}")
+            out.append("  Which one a scene means is a reading. Left unresolved on purpose — "
+                       "a wrong\n  resolution is invisible once written.")
+        if buckets["none"]:
+            out += ["", f"DESCRIPTIONS — {len(buckets['none'])} common noun(s) with no trait "
+                        f"behind them", "=" * 60]
+            for (phrase, n, first), _ in buckets["none"]:
+                uses, det, plural = profile.get(_norm(phrase).split()[-1], (0, 0, 0))
+                out.append(f"  {n:>4}x  {phrase:<24} first in {first:<6} "
+                           f"det {det}/{uses}"
+                           f"{f', {plural} plural' if plural else ''}")
+            out.append(
+                "\nThese take a determiner (\"the Wolf\", \"three Trolls\"), which a proper "
+                "name does\nnot — so they are DESCRIPTIONS and they do not belong in an alias "
+                "table. An alias\nis a rigid designator: 'Sheriff Harrow' is Jonah in every "
+                "scene. A description\nresolves through an attribute — 'the Vampire' reaches "
+                "Aleksei because he IS one.\nGive the bearer a `traits` cell (`vampire`) and "
+                "the descriptor stops being homeless;\nrecording it as an alias instead "
+                "asserts an identity the prose never gave it.")
     return "\n".join(out)
 
 

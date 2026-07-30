@@ -1836,7 +1836,7 @@ def main(argv=None):
             # The determiner profile splits probable names from descriptions. A description
             # is not an alias, so putting the two in one list invites recording it as one.
             print(sgc.unresolved_report(rows, args.min,
-                                        sgc.determiner_profile(args.chapters_dir)))
+                                        sgc.determiner_profile(args.chapters_dir), graph))
             if args.ambiguous_min:
                 amb = sgc.ambiguous_names(graph, args.chapters_dir, _alias_cell,
                                           args.ambiguous_min)
