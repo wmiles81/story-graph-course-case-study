@@ -141,6 +141,19 @@ case-insensitively).
   the reserved id `reader`; `mode` from the vocabulary above; `span` required
   for `knows` / `believes` / `believes-false` / `suspects` (not for
   `embargoed-until`).
+  An optional **`until-ch`** column closes a stance. Without it a stance runs to
+  the end of the book, so a belief that is later corrected cannot be stated:
+  "Jonah believed it false, then learned better in ch20" had to be recorded as
+  two rows that then read as a contradiction. That is an arc, not an error, and
+  warning about it suppressed the most valuable mode — a manuscript can reach
+  173 `knows` rows and 6 `believes-false` purely because the informative mode was
+  the one that complained. `until-ch` must be greater than `since-ch`, and the
+  contradiction check compares windows rather than modes: disjoint stances pass
+  silently, only a real overlap is flagged. Dramatic irony becomes computable
+  from it — the reader knowing a claim while a holder is `believes-false` over an
+  overlapping window (`story_graph.py irony`). The column is optional and tables
+  are parsed by column name, so a graph that omits it is unaffected and every
+  stance in it is open.
 - **Open Loops & Setups**: `id | planted-ch | expectation | must-fire-by |
   status | span` — `status` matches the setup-status regex; `span` always
   required (see *Evidence Span Rules*).

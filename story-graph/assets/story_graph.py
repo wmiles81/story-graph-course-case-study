@@ -242,6 +242,18 @@ def check_epistemic(graph, entity_ids, prop_ids, span_ids, report):
             key = (pid, holder)
             if mode == "knows" and ch.isdigit() and key in embargo and int(ch) < embargo[key]:
                 report.error(f"Epistemic States [{label}]: embargo violation — knows at ch{ch} but embargoed until ch{embargo[key]}")
+            # `until-ch` is optional and closes a stance. Without it a stance runs forever,
+            # so "Jonah believed it false, then learned better in ch20" was inexpressible —
+            # you could only record both rows and take the contradiction WARN. That is why
+            # `believes-false` stayed at 6 rows on a 30-chapter book while `knows` reached
+            # 173: the safe mode was the uninformative one.
+            until = (r.get("until-ch") or "").strip()
+            if until:
+                if not until.isdigit():
+                    report.error(f"Epistemic States [{label}]: until-ch '{until}' is not a number")
+                elif ch.isdigit() and int(until) <= int(ch):
+                    report.error(f"Epistemic States [{label}]: until-ch {until} is not after "
+                                 f"since-ch {ch} — a stance that ends before it starts")
 
 
 def check_evidence(graph, sources, report):
@@ -726,28 +738,116 @@ def shape_report(graph):
     return "\n".join(out)
 
 
-def check_stance_contradiction(graph, report):
-    """One holder who both knows a claim and believes it false.
+def stance_window(row):
+    """(since, until) for one stance row. `until` is None when it never closes.
 
-    For the reader especially this is not a subtle error: the audience cannot both know X
-    and be under the impression X is false. Either the rows are wrong, or the claim is
-    STATE-SHAPED — true early, false later, with no time bounds to say so — which is the
-    trap decisions.md 2.4 exists to prevent. Event-shaped claims cannot contradict
-    themselves this way, which is exactly why the rule prefers them.
+    An open stance is treated as running to infinity, which is what a row with no
+    `until-ch` actually claims.
     """
-    modes = {}
+    since = (row.get("since-ch") or "").strip()
+    until = (row.get("until-ch") or "").strip()
+    return (int(since) if since.isdigit() else None,
+            int(until) if until.isdigit() else None)
+
+
+def _windows_overlap(a, b):
+    (a0, a1), (b0, b1) = a, b
+    if a0 is None or b0 is None:
+        return True                      # undated: cannot prove they are disjoint
+    lo, hi = max(a0, b0), min(a1 if a1 is not None else 10 ** 9,
+                              b1 if b1 is not None else 10 ** 9)
+    return lo < hi
+
+
+def check_stance_contradiction(graph, report):
+    """One holder who both knows a claim and believes it false AT THE SAME TIME.
+
+    The original check compared modes only, and named two explanations: the rows are wrong,
+    or the claim is STATE-SHAPED (decisions.md 2.4). It missed the third and commonest one —
+    the character was wrong and then learned better. That is not an error, it is an arc, and
+    it is the ordinary shape of dramatic irony. Flagging it taught authors to avoid
+    `believes-false` altogether: Book 3 reached 173 `knows` rows and 6 `believes-false`,
+    because the informative mode was the one that produced warnings.
+
+    So the comparison is now over TIME. Two stances whose windows are disjoint are a
+    correction and pass silently; only an actual overlap is a contradiction. An undated
+    stance still warns, because nothing can prove it disjoint.
+    """
+    rows = {}
     for r in graph["sections"].get("Epistemic States", []):
         pid, h, m = r.get("prop-id"), r.get("holder"), r.get("mode")
-        if pid and h and m:
-            modes.setdefault((pid, h), set()).add(m)
+        if pid and h and m in ("knows", "believes", "believes-false", "suspects"):
+            rows.setdefault((pid, h), []).append((m, stance_window(r)))
     stmt = {r.get("prop-id"): r.get("statement", "")
             for r in graph["sections"].get("Propositions", [])}
-    for (pid, h), ms in sorted(modes.items()):
-        if "believes-false" in ms and ({"knows", "believes"} & ms):
-            report.warn(f"Epistemic States [{pid}/{h}]: holds both "
-                        f"{'/'.join(sorted(ms))} — either the rows disagree, or "
-                        f"'{stmt.get(pid, pid)[:52]}' is state-shaped and needs "
-                        f"re-writing as an event (decisions.md 2.4)")
+    for (pid, h), entries in sorted(rows.items()):
+        false_w = [w for m, w in entries if m == "believes-false"]
+        true_w = [(m, w) for m, w in entries if m in ("knows", "believes")]
+        for fw in false_w:
+            for m, tw in true_w:
+                if not _windows_overlap(fw, tw):
+                    continue
+                # The overlap is almost always because the EARLIER stance was never closed,
+                # and then the fix is one cell rather than a rewrite. Say which case it is:
+                # naming `until-ch` only when it would actually help is the difference
+                # between a warning that gets acted on and one that gets ignored.
+                fixable = fw[1] is None and tw[0] is not None and (fw[0] or 0) < tw[0]
+                if fixable:
+                    report.warn(
+                        f"Epistemic States [{pid}/{h}]: believes-false from ch{fw[0]} never "
+                        f"closes, but {m} starts at ch{tw[0]} — set `until-ch {tw[0]}` on the "
+                        f"believes-false row if the holder simply learned better")
+                else:
+                    report.warn(
+                        f"Epistemic States [{pid}/{h}]: holds believes-false/{m} over "
+                        f"overlapping chapters — the rows disagree, or "
+                        f"'{stmt.get(pid, pid)[:44]}' is state-shaped (decisions.md 2.4)")
+
+
+def dramatic_irony(graph):
+    """(prop-id, holder, first-ch, last-ch) where the reader knows and a holder is wrong.
+
+    The payoff the epistemic layer exists for, and it is pure graph traversal once stances
+    carry windows: a character confidently wrong about something the reader already knows is
+    invisible to a linear read and computable here. Before `until-ch` this could not be
+    expressed at all, so it went unrecorded.
+    """
+    reader, wrong = {}, []
+    for r in graph["sections"].get("Epistemic States", []):
+        pid, h, m = r.get("prop-id"), r.get("holder"), r.get("mode")
+        if not (pid and h and m):
+            continue
+        if h == "reader" and m in ("knows", "believes"):
+            reader[pid] = stance_window(r)
+        elif h != "reader" and m == "believes-false":
+            wrong.append((pid, h, stance_window(r)))
+    out = []
+    for pid, h, w in wrong:
+        rw = reader.get(pid)
+        if rw is None or not _windows_overlap(rw, w):
+            continue
+        lo = max(x for x in (rw[0], w[0]) if x is not None) if (rw[0] or w[0]) else None
+        his = [x for x in (rw[1], w[1]) if x is not None]
+        out.append((pid, h, lo, min(his) if his else None))
+    out.sort(key=lambda t: (t[0], t[1]))
+    return out
+
+
+def irony_report(rows, graph):
+    stmt = {r.get("prop-id"): r.get("statement", "")
+            for r in graph["sections"].get("Propositions", [])}
+    if not rows:
+        return ("DRAMATIC IRONY — none recorded\n"
+                "No holder is marked `believes-false` on a claim the reader knows. On a "
+                "manuscript of\nany length that is far more likely to be an unrecorded "
+                "layer than an absent one:\na character confidently wrong is the state a "
+                "linear read cannot show you.")
+    out = [f"DRAMATIC IRONY — {len(rows)} pair(s): the reader knows, the holder does not",
+           "=" * 72]
+    for pid, h, lo, hi in rows:
+        span = (f"ch{lo}-{hi}" if lo and hi else f"ch{lo}+" if lo else "undated")
+        out.append(f"  {pid[-6:]}  {h:<28} {span:<10} {stmt.get(pid, '')[:44]}")
+    return "\n".join(out)
 
 
 def load_spe_anchors(spe_dir):
@@ -1509,6 +1609,8 @@ def main(argv=None):
                     help="also list names claimed by 2+ entities (default 2; 0 disables)")
     sh = sub.add_parser("shapes")
     sh.add_argument("graph")
+    ir = sub.add_parser("irony")
+    ir.add_argument("graph")
     cf = sub.add_parser("conflicts")
     cf.add_argument("graph")
     cf.add_argument("--overlap", type=float, default=0.45, help="content-word similarity floor (default 0.45)")
@@ -1721,6 +1823,10 @@ def main(argv=None):
         return 0
     if args.command == "shapes":
         print(shape_report(parse_graph(Path(args.graph).read_text(encoding="utf-8"))))
+        return 0
+    if args.command == "irony":
+        g = parse_graph(Path(args.graph).read_text(encoding="utf-8"))
+        print(irony_report(dramatic_irony(g), g))
         return 0
     if args.command in ("unresolved", "conflicts"):
         import story_graph_candidates as sgc     # lazy: nothing else needs it
