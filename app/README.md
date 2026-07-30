@@ -66,6 +66,18 @@ few seconds on a large graph (e.g. a full-book import); small graphs are instant
   in Settings.
 - **Reports** — run `report`, `audit`, `deviations`, `queue` and read the output.
 
+## Help (❓ top-right, or press `?`)
+
+A drawer slides in from the right with the full documentation — 21 topics across
+Getting Started, The Windows (one per tab), How Story Graph Works, The Decisions,
+the Safety Model, and Reference. **Drag its left edge to resize**; the width is
+remembered. `Esc` closes it.
+
+Content lives in [`help/`](help/) as `manifest.json` plus a markdown tree, served by
+the app itself — editing a topic is editing a file, with no rebuild. Help is also
+served *while the graph is still compiling*, since that is exactly when there is
+time to read it.
+
 ## Settings (⚙️ top-right)
 
 A settings dialog adapted from the Novel Machine authoring UI. Esc or click

@@ -140,3 +140,105 @@ def test_ask_repairs_invalid_cypher_once(tmp_path):
     assert "Engine error" in calls[1], "the retry must include the engine's error"
     assert r.get("repaired") is True and "error" not in r
     assert r["rows"] and r["columns"] == ["holder", "pid"]
+
+
+# ----------------------------------------------------------------- the help drawer
+
+HELP = APP.parent / "help"
+
+
+def test_every_manifest_topic_exists_and_is_not_empty():
+    """A help system whose links 404 is worse than none — it teaches you not to open it."""
+    import json
+    man = json.loads((HELP / "manifest.json").read_text(encoding="utf-8"))
+    missing, empty = [], []
+    n = 0
+    for sec in man["sections"]:
+        for t in sec["topics"]:
+            if "file" not in t:
+                continue
+            n += 1
+            f = HELP / t["file"]
+            if not f.is_file():
+                missing.append(t["file"])
+            elif len(f.read_text(encoding="utf-8").strip()) < 80:
+                empty.append(t["file"])
+    assert n >= 15, f"only {n} topics — the manifest looks truncated"
+    assert missing == [], f"manifest points at files that do not exist: {missing}"
+    assert empty == [], f"topics with almost no content: {empty}"
+
+
+def test_every_help_file_is_reachable_from_the_manifest():
+    """The other direction: a topic nobody can navigate to may as well not be written."""
+    import json
+    man = json.loads((HELP / "manifest.json").read_text(encoding="utf-8"))
+    listed = {t["file"] for sec in man["sections"] for t in sec["topics"] if "file" in t}
+    on_disk = {str(p.relative_to(HELP)) for p in HELP.rglob("*.md")}
+    assert on_disk - listed == set(), f"orphaned help files: {sorted(on_disk - listed)}"
+
+
+def test_help_is_served_and_cannot_escape_its_directory(tmp_path):
+    """`_help` is the one route that maps a URL onto the filesystem."""
+    app = _app()
+
+    class FakeHandler:
+        _help = app.Handler._help
+        sent = None
+        def _send(self, body, ctype="application/json", status=200):
+            self.sent = (body, ctype, status)
+        def _json(self, obj, status=200):
+            self.sent = (obj, "json", status)
+
+    h = FakeHandler()
+    h._help("manifest.json")
+    assert h.sent[1].startswith("application/json") and '"sections"' in h.sent[0]
+
+    h._help("reference/glossary.md")
+    assert h.sent[1].startswith("text/markdown") and "Alias" in h.sent[0]
+
+    for escape in ("../story_graph_app.py", "../../README.md", "nope.md",
+                   "../../../etc/passwd"):
+        h._help(escape)
+        assert h.sent[2] == 404, f"{escape} was not refused: {h.sent[:2]}"
+
+
+def test_the_drawer_is_wired_into_the_page():
+    """The markup and the handlers the drawer needs, so a rename cannot silently
+    orphan the Help button."""
+    src = APP.read_text(encoding="utf-8")
+    for needed in ('id="helpdrawer"', 'id="helpbtn"', 'id="helpgrip"', 'id="helpnav"',
+                   'id="helpdoc"', 'id="helpfilter"', 'id="helpclose"',
+                   "function mdRender(", "function helpOpen(", "function helpClose(",
+                   "--help-w", "ew-resize", "translateX(101%)"):
+        assert needed in src, f"help drawer is missing {needed}"
+
+
+def test_the_help_markdown_renderer_escapes_and_renders(tmp_path):
+    """Runs the ACTUAL renderer out of the page, not a copy of it."""
+    import re, shutil, subprocess
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available")
+    src = APP.read_text(encoding="utf-8")
+    fn = src[src.index("function mdRender("):src.index("async function helpText(")]
+    js = tmp_path / "md.js"
+    js.write_text(fn + """
+const out = [];
+const t=(n,md,f)=>out.push([n, !!f(mdRender(md))]);
+t('escapes html in prose', 'A <script>alert(1)</script> tag.',
+  h=>h.includes('&lt;script&gt;') && !h.includes('<script>'));
+t('escapes html in a fence', '```\\n<script>x</script>\\n```',
+  h=>h.includes('&lt;script&gt;') && !/<script>/.test(h));
+t('renders a table', '| a | b |\\n|---|---|\\n| 1 | 2 |',
+  h=>/<table><thead>/.test(h) && /<td>1<\\/td>/.test(h));
+t('drops the separator row', '| a |\\n|---|\\n| 1 |', h=>!/<td>-+<\\/td>/.test(h));
+t('no sentinel leaks', '```\\ncode\\n```\\n\\ntext', h=>!/@@CB\\d+@@/.test(h));
+t('bold and italic', '**b** and *i*', h=>/<strong>b<\\/strong>/.test(h)&&/<em>i<\\/em>/.test(h));
+console.log(JSON.stringify(out));
+""", encoding="utf-8")
+    r = subprocess.run([node, str(js)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    import json
+    results = json.loads(r.stdout)
+    failed = [n for n, ok in results if not ok]
+    assert failed == [], f"renderer failures: {failed}"

@@ -1,0 +1,62 @@
+{
+  "title": "Story Graph — Help",
+  "sections": [
+    {
+      "id": "getting-started",
+      "title": "Getting Started",
+      "topics": [
+        { "id": "what-is-it", "title": "What this is", "file": "getting-started/what-is-it.md" },
+        { "id": "start-the-app", "title": "Start the app", "file": "getting-started/start-the-app.md" },
+        { "id": "first-look", "title": "The six tabs in one minute", "file": "getting-started/first-look.md" }
+      ]
+    },
+    {
+      "id": "windows",
+      "title": "The Windows",
+      "topics": [
+        { "id": "w-dashboard", "title": "Dashboard", "file": "windows/dashboard.md" },
+        { "id": "w-graph", "title": "Graph — the visualizer", "file": "windows/graph.md" },
+        { "id": "w-timeline", "title": "Timeline", "file": "windows/timeline.md" },
+        { "id": "w-query", "title": "Query — Cypher console", "file": "windows/query.md" },
+        { "id": "w-ask", "title": "Ask — plain English", "file": "windows/ask.md" },
+        { "id": "w-reports", "title": "Reports", "file": "windows/reports.md" },
+        { "id": "w-settings", "title": "Settings & accessibility", "file": "windows/settings.md" }
+      ]
+    },
+    {
+      "id": "concepts",
+      "title": "How Story Graph Works",
+      "topics": [
+        { "id": "c-overview", "title": "The layered model", "file": "concepts/overview.md" },
+        { "id": "c-entities", "title": "Entities, names and descriptions", "file": "concepts/entities.md" },
+        { "id": "c-propositions", "title": "Propositions — the claims", "file": "concepts/propositions.md" },
+        { "id": "c-epistemic", "title": "Epistemic states — who knows what", "file": "concepts/epistemic.md" },
+        { "id": "c-evidence", "title": "Evidence, sources and open loops", "file": "concepts/evidence.md" }
+      ]
+    },
+    {
+      "id": "decisions",
+      "title": "The Decisions",
+      "topics": [
+        { "id": "d-inclusion", "title": "What earns a row", "file": "decisions/inclusion.md" },
+        { "id": "d-resolution", "title": "Resolving references", "file": "decisions/resolution.md" },
+        { "id": "d-provisional", "title": "The provisional lifecycle", "file": "decisions/provisional.md" }
+      ]
+    },
+    {
+      "id": "safety",
+      "title": "Safety Model",
+      "topics": [
+        { "id": "s-verification", "title": "How verification works", "file": "safety/how-verification-works.md" }
+      ]
+    },
+    {
+      "id": "reference",
+      "title": "Reference",
+      "topics": [
+        { "id": "r-commands", "title": "Command reference", "file": "reference/commands.md" },
+        { "id": "r-glossary", "title": "Glossary", "file": "reference/glossary.md" }
+      ]
+    }
+  ]
+}

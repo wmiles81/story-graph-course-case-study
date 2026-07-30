@@ -534,7 +534,24 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_timeline())
         if u.path == "/api/report":
             return self._json(api_report(q.get("kind", ["report"])[0]))
+        if u.path.startswith("/help/"):
+            return self._help(u.path[len("/help/"):])
         return self._json({"error": "not found"}, 404)
+
+    def _help(self, rel):
+        """Serve the help tree from ./help. This is the one route that maps a URL onto the
+        filesystem, so it resolves the path and refuses anything that lands outside the
+        help directory — `..` in a URL is the oldest trick there is."""
+        root = (Path(__file__).resolve().parent / "help").resolve()
+        try:
+            target = (root / rel).resolve()
+            target.relative_to(root)                     # raises if rel escaped
+            body = target.read_text(encoding="utf-8")
+        except (ValueError, OSError):
+            return self._json({"error": "not found"}, 404)
+        ctype = ("application/json" if target.suffix == ".json"
+                 else "text/markdown") + "; charset=utf-8"
+        return self._send(body, ctype)
 
     def _starting(self):
         """While load() is still compiling the graph in a background thread: answer
@@ -546,6 +563,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(204)
             self.end_headers()
             return
+        # Help is static and depends on nothing in STATE, and a slow compile is exactly
+        # when someone has time to read it. Let it through.
+        if path.startswith("/help/"):
+            return self._help(path[len("/help/"):])
         if path.startswith("/api/"):
             return self._json({"error": "starting up", "starting": True}, 503)
         return self._send(STARTING_PAGE, "text/html; charset=utf-8")
@@ -698,8 +719,45 @@ body.a11y-contrast{--bg:#000;--ink:#fff;--muted:#dcdcdc;--line:#7c7c7c;--panel:#
 body.a11y-dyslexia,body.a11y-dyslexia *{font-family:'OpenDyslexic','Comic Sans MS',Verdana,Tahoma,sans-serif!important;letter-spacing:.02em}
 body.a11y-motion *{transition:none!important;animation:none!important}
 body.a11y-minfont .hint,body.a11y-minfont .tlab,body.a11y-minfont .elab,body.a11y-minfont .nlab,body.a11y-minfont .meta{font-size:12px!important}
+/* ---- Help drawer: slides in from the right, resizable by its left edge ---- */
+#helpdrawer{position:fixed;top:0;right:0;height:100vh;width:var(--help-w,460px);min-width:320px;
+ max-width:95vw;background:var(--bg);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.16);
+ transform:translateX(101%);transition:transform .22s ease;z-index:60;display:flex;flex-direction:column}
+#helpdrawer.open{transform:translateX(0)}
+#helpgrip{position:absolute;left:0;top:0;width:6px;height:100%;cursor:ew-resize;background:transparent}
+#helpgrip:hover,#helpgrip.drag{background:var(--accent);opacity:.5}
+#helpdrawer header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:.5rem;flex-wrap:nowrap}
+#helpdrawer header h2{font:600 1rem 'Iowan Old Style',Palatino,Georgia,serif;margin:0;flex:1}
+#helpfilter{width:100%;font:13px system-ui;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem}
+#helpbody{flex:1;display:flex;min-height:0}
+#helpnav{width:210px;flex:none;overflow:auto;border-right:1px solid var(--line);padding:.5rem 0}
+#helpdoc{flex:1;overflow:auto;padding:1rem 1.2rem 3rem;min-width:0}
+#helpnav .sec{font:600 11px ui-monospace,monospace;color:var(--muted);text-transform:uppercase;
+ letter-spacing:.05em;padding:.5rem .8rem .2rem;cursor:pointer;user-select:none}
+#helpnav .tp{display:block;width:100%;text-align:left;font:13px system-ui;background:none;border:0;
+ color:var(--ink);padding:.34rem .8rem .34rem 1.1rem;cursor:pointer;border-left:2px solid transparent}
+#helpnav .tp:hover{background:var(--panel)}
+#helpnav .tp.on{background:var(--panel);border-left-color:var(--accent);font-weight:600}
+#helpdoc h1{font:600 1.3rem 'Iowan Old Style',Palatino,Georgia,serif;margin:.2rem 0 .8rem}
+#helpdoc h2{font:600 1.05rem 'Iowan Old Style',Palatino,Georgia,serif;margin:1.4rem 0 .5rem;padding-top:.3rem;border-top:1px solid var(--line)}
+#helpdoc h3{font:600 .95rem system-ui;margin:1rem 0 .4rem}
+#helpdoc p,#helpdoc li{font-size:14px;line-height:1.62}
+#helpdoc code{font:12.5px ui-monospace,monospace;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:.05rem .3rem}
+#helpdoc pre{margin:.6rem 0}#helpdoc pre code{border:0;background:none;padding:0}
+#helpdoc table{margin:.7rem 0}#helpdoc td,#helpdoc th{font-size:12.5px;vertical-align:top}
+#helpdoc blockquote{margin:.7rem 0;padding:.3rem 0 .3rem .9rem;border-left:3px solid var(--accent);color:var(--muted)}
+#helpdoc hr{border:0;border-top:1px solid var(--line);margin:1.2rem 0}
+#helpdoc ul,#helpdoc ol{padding-left:1.3rem}
+body.helping{overflow:hidden}
+@media(max-width:720px){#helpdrawer{width:100vw!important}#helpnav{width:150px}}
 </style></head><body>
-<header><h1>Story Graph OS</h1><span class="meta" id="hd"></span><button id="gear" title="Settings (display, AI model)">⚙️ Settings</button></header>
+<header><h1>Story Graph OS</h1><span class="meta" id="hd"></span><button id="helpbtn" title="Help (?)">❓ Help</button><button id="gear" title="Settings (display, AI model)">⚙️ Settings</button></header>
+<aside id="helpdrawer" aria-hidden="true" aria-label="Help">
+ <div id="helpgrip" title="Drag to resize"></div>
+ <header><h2>Help</h2><button class="ghost" id="helpclose" title="Close (Esc)">✕</button></header>
+ <div style="padding:.5rem .8rem;border-bottom:1px solid var(--line)"><input id="helpfilter" placeholder="filter topics…" aria-label="Filter help topics"></div>
+ <div id="helpbody"><div id="helpnav"></div><div id="helpdoc"></div></div>
+</aside>
 <nav id="nav"></nav>
 <main id="main"></main>
 <script>
@@ -1353,6 +1411,128 @@ a11yApply(a11yRead());
 document.getElementById('gear').onclick=openSettings;
 head().then(render).then(staleCheck);
 setInterval(staleCheck,5000);
+/* ─────────────────────────────────────────────────────────────────
+   Help drawer. Content lives in ./help (manifest.json + a markdown
+   tree) and is served by Handler._help, so editing a topic is editing
+   a file — no rebuild, no redeploy.
+   ───────────────────────────────────────────────────────────────── */
+const HELP_W_KEY='sgos.helpw';
+let HELP={manifest:null,active:null,loaded:{}};
+
+// Small markdown renderer. Everything is escaped FIRST and only then given markup, so a
+// topic can contain "<script>" as prose without it becoming one.
+function mdRender(src){
+ const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+ const blocks=[];
+ src=src.replace(/```(\w*)\n([\s\S]*?)```/g,(m,lang,code)=>{
+  blocks.push('<pre><code>'+esc(code.replace(/\n$/,''))+'</code></pre>');return '@@CB'+(blocks.length-1)+'@@'});
+ const inline=t=>esc(t)
+   .replace(/`([^`]+)`/g,'<code>$1</code>')
+   .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+   .replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>')
+   .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+ const out=[];let list=null,tbl=null;
+ const closeList=()=>{if(list){out.push('</'+list+'>');list=null}};
+ const closeTbl=()=>{if(tbl){out.push('</tbody></table>');tbl=null}};
+ for(const raw of src.split('\n')){
+  const line=raw.replace(/\s+$/,'');
+  if(/^@@CB\d+@@$/.test(line)){closeList();closeTbl();out.push(blocks[+line.slice(4,-2)]);continue}
+  if(!line.trim()){closeList();closeTbl();continue}
+  // table: | a | b |  then a |---|---| separator
+  if(/^\|.*\|$/.test(line)){
+   const cells=line.slice(1,-1).split('|').map(c=>c.trim());
+   if(cells.every(c=>/^:?-{2,}:?$/.test(c))){continue}       // separator row
+   if(!tbl){out.push('<table><thead><tr>'+cells.map(c=>'<th>'+inline(c)+'</th>').join('')+'</tr></thead><tbody>');tbl=1;continue}
+   out.push('<tr>'+cells.map(c=>'<td>'+inline(c)+'</td>').join('')+'</tr>');continue}
+  closeTbl();
+  let m;
+  if((m=line.match(/^(#{1,4})\s+(.*)$/))){closeList();out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);continue}
+  if(/^(---|___|\*\*\*)$/.test(line.trim())){closeList();out.push('<hr>');continue}
+  if((m=line.match(/^>\s?(.*)$/))){closeList();out.push('<blockquote>'+inline(m[1])+'</blockquote>');continue}
+  if((m=line.match(/^\s*[-*]\s+(.*)$/))){if(list!=='ul'){closeList();out.push('<ul>');list='ul'}out.push('<li>'+inline(m[1])+'</li>');continue}
+  if((m=line.match(/^\s*\d+\.\s+(.*)$/))){if(list!=='ol'){closeList();out.push('<ol>');list='ol'}out.push('<li>'+inline(m[1])+'</li>');continue}
+  closeList();out.push('<p>'+inline(line)+'</p>');
+ }
+ closeList();closeTbl();
+ return out.join('\n');
+}
+
+async function helpText(url){
+ const r=await fetch(url,{cache:'no-store'});
+ if(!r.ok)throw new Error(r.status+' '+url);
+ return r.text();
+}
+function helpNav(){
+ const nav=document.getElementById('helpnav');if(!nav)return;
+ const f=(document.getElementById('helpfilter').value||'').trim().toLowerCase();
+ nav.innerHTML='';
+ (HELP.manifest?.sections||[]).forEach(sec=>{
+  const topics=(sec.topics||[]).filter(t=>!f||t.title.toLowerCase().includes(f)||sec.title.toLowerCase().includes(f));
+  if(!topics.length)return;
+  nav.appendChild($(`<div class="sec">${esc(sec.title)}</div>`));
+  topics.forEach(t=>{
+   const b=$(`<button class="tp${t.id===HELP.active?' on':''}">${esc(t.title)}</button>`);
+   b.onclick=()=>helpShow(t.id);nav.appendChild(b)})});
+ if(!nav.children.length)nav.appendChild($(`<div class="sec">no match</div>`));
+}
+async function helpShow(id){
+ HELP.active=id;helpNav();
+ const doc=document.getElementById('helpdoc');
+ const entry=(HELP.manifest?.sections||[]).flatMap(s=>s.topics||[]).find(t=>t.id===id);
+ if(!entry){doc.innerHTML='<p class="hint">Pick a topic.</p>';return}
+ if(HELP.loaded[id]!=null){doc.innerHTML=mdRender(HELP.loaded[id]);doc.scrollTop=0;return}
+ doc.innerHTML='<p class="hint">loading…</p>';
+ try{
+  const t=await helpText(entry.url||('/help/'+entry.file));
+  HELP.loaded[id]=t;doc.innerHTML=mdRender(t);doc.scrollTop=0;
+ }catch(e){doc.innerHTML=`<p class="err">Could not load this topic — ${esc(e.message||String(e))}</p>`}
+}
+async function helpOpen(){
+ const d=document.getElementById('helpdrawer');
+ d.classList.add('open');d.setAttribute('aria-hidden','false');document.body.classList.add('helping');
+ if(!HELP.manifest){
+  try{
+   HELP.manifest=JSON.parse(await helpText('/help/manifest.json'));
+   helpNav();
+   if(!HELP.active)helpShow(HELP.manifest.sections?.[0]?.topics?.[0]?.id);
+  }catch(e){
+   document.getElementById('helpdoc').innerHTML=`<p class="err">Could not load help — ${esc(e.message||String(e))}</p>`}
+ }
+ setTimeout(()=>document.getElementById('helpfilter').focus(),240);
+}
+function helpClose(){
+ const d=document.getElementById('helpdrawer');
+ d.classList.remove('open');d.setAttribute('aria-hidden','true');document.body.classList.remove('helping');
+}
+(function helpInit(){
+ const d=document.getElementById('helpdrawer');
+ const w=parseInt(localStorage.getItem(HELP_W_KEY)||'',10);
+ if(w>=320)d.style.setProperty('--help-w',w+'px');
+ document.getElementById('helpbtn').onclick=()=>d.classList.contains('open')?helpClose():helpOpen();
+ document.getElementById('helpclose').onclick=helpClose;
+ document.getElementById('helpfilter').addEventListener('input',helpNav);
+ // "?" opens help, Escape closes it — but never while the user is typing somewhere.
+ window.addEventListener('keydown',e=>{
+  const typing=/^(INPUT|TEXTAREA|SELECT)$/.test((e.target||{}).tagName||'');
+  if(e.key==='Escape'&&d.classList.contains('open')){helpClose();return}
+  if(e.key==='?'&&!typing&&!e.metaKey&&!e.ctrlKey){e.preventDefault();d.classList.contains('open')?helpClose():helpOpen()}
+ });
+ // Resize by dragging the left edge. Pointer capture keeps the drag alive when the
+ // cursor crosses the SVG canvas, which swallows plain mousemove.
+ const grip=document.getElementById('helpgrip');let dragging=false;
+ grip.addEventListener('pointerdown',e=>{
+  dragging=true;grip.classList.add('drag');grip.setPointerCapture(e.pointerId);e.preventDefault()});
+ grip.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  const w=Math.max(320,Math.min(window.innerWidth*.95,window.innerWidth-e.clientX));
+  d.style.setProperty('--help-w',w+'px')});
+ const stop=e=>{
+  if(!dragging)return;
+  dragging=false;grip.classList.remove('drag');
+  try{grip.releasePointerCapture(e.pointerId)}catch(_){}
+  localStorage.setItem(HELP_W_KEY,String(parseInt(getComputedStyle(d).width,10)||460))};
+ grip.addEventListener('pointerup',stop);grip.addEventListener('pointercancel',stop);
+})();
 </script></body></html>"""
 
 
