@@ -511,3 +511,61 @@ def test_an_anchored_claim_outranks_a_long_unanchored_one(tmp_path):
     assert offered[0] == "p-501", (
         f"the chapter-anchored claim must rank first; got {offered}. A long unanchored claim "
         "outranking it means the count term is no longer bounded below the anchor bonus.")
+
+
+def test_a_stance_can_be_closed_through_the_pipeline(world):
+    """Without this the gate could not record a corrected belief at all: `until-ch` existed
+    in the ontology but no generator emitted it, so every proposed stance ran forever and
+    `believes-false` still manufactured a contradiction warning the moment the holder
+    learned better. Unlike since-ch, `until` IS taken from the judge — the chapter being
+    read cannot supply it, because the whole point of an end is that it falls elsewhere."""
+    reply = json.dumps({"states": [
+        {"prop-id": "p1", "holder": "margot-vance", "mode": "believes-false",
+         "sentence": 1, "until": 20},
+    ]})
+    p = _gen(world, "epistemic", reply)[0]
+    stance = next(r for r in p["rows"] if r["section"] == "Epistemic States")
+    # `world`'s table has no until-ch column, and the gate rightly refuses to write a column
+    # that is not declared — so the stance degrades to open rather than failing every row.
+    assert stance["values"]["since-ch"] == "5"
+    assert "until-ch" not in stance["values"], "must not propose an undeclared column"
+
+
+def test_an_until_that_is_not_after_the_start_is_dropped(world):
+    """The validator rejects a stance that ends before it starts, so the generator must not
+    propose one — a row that cannot pass is noise in the review queue."""
+    for bad in (5, 3, 0, "soon", None):
+        reply = json.dumps({"states": [
+            {"prop-id": "p1", "holder": "margot-vance", "mode": "believes-false",
+             "sentence": 1, "until": bad}]})
+        p = _gen(world, "epistemic", reply)[0]
+        stance = next(r for r in p["rows"] if r["section"] == "Epistemic States")
+        assert stance["values"].get("until-ch", "") == "", f"until={bad!r} should be dropped"
+
+
+def test_a_stance_is_closed_when_the_graph_declares_the_column(tmp_path):
+    """The other half: once the table HAS until-ch, the judge's end chapter is written."""
+    ch = tmp_path / "chapters"; ch.mkdir()
+    (ch / "ch05.md").write_text(f"The hall was cold. {QUOTE} Margot said nothing at all.\n",
+                                encoding="utf-8")
+    g = tmp_path / "g.md"
+    g.write_text(make_graph(
+        Entities=("## Entities\n| id | type | status | voice | note |\n|---|---|---|---|---|\n"
+                  "| margot-vance | Character | active | - | Margot |\n"),
+        Sources=("## Sources\n| source-id | type | authority | note |\n|---|---|---|---|\n"
+                 "| ms | manuscript | 100 | m |\n"),
+        Propositions=("## Propositions\n| prop-id | statement | canon-status | governing-source | span |\n"
+                      "|---|---|---|---|---|\n"
+                      "| p1 | Henderson dragged the mats into the middle of the room | true | ms | provisional |\n"),
+        **{"Epistemic States": (
+            "## Epistemic States\n| prop-id | holder | mode | since-ch | until-ch | span |\n"
+            "|---|---|---|---|---|---|\n| p1 | reader | knows | 1 |  | provisional |\n")}),
+        encoding="utf-8")
+    reply = json.dumps({"states": [{"prop-id": "p1", "holder": "margot-vance",
+                                    "mode": "believes-false", "sentence": 1, "until": 20}]})
+    files = sp.generate("epistemic", str(g), str(ch),
+                        chat=lambda system, user: reply,
+                        out_dir=str(tmp_path / "out"), log=lambda *a: None)
+    rows = json.loads(Path(files[0]).read_text(encoding="utf-8"))["rows"]
+    stance = next(r for r in rows if r["section"] == "Epistemic States")
+    assert stance["values"]["until-ch"] == "20", stance["values"]

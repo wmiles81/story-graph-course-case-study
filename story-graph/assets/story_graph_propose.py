@@ -39,7 +39,8 @@ ANSWER_SHAPE = {
                 '"confidence": "high|low"}]}',
     "evidence": '{"evidence": [{"prop-id": "...", "sentence": <number, or 0 for none>}]}',
     "epistemic": '{"states": [{"prop-id": "...", "holder": "...", '
-                 '"mode": "knows|believes|believes-false|suspects", "sentence": <number>}]}',
+                 '"mode": "knows|believes|believes-false|suspects", "sentence": <number>, '
+                 '"until": <chapter this stance ENDS, omit if it never does>}]}',
     "dependencies": '{"edges": [{"claim": "<prop-id>", "needs": "<prop-id>"}]}',
 }
 
@@ -566,6 +567,7 @@ def _rows_epistemic(answer, ctx, locator, ch_no, graph, source_id="", seq=None):
            if r.get("id") and r.get("type") in ("Character", "Faction")} | sg.RESERVED_HOLDERS
     by_id = {c["prop-id"]: c for c in ctx["claims"]}
     seq = [1] if seq is None else seq
+    has_until = any("until-ch" in r for r in _rows_of(graph, "Epistemic States"))
     # The judge picked a REAL sentence and the gate proved it exists — then the row landed
     # as `span: provisional` and the quote was thrown away, so `validate` could only ever
     # answer "claim is unverified". Every epistemic row this tool had ever produced was
@@ -603,12 +605,29 @@ def _rows_epistemic(answer, ctx, locator, ch_no, graph, source_id="", seq=None):
                                        "note": "proposed (epistemic basis)"},
                             "basis": {"locator": locator, "quote": quote},
                             "confidence": "high"})
+        # `until` closes the stance, and unlike since-ch it IS taken from the judge — the
+        # chapter being read cannot supply it, because the point of an end is that it falls
+        # in a different chapter. Only forward, and only a number: an end before the start
+        # is the one thing the validator would reject outright.
+        until = ""
+        try:
+            u = int(s.get("until", 0))
+            if u > ch_no:
+                until = str(u)
+        except (TypeError, ValueError):
+            pass
+        vals = {"prop-id": pid, "holder": holder, "mode": mode,
+                # since-ch is the chapter being read, NOT whatever the model says. A
+                # per-chapter pass observes a stance in THIS chapter; trusting the model
+                # here produced "since ch81" for a 30-chapter book.
+                "since-ch": str(ch_no), "span": span}
+        # Only if the target table declares the column. The gate rightly refuses to write a
+        # column that is not there, so proposing one on an older graph would fail every row
+        # instead of degrading to an open stance.
+        if until and has_until:
+            vals["until-ch"] = until
         out.append({"section": "Epistemic States",
-                    # since-ch is the chapter being read, NOT whatever the model says. A
-                    # per-chapter pass observes a stance in THIS chapter; trusting the model
-                    # here produced "since ch81" for a 30-chapter book.
-                    "values": {"prop-id": pid, "holder": holder, "mode": mode,
-                               "since-ch": str(ch_no), "span": span},
+                    "values": vals,
                     "basis": {"locator": locator, "quote": quote},
                     "reasoning": s.get("why", ""), "confidence": s.get("confidence", "high")})
     return out
