@@ -789,6 +789,8 @@ body.a11y-minfont .hint,body.a11y-minfont .tlab,body.a11y-minfont .elab,body.a11
  color:var(--ink);padding:.34rem .8rem .34rem 1.1rem;cursor:pointer;border-left:2px solid transparent}
 #helpnav .tp:hover{background:var(--panel)}
 #helpnav .tp.on{background:var(--panel);border-left-color:var(--accent);font-weight:600}
+#helpnav .snip{font:11px system-ui;color:var(--muted);padding:0 .8rem .3rem 1.4rem;
+ white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #helpdoc h1{font:600 1.3rem 'Iowan Old Style',Palatino,Georgia,serif;margin:.2rem 0 .8rem}
 #helpdoc h2{font:600 1.05rem 'Iowan Old Style',Palatino,Georgia,serif;margin:1.4rem 0 .5rem;padding-top:.3rem;border-top:1px solid var(--line)}
 #helpdoc h3{font:600 .95rem system-ui;margin:1rem 0 .4rem}
@@ -1470,7 +1472,7 @@ setInterval(staleCheck,5000);
 const HELP_W_KEY='sgos.helpw';
 const HELP_FOLD_KEY='sgos.helpfold';
 function foldState(){try{return JSON.parse(localStorage.getItem(HELP_FOLD_KEY)||'{}')}catch(_){return{}}}
-let HELP={manifest:null,active:null,loaded:{}};
+let HELP={manifest:null,active:null,loaded:{},body:{}};
 
 // Small markdown renderer. Everything is escaped FIRST and only then given markup, so a
 // topic can contain "<script>" as prose without it becoming one.
@@ -1521,7 +1523,7 @@ function helpNav(){
  const fold=foldState();
  nav.innerHTML='';
  (HELP.manifest?.sections||[]).forEach(sec=>{
-  const topics=(sec.topics||[]).filter(t=>!f||t.title.toLowerCase().includes(f)||sec.title.toLowerCase().includes(f));
+  const topics=(sec.topics||[]).filter(t=>!f||t.title.toLowerCase().includes(f)||sec.title.toLowerCase().includes(f)||HELP.body[t.id]!=null);
   if(!topics.length)return;
   // A fold never hides the active topic, and filtering unfolds everything that matched.
   const closed=!f&&!topics.some(t=>t.id===HELP.active)&&fold[sec.id]===true;
@@ -1531,7 +1533,10 @@ function helpNav(){
   if(closed)return;
   topics.forEach(t=>{
    const b=$(`<button class="tp${t.id===HELP.active?' on':''}">${esc(t.title)}</button>`);
-   b.onclick=()=>helpShow(t.id);nav.appendChild(b)})});
+   b.onclick=()=>helpShow(t.id);nav.appendChild(b);
+   if(f&&HELP.body[t.id]!=null&&!t.title.toLowerCase().includes(f))
+    nav.appendChild($(`<div class="snip">${esc(HELP.body[t.id])}</div>`));
+  })});
  if(!nav.children.length)nav.appendChild($(`<div class="sec">no match</div>`));
 }
 async function helpShow(id){
@@ -1569,7 +1574,20 @@ function helpClose(){
  if(w>=320)d.style.setProperty('--help-w',w+'px');
  document.getElementById('helpbtn').onclick=()=>d.classList.contains('open')?helpClose():helpOpen();
  document.getElementById('helpclose').onclick=helpClose;
- document.getElementById('helpfilter').addEventListener('input',helpNav);
+ let srchT=0;
+ document.getElementById('helpfilter').addEventListener('input',()=>{
+  const q=(document.getElementById('helpfilter').value||'').trim();
+  clearTimeout(srchT);HELP.body={};helpNav();
+  if(q.length>=2)srchT=setTimeout(async()=>{
+   try{
+    const r=await fetch('/help/search?q='+encodeURIComponent(q),{cache:'no-store'});
+    if(!r.ok)return;
+    const j=await r.json();HELP.body={};
+    (j.matches||[]).forEach(m=>{HELP.body[m.id]=m.snippet});
+    helpNav();
+   }catch(_){/* body search is best-effort; title filter already rendered */}
+  },200);
+ });
  // "?" opens help, Escape closes it — but never while the user is typing somewhere.
  window.addEventListener('keydown',e=>{
   const typing=/^(INPUT|TEXTAREA|SELECT)$/.test((e.target||{}).tagName||'');
