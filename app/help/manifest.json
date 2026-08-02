@@ -70,6 +70,8 @@
       {"id": "cmd-reports", "title": "Reports & analysis", "file": "commands/reports-analysis.md"},
       {"id": "cmd-proposal-queue", "title": "The proposal queue (CLI)", "file": "commands/proposal-queue.md"},
       {"id": "cmd-import", "title": "Import & migration", "file": "commands/import-migration.md"},
-      {"id": "cmd-freeze-viz", "title": "Freezing & visualizing", "file": "commands/freeze-visualize.md"}]}
+      {"id": "cmd-freeze-viz", "title": "Freezing & visualizing", "file": "commands/freeze-visualize.md"}]},
+    {"id": "credits", "title": "Credits & Acknowledgements", "topics": [
+      {"id": "credits", "title": "Credits & acknowledgements", "file": "credits/credits.md"}]}
   ]
 }
