@@ -244,3 +244,26 @@ console.log(JSON.stringify(out));
     results = json.loads(r.stdout)
     failed = [n for n, ok in results if not ok]
     assert failed == [], f"renderer failures: {failed}"
+
+
+def test_help_search_finds_body_text_and_returns_snippets():
+    """Body search: a term that appears in topic bodies must surface those topics
+    with a one-line snippet; blank and absent terms return nothing."""
+    app = _app()
+    res = app.help_search("kuzu")
+    assert res["matches"], "at least one topic body mentions kuzu"
+    for m in res["matches"]:
+        assert m["id"] and m["snippet"] and len(m["snippet"]) <= 160
+    assert app.help_search("")["matches"] == []
+    assert app.help_search("z")["matches"] == []          # <2 chars: too noisy
+    assert app.help_search("zzqx-not-present")["matches"] == []
+
+
+def test_help_search_indexes_only_manifest_listed_files():
+    """A _v# history file must never leak into search results."""
+    import json
+    app = _app()
+    man = json.loads((HELP / "manifest.json").read_text(encoding="utf-8"))
+    listed_ids = {t["id"] for s in man["sections"] for t in s["topics"]}
+    for m in app.help_search("the")["matches"]:
+        assert m["id"] in listed_ids

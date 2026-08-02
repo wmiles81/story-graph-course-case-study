@@ -478,6 +478,49 @@ def api_testkey(provider=None):
         return {"ok": False, "detail": str(e)[:200]}
 
 
+_HELP_INDEX = None   # [(topic-id, body-text)] — manifest-listed topics only; static per process
+
+
+def _help_index():
+    global _HELP_INDEX
+    if _HELP_INDEX is None:
+        import json
+        root = Path(__file__).resolve().parent / "help"
+        idx = []
+        try:
+            man = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+            for sec in man.get("sections", []):
+                for t in sec.get("topics", []):
+                    if "file" not in t:
+                        continue
+                    try:
+                        idx.append((t["id"], (root / t["file"]).read_text(encoding="utf-8")))
+                    except OSError:
+                        pass
+        except (OSError, ValueError):
+            pass
+        _HELP_INDEX = idx
+    return _HELP_INDEX
+
+
+def help_search(qtext):
+    """Case-insensitive substring search over topic bodies. Returns the line the
+    first match sits on as a snippet — enough to decide whether to click."""
+    q = (qtext or "").strip().lower()
+    matches = []
+    if len(q) >= 2:
+        for tid, body in _help_index():
+            i = body.lower().find(q)
+            if i < 0:
+                continue
+            start = body.rfind("\n", 0, i) + 1
+            end = body.find("\n", i)
+            end = len(body) if end < 0 else end
+            snippet = body[start:end].strip().lstrip("#>|-* ").strip()
+            matches.append({"id": tid, "snippet": snippet[:160]})
+    return {"q": qtext or "", "matches": matches}
+
+
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -534,6 +577,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_timeline())
         if u.path == "/api/report":
             return self._json(api_report(q.get("kind", ["report"])[0]))
+        if u.path == "/help/search":
+            return self._json(help_search(q.get("q", [""])[0]))
         if u.path.startswith("/help/"):
             return self._help(u.path[len("/help/"):])
         return self._json({"error": "not found"}, 404)
@@ -565,6 +610,10 @@ class Handler(BaseHTTPRequestHandler):
             return
         # Help is static and depends on nothing in STATE, and a slow compile is exactly
         # when someone has time to read it. Let it through.
+        if path == "/help/search":
+            from urllib.parse import parse_qs
+            qs = parse_qs(urlparse(self.path).query)
+            return self._json(help_search(qs.get("q", [""])[0]))
         if path.startswith("/help/"):
             return self._help(path[len("/help/"):])
         if path.startswith("/api/"):
