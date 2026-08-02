@@ -41,7 +41,7 @@ it uses for that are the validator and compiler invocations. Proposals, queries,
 reports (see The Proposal Queue) are separate, read-only or queue-mediated commands —
 this rule is scoped to editing the graph file itself, not to everything the skill runs.
 
-## The five workflows
+## The four workflows
 
 Everything else in this section documents one thing the skill does: seed a graph from
 a worksheet, reverse-engineer one from prose, catch up an existing graph from newly

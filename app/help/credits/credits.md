@@ -46,3 +46,5 @@ The real stack, nothing more:
 - **Ollama**, **LM Studio**, **OpenRouter** — the optional providers behind the **Ask**
   tab's plain-English-to-Cypher translation. All three are optional; none is required to
   use the rest of the tool.
+
+There is no cloud backend here — no AWS, no MySQL; everything above runs on your machine.
