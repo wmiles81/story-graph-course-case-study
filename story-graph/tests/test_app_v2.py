@@ -236,14 +236,6 @@ t('renders a table', '| a | b |\\n|---|---|\\n| 1 | 2 |',
 t('drops the separator row', '| a |\\n|---|\\n| 1 |', h=>!/<td>-+<\\/td>/.test(h));
 t('no sentinel leaks', '```\\ncode\\n```\\n\\ntext', h=>!/@@CB\\d+@@/.test(h));
 t('bold and italic', '**b** and *i*', h=>/<strong>b<\\/strong>/.test(h)&&/<em>i<\\/em>/.test(h));
-t('merges hard-wrapped lines into one paragraph', 'line one\\nline two wrapped',
-  h=>(h.match(/<p>/g)||[]).length===1 && /<p>line one line two wrapped<\\/p>/.test(h));
-t('blank line still splits paragraphs', 'para one\\n\\npara two',
-  h=>(h.match(/<p>/g)||[]).length===2);
-t('wrapped paragraph flushes before a list', 'intro line\\nwrapped tail\\n- item',
-  h=>(h.match(/<p>/g)||[]).length===1 && /<p>intro line wrapped tail<\\/p>/.test(h) && /<li>item<\\/li>/.test(h));
-t('wrapped paragraph flushes before a heading', 'one\\ntwo\\n# H',
-  h=>/<p>one two<\\/p>/.test(h) && /<h1>H<\\/h1>/.test(h));
 console.log(JSON.stringify(out));
 """, encoding="utf-8")
     r = subprocess.run([node, str(js)], capture_output=True, text=True)

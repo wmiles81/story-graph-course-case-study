@@ -1488,33 +1488,29 @@ function mdRender(src){
    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
    .replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>')
    .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
- const out=[];let list=null,tbl=null,para=[];
+ const out=[];let list=null,tbl=null;
  const closeList=()=>{if(list){out.push('</'+list+'>');list=null}};
  const closeTbl=()=>{if(tbl){out.push('</tbody></table>');tbl=null}};
- // Consecutive plain lines are ONE paragraph (markdown's rule) — hard-wrapped
- // source must not become a stack of one-line <p>s with margins between them.
- const closePara=()=>{if(para.length){out.push('<p>'+inline(para.join(' '))+'</p>');para=[]}};
  for(const raw of src.split('\n')){
   const line=raw.replace(/\s+$/,'');
-  if(/^@@CB\d+@@$/.test(line)){closeList();closeTbl();closePara();out.push(blocks[+line.slice(4,-2)]);continue}
-  if(!line.trim()){closeList();closeTbl();closePara();continue}
+  if(/^@@CB\d+@@$/.test(line)){closeList();closeTbl();out.push(blocks[+line.slice(4,-2)]);continue}
+  if(!line.trim()){closeList();closeTbl();continue}
   // table: | a | b |  then a |---|---| separator
   if(/^\|.*\|$/.test(line)){
-   closePara();
    const cells=line.slice(1,-1).split('|').map(c=>c.trim());
    if(cells.every(c=>/^:?-{2,}:?$/.test(c))){continue}       // separator row
    if(!tbl){out.push('<table><thead><tr>'+cells.map(c=>'<th>'+inline(c)+'</th>').join('')+'</tr></thead><tbody>');tbl=1;continue}
    out.push('<tr>'+cells.map(c=>'<td>'+inline(c)+'</td>').join('')+'</tr>');continue}
   closeTbl();
   let m;
-  if((m=line.match(/^(#{1,4})\s+(.*)$/))){closeList();closePara();out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);continue}
-  if(/^(---|___|\*\*\*)$/.test(line.trim())){closeList();closePara();out.push('<hr>');continue}
-  if((m=line.match(/^>\s?(.*)$/))){closeList();closePara();out.push('<blockquote>'+inline(m[1])+'</blockquote>');continue}
-  if((m=line.match(/^\s*[-*]\s+(.*)$/))){closePara();if(list!=='ul'){closeList();out.push('<ul>');list='ul'}out.push('<li>'+inline(m[1])+'</li>');continue}
-  if((m=line.match(/^\s*\d+\.\s+(.*)$/))){closePara();if(list!=='ol'){closeList();out.push('<ol>');list='ol'}out.push('<li>'+inline(m[1])+'</li>');continue}
-  closeList();para.push(line);
+  if((m=line.match(/^(#{1,4})\s+(.*)$/))){closeList();out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);continue}
+  if(/^(---|___|\*\*\*)$/.test(line.trim())){closeList();out.push('<hr>');continue}
+  if((m=line.match(/^>\s?(.*)$/))){closeList();out.push('<blockquote>'+inline(m[1])+'</blockquote>');continue}
+  if((m=line.match(/^\s*[-*]\s+(.*)$/))){if(list!=='ul'){closeList();out.push('<ul>');list='ul'}out.push('<li>'+inline(m[1])+'</li>');continue}
+  if((m=line.match(/^\s*\d+\.\s+(.*)$/))){if(list!=='ol'){closeList();out.push('<ol>');list='ol'}out.push('<li>'+inline(m[1])+'</li>');continue}
+  closeList();out.push('<p>'+inline(line)+'</p>');
  }
- closeList();closeTbl();closePara();
+ closeList();closeTbl();
  return out.join('\n');
 }
 
