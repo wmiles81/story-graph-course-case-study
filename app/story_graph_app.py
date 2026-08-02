@@ -783,6 +783,8 @@ body.a11y-minfont .hint,body.a11y-minfont .tlab,body.a11y-minfont .elab,body.a11
 #helpdoc{flex:1;overflow:auto;padding:1rem 1.2rem 3rem;min-width:0}
 #helpnav .sec{font:600 11px ui-monospace,monospace;color:var(--muted);text-transform:uppercase;
  letter-spacing:.05em;padding:.5rem .8rem .2rem;cursor:pointer;user-select:none}
+#helpnav .sec::before{content:'▾ ';opacity:.6}
+#helpnav .sec.closed::before{content:'▸ '}
 #helpnav .tp{display:block;width:100%;text-align:left;font:13px system-ui;background:none;border:0;
  color:var(--ink);padding:.34rem .8rem .34rem 1.1rem;cursor:pointer;border-left:2px solid transparent}
 #helpnav .tp:hover{background:var(--panel)}
@@ -1466,6 +1468,8 @@ setInterval(staleCheck,5000);
    a file — no rebuild, no redeploy.
    ───────────────────────────────────────────────────────────────── */
 const HELP_W_KEY='sgos.helpw';
+const HELP_FOLD_KEY='sgos.helpfold';
+function foldState(){try{return JSON.parse(localStorage.getItem(HELP_FOLD_KEY)||'{}')}catch(_){return{}}}
 let HELP={manifest:null,active:null,loaded:{}};
 
 // Small markdown renderer. Everything is escaped FIRST and only then given markup, so a
@@ -1514,11 +1518,17 @@ async function helpText(url){
 function helpNav(){
  const nav=document.getElementById('helpnav');if(!nav)return;
  const f=(document.getElementById('helpfilter').value||'').trim().toLowerCase();
+ const fold=foldState();
  nav.innerHTML='';
  (HELP.manifest?.sections||[]).forEach(sec=>{
   const topics=(sec.topics||[]).filter(t=>!f||t.title.toLowerCase().includes(f)||sec.title.toLowerCase().includes(f));
   if(!topics.length)return;
-  nav.appendChild($(`<div class="sec">${esc(sec.title)}</div>`));
+  // A fold never hides the active topic, and filtering unfolds everything that matched.
+  const closed=!f&&!topics.some(t=>t.id===HELP.active)&&fold[sec.id]===true;
+  const h=$(`<div class="sec${closed?' closed':''}">${esc(sec.title)}</div>`);
+  h.onclick=()=>{const s=foldState();s[sec.id]=!closed;localStorage.setItem(HELP_FOLD_KEY,JSON.stringify(s));helpNav()};
+  nav.appendChild(h);
+  if(closed)return;
   topics.forEach(t=>{
    const b=$(`<button class="tp${t.id===HELP.active?' on':''}">${esc(t.title)}</button>`);
    b.onclick=()=>helpShow(t.id);nav.appendChild(b)})});
