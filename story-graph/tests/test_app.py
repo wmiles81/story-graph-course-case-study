@@ -267,3 +267,16 @@ def test_help_search_indexes_only_manifest_listed_files():
     listed_ids = {t["id"] for s in man["sections"] for t in s["topics"]}
     for m in app.help_search("the")["matches"]:
         assert m["id"] in listed_ids
+
+
+def test_command_reference_covers_all_21_subcommands():
+    """Spec: every story_graph.py subcommand documented in the commands/ help topics."""
+    cmds = ["validate", "compile", "query", "report", "import-legacy", "coverage",
+            "queue", "freeze", "audit", "impact", "deviations", "visualize",
+            "propose", "verify-proposal", "reject-proposal", "apply-proposal",
+            "unresolved", "shapes", "irony", "conflicts", "decisions"]
+    files = sorted((HELP / "commands").glob("*.md"))
+    assert files, "commands/ help topics missing"
+    text = "".join(p.read_text(encoding="utf-8") for p in files)
+    missing = [c for c in cmds if f"`{c}" not in text]
+    assert missing == [], f"subcommands undocumented in commands/: {missing}"

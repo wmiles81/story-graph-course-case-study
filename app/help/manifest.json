@@ -63,6 +63,13 @@
       {"id": "wf-seed", "title": "Seed from a worksheet", "file": "workflows/seed-from-worksheet.md"},
       {"id": "wf-reverse", "title": "Reverse-engineer from prose", "file": "workflows/reverse-engineer.md"},
       {"id": "wf-catch-up", "title": "Catch up from chapters", "file": "workflows/catch-up-from-chapters.md"},
-      {"id": "wf-queue", "title": "The proposal queue", "file": "workflows/proposal-queue.md"}]}
+      {"id": "wf-queue", "title": "The proposal queue", "file": "workflows/proposal-queue.md"}]},
+    {"id": "commands", "title": "Command Reference", "topics": [
+      {"id": "cmd-checking", "title": "Checking the graph", "file": "commands/checking.md"},
+      {"id": "cmd-compile-query", "title": "Compiling & querying", "file": "commands/compile-query.md"},
+      {"id": "cmd-reports", "title": "Reports & analysis", "file": "commands/reports-analysis.md"},
+      {"id": "cmd-proposal-queue", "title": "The proposal queue (CLI)", "file": "commands/proposal-queue.md"},
+      {"id": "cmd-import", "title": "Import & migration", "file": "commands/import-migration.md"},
+      {"id": "cmd-freeze-viz", "title": "Freezing & visualizing", "file": "commands/freeze-visualize.md"}]}
   ]
 }
