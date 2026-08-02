@@ -769,10 +769,12 @@ body.a11y-dyslexia,body.a11y-dyslexia *{font-family:'OpenDyslexic','Comic Sans M
 body.a11y-motion *{transition:none!important;animation:none!important}
 body.a11y-minfont .hint,body.a11y-minfont .tlab,body.a11y-minfont .elab,body.a11y-minfont .nlab,body.a11y-minfont .meta{font-size:12px!important}
 /* ---- Help drawer: slides in from the right, resizable by its left edge ---- */
-#helpdrawer{position:fixed;top:0;right:0;height:100vh;width:var(--help-w,460px);min-width:320px;
+#helpdrawer{position:fixed;top:0;right:0;height:100vh;width:var(--help-w,560px);min-width:320px;
  max-width:95vw;background:var(--bg);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.16);
  transform:translateX(101%);transition:transform .22s ease;z-index:60;display:flex;flex-direction:column}
 #helpdrawer.open{transform:translateX(0)}
+#helpdrawer.max{width:100vw!important;max-width:100vw}
+#helpdrawer.max #helpgrip{display:none}
 #helpgrip{position:absolute;left:0;top:0;width:6px;height:100%;cursor:ew-resize;background:transparent}
 #helpgrip:hover,#helpgrip.drag{background:var(--accent);opacity:.5}
 #helpdrawer header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:.5rem;flex-wrap:nowrap}
@@ -807,7 +809,7 @@ body.helping{overflow:hidden}
 <header><h1>Story Graph OS</h1><span class="meta" id="hd"></span><button id="helpbtn" title="Help (?)">❓ Help</button><button id="gear" title="Settings (display, AI model)">⚙️ Settings</button></header>
 <aside id="helpdrawer" aria-hidden="true" aria-label="Help">
  <div id="helpgrip" title="Drag to resize"></div>
- <header><h2>Help</h2><button class="ghost" id="helpclose" title="Close (Esc)">✕</button></header>
+ <header><h2>Help</h2><button class="ghost" id="helpmax" title="Maximize / restore">⛶</button><button class="ghost" id="helpclose" title="Close (Esc)">✕</button></header>
  <div style="padding:.5rem .8rem;border-bottom:1px solid var(--line)"><input id="helpfilter" placeholder="filter topics…" aria-label="Filter help topics"></div>
  <div id="helpbody"><div id="helpnav"></div><div id="helpdoc"></div></div>
 </aside>
@@ -1572,6 +1574,11 @@ function helpClose(){
  const d=document.getElementById('helpdrawer');
  const w=parseInt(localStorage.getItem(HELP_W_KEY)||'',10);
  if(w>=320)d.style.setProperty('--help-w',w+'px');
+ const HELP_MAX_KEY='sgos.helpmax';
+ if(localStorage.getItem(HELP_MAX_KEY)==='1')d.classList.add('max');
+ document.getElementById('helpmax').onclick=()=>{
+  d.classList.toggle('max');
+  localStorage.setItem(HELP_MAX_KEY,d.classList.contains('max')?'1':'0')};
  document.getElementById('helpbtn').onclick=()=>d.classList.contains('open')?helpClose():helpOpen();
  document.getElementById('helpclose').onclick=helpClose;
  let srchT=0;
