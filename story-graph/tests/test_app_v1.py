@@ -171,11 +171,9 @@ def test_every_manifest_topic_exists_and_is_not_empty():
 def test_every_help_file_is_reachable_from_the_manifest():
     """The other direction: a topic nobody can navigate to may as well not be written."""
     import json
-    import re
     man = json.loads((HELP / "manifest.json").read_text(encoding="utf-8"))
     listed = {t["file"] for sec in man["sections"] for t in sec["topics"] if "file" in t}
-    on_disk = {str(p.relative_to(HELP)) for p in HELP.rglob("*.md")
-               if not re.search(r"_v\d+$", p.stem)}
+    on_disk = {str(p.relative_to(HELP)) for p in HELP.rglob("*.md")}
     assert on_disk - listed == set(), f"orphaned help files: {sorted(on_disk - listed)}"
 
 

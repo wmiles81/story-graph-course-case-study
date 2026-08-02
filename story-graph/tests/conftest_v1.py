@@ -1,9 +1,6 @@
 import sys
 from pathlib import Path
 
-# _v# files are versioned history (user convention), never live code — don't collect.
-collect_ignore_glob = ["*_v[0-9]*.py"]
-
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 sys.path.insert(0, str(ASSETS))
 
