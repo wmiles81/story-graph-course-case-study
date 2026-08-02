@@ -11,6 +11,9 @@ Needs `kuzu`. The short version of `audit`-adjacent state: dramatic irony
 pairs and open loops, with overdue ones flagged, in one screen. Good as a
 standing check during a session, before reaching for the narrower commands.
 
+Flags:
+- `--chapters-dir DIR` — passed through to the `validate` pre-check.
+
 ```bash
 python3 story-graph/assets/story_graph.py report series/books/book-3/Story-Graph.md
 ```
@@ -32,6 +35,9 @@ python3 story-graph/assets/story_graph.py coverage series/books/book-3/Story-Gra
 Needs `kuzu`. Given a proposition id, lists the holders whose knowledge
 depends on it, the evidence that establishes it, and who governs it — the
 blast radius of retracting or rewriting that one claim.
+
+Flags:
+- `--chapters-dir DIR` — passed through to the `validate` pre-check.
 
 ```bash
 python3 story-graph/assets/story_graph.py impact series/books/book-3/Story-Graph.md founding-scrolls-missing
