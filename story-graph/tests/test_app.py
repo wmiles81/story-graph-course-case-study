@@ -209,7 +209,7 @@ def test_the_drawer_is_wired_into_the_page():
     orphan the Help button."""
     src = APP.read_text(encoding="utf-8")
     for needed in ('id="helpdrawer"', 'id="helpbtn"', 'id="helpgrip"', 'id="helpnav"',
-                   'id="helpdoc"', 'id="helpfilter"', 'id="helpclose"',
+                   'id="helpdoc"', 'id="helpfilter"', 'id="helpclose"', 'id="helpmax"',
                    "function mdRender(", "function helpOpen(", "function helpClose(",
                    "--help-w", "ew-resize", "translateX(101%)"):
         assert needed in src, f"help drawer is missing {needed}"
