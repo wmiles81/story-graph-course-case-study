@@ -36,8 +36,10 @@ Never overwrite or delete an existing graph. If `Story-Graph.md` already exists 
 run is about to replace rather than update it, the skill stops and versions the old
 file first (`Story-Graph_v1.md`, and so on). All edits to the current graph are
 in-place table updates and append-only log entries — never a destroy-and-rewrite. The
-skill uses native file tools for this; the only shell commands it runs are the
-validator and compiler invocations.
+skill uses native file tools to write or edit the graph file; the only shell commands
+it uses for that are the validator and compiler invocations. Proposals, queries, and
+reports (see The Proposal Queue) are separate, read-only or queue-mediated commands —
+this rule is scoped to editing the graph file itself, not to everything the skill runs.
 
 ## The five workflows
 
