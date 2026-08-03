@@ -39,15 +39,6 @@ the event that made it true, or it will contradict itself by the last act.
    - **Entities** — every character, object, faction, and setting location as a
      kebab-case `id`. Type each (`Character`/`Object`/`Location`/`Faction`).
      Give each Character a `voice` value (`female`/`male`/`-`). One-line `note`.
-     **Quantitative facts are first-class:** transcribe every stated age,
-     tenure, founding date, duration, distance, and amount into the owning
-     row's `note`. For quantities the story will predictably need but the
-     worksheet does not state — an institution's age, a character's tenure
-     somewhere, a secondary character's age — record
-     **`NOT ESTABLISHED — do not assert`** on the row instead of leaving
-     silence. Silence invites a drafter (or an orchestrator) to invent the
-     number; the explicit negative fact blocks it and makes the gap visible
-     for the author to fill deliberately.
    - **Locations & Distances** — for each pair of settings the story moves
      between, a travel edge with `time` and `mode` (both endpoints must be
      `Location` entities).

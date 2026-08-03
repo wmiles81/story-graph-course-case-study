@@ -34,17 +34,6 @@ current-state tables:
 Every load-bearing addition carries an Evidence row: a real quote from that chapter,
 cited back to the manuscript Source.
 
-## Numbers reconcile at commit
-
-Before a chapter's commit completes, every number in its text — ages, tenures,
-dates, durations, distances, counts, amounts — is traced against the graph. A number
-that matches passes; a new number the chapter itself sources gets registered with an
-evidence span and is canon from that commit forward; a number that contradicts the
-graph **stops the commit** for the author to resolve — the prose or the graph gets
-fixed, never silently one over the other. Rows marked provisional against a chapter
-must be confirmed or corrected when that chapter's Final commits; a commit that
-leaves a due provisional unresolved is incomplete.
-
 ## How canon commits record the change
 
 Once a chapter's deltas are folded in, `current-canon-chapter` advances to that

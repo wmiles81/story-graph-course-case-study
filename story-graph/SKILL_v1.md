@@ -106,31 +106,6 @@ rule the validator **enforces**, and discovering it from an ERROR is the slow wa
   row without an evidence span WARNs instead of ERRORing — see the ontology's
   *Evidence Span Rules*.
 
-## Registry integrity (learned in production; details in the mode references)
-
-Four rules, learned the hard way — a chapter shipped a tenure claim the graph
-could neither confirm nor deny, because nothing required the graph to hold it:
-
-1. **Quantitative facts are first-class.** Every stated age, tenure, founding
-   date, duration, distance, and amount is registered on its owning row (an
-   Entity `note`, a Proposition, or a Timeline row). Quantities the story will
-   predictably need but the source does not state are recorded as
-   **`NOT ESTABLISHED — do not assert`** — an explicit negative fact. Silence
-   invites downstream invention; a negative fact blocks it.
-2. **Numbers reconcile at commit.** Catch-up extracts EVERY number in a Final
-   chapter and traces it against the graph before the commit completes: new
-   sourced numbers get registered, contradictions block the commit. The commit
-   is the last gate before a number becomes irrevocable.
-3. **Provisional lifecycle.** A row marked `provisional` against a chapter must
-   be resolved — confirmed with a real evidence span, or corrected — when that
-   chapter's Final commits. A commit that leaves a due provisional unresolved
-   is incomplete.
-4. **The graph is the citation authority.** Downstream documents (chapter
-   plans, critiques, audits) cite entity/proposition/open-loop ids and
-   planted-chapters exactly as registered. When two documents disagree about a
-   registered fact, the graph arbitrates; if the graph itself is wrong, fix the
-   graph — never fork the fact.
-
 ## Chapter discovery (portable)
 
 Find chapters in the target folder in this order; use the first that yields files:

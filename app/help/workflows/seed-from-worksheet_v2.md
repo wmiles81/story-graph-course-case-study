@@ -16,11 +16,7 @@ current-state tables from the worksheet:
 - **Sources** — the worksheet itself (and any bible or editorial notes) registered
   with a type and an authority rank.
 - **Entities** — every character, object, faction, and setting location, each typed
-  and given a kebab-case id. Quantitative facts are first-class: every stated age,
-  tenure, founding date, duration, distance, and amount is transcribed onto the
-  owning row, and a quantity the story will predictably need but the worksheet
-  doesn't state is recorded as `NOT ESTABLISHED — do not assert` — an explicit
-  negative fact that blocks downstream invention instead of inviting it.
+  and given a kebab-case id.
 - **Locations & Distances** — travel edges between settings the story moves between.
 - **Relationships** — the initial relationship edges, using core edge vocabulary or
   a story-specific edge declared in Local Vocabulary first.

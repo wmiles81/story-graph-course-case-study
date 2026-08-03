@@ -61,35 +61,16 @@ story_graph.py shapes     <graph>                      # claims that cannot be p
    - **Logistics** — where tracked entities are and their condition. Any
      `condition` value that records a change needs a `span`.
 
-4. **Reconcile every number.** Before advancing the header for chapter `N`,
-   extract EVERY number in its text — ages, tenures, dates, durations,
-   distances, counts, amounts, timestamps — and trace each against the graph
-   (Entities, Propositions, Timeline):
-   - matches the graph → fine;
-   - new, and sourced by the chapter itself → register it on the owning row
-     with an Evidence span (it is canon from this commit forward; later
-     chapters must reconcile against it);
-   - contradicts the graph → **STOP — do not commit.** Report the
-     contradiction for the author/orchestrator to resolve. Fix the prose or fix
-     the graph; never silently pick one.
-   In-world rhetoric (a number claimed by a speaker the text itself treats as
-   performing) may stand unregistered, but note it on the relevant row so a
-   later chapter can't mistake it for canon.
-   **Resolve due provisionals:** any row marked `provisional` whose owning
-   chapter is in this commit must be confirmed (mark replaced by a real
-   evidence span) or corrected. A commit that leaves a due provisional
-   unresolved is incomplete.
-
-5. **Advance and log.** Set `current-canon-chapter: N`. Append ONE line to the
+4. **Advance and log.** Set `current-canon-chapter: N`. Append ONE line to the
    Canon Commit Log: `- ch N: <plain-language deltas>` (for a series graph, add
    the `(B# chN)` mapping). Log chapters must be strictly increasing.
 
-6. **Provisional sourcing.** If the chapters are drafts (not Finals), mark the
+5. **Provisional sourcing.** If the chapters are drafts (not Finals), mark the
    run provisional and say so in the report — canon normally commits only at
    Final. Never invent a fact to fill a gap; leave it and flag it. A
    provisional load-bearing row without a span WARNs rather than ERRORs, but
    still needs the `provisional` mark to get that treatment.
 
-7. **Validate** once the loop is done (SKILL.md → *Validation*), passing
+6. **Validate** once the loop is done (SKILL.md → *Validation*), passing
    `--chapters-dir` so this chapter's quotes are hard-verified. Fix ERRORs
    (≤3 attempts); report WARNs verbatim.
