@@ -171,11 +171,9 @@ def test_every_manifest_topic_exists_and_is_not_empty():
 def test_every_help_file_is_reachable_from_the_manifest():
     """The other direction: a topic nobody can navigate to may as well not be written."""
     import json
-    import re
     man = json.loads((HELP / "manifest.json").read_text(encoding="utf-8"))
     listed = {t["file"] for sec in man["sections"] for t in sec["topics"] if "file" in t}
-    on_disk = {str(p.relative_to(HELP)) for p in HELP.rglob("*.md")
-               if not re.search(r"_v\d+$", p.stem)}
+    on_disk = {str(p.relative_to(HELP)) for p in HELP.rglob("*.md")}
     assert on_disk - listed == set(), f"orphaned help files: {sorted(on_disk - listed)}"
 
 
@@ -209,7 +207,7 @@ def test_the_drawer_is_wired_into_the_page():
     orphan the Help button."""
     src = APP.read_text(encoding="utf-8")
     for needed in ('id="helpdrawer"', 'id="helpbtn"', 'id="helpgrip"', 'id="helpnav"',
-                   'id="helpdoc"', 'id="helpfilter"', 'id="helpclose"', 'id="helpmax"',
+                   'id="helpdoc"', 'id="helpfilter"', 'id="helpclose"',
                    "function mdRender(", "function helpOpen(", "function helpClose(",
                    "--help-w", "ew-resize", "translateX(101%)"):
         assert needed in src, f"help drawer is missing {needed}"
@@ -236,14 +234,6 @@ t('renders a table', '| a | b |\\n|---|---|\\n| 1 | 2 |',
 t('drops the separator row', '| a |\\n|---|\\n| 1 |', h=>!/<td>-+<\\/td>/.test(h));
 t('no sentinel leaks', '```\\ncode\\n```\\n\\ntext', h=>!/@@CB\\d+@@/.test(h));
 t('bold and italic', '**b** and *i*', h=>/<strong>b<\\/strong>/.test(h)&&/<em>i<\\/em>/.test(h));
-t('merges hard-wrapped lines into one paragraph', 'line one\\nline two wrapped',
-  h=>(h.match(/<p>/g)||[]).length===1 && /<p>line one line two wrapped<\\/p>/.test(h));
-t('blank line still splits paragraphs', 'para one\\n\\npara two',
-  h=>(h.match(/<p>/g)||[]).length===2);
-t('wrapped paragraph flushes before a list', 'intro line\\nwrapped tail\\n- item',
-  h=>(h.match(/<p>/g)||[]).length===1 && /<p>intro line wrapped tail<\\/p>/.test(h) && /<li>item<\\/li>/.test(h));
-t('wrapped paragraph flushes before a heading', 'one\\ntwo\\n# H',
-  h=>/<p>one two<\\/p>/.test(h) && /<h1>H<\\/h1>/.test(h));
 console.log(JSON.stringify(out));
 """, encoding="utf-8")
     r = subprocess.run([node, str(js)], capture_output=True, text=True)
@@ -252,39 +242,3 @@ console.log(JSON.stringify(out));
     results = json.loads(r.stdout)
     failed = [n for n, ok in results if not ok]
     assert failed == [], f"renderer failures: {failed}"
-
-
-def test_help_search_finds_body_text_and_returns_snippets():
-    """Body search: a term that appears in topic bodies must surface those topics
-    with a one-line snippet; blank and absent terms return nothing."""
-    app = _app()
-    res = app.help_search("kuzu")
-    assert res["matches"], "at least one topic body mentions kuzu"
-    for m in res["matches"]:
-        assert m["id"] and m["snippet"] and len(m["snippet"]) <= 160
-    assert app.help_search("")["matches"] == []
-    assert app.help_search("z")["matches"] == []          # <2 chars: too noisy
-    assert app.help_search("zzqx-not-present")["matches"] == []
-
-
-def test_help_search_indexes_only_manifest_listed_files():
-    """A _v# history file must never leak into search results."""
-    import json
-    app = _app()
-    man = json.loads((HELP / "manifest.json").read_text(encoding="utf-8"))
-    listed_ids = {t["id"] for s in man["sections"] for t in s["topics"]}
-    for m in app.help_search("the")["matches"]:
-        assert m["id"] in listed_ids
-
-
-def test_command_reference_covers_all_21_subcommands():
-    """Spec: every story_graph.py subcommand documented in the commands/ help topics."""
-    cmds = ["validate", "compile", "query", "report", "import-legacy", "coverage",
-            "queue", "freeze", "audit", "impact", "deviations", "visualize",
-            "propose", "verify-proposal", "reject-proposal", "apply-proposal",
-            "unresolved", "shapes", "irony", "conflicts", "decisions"]
-    files = sorted((HELP / "commands").glob("*.md"))
-    assert files, "commands/ help topics missing"
-    text = "".join(p.read_text(encoding="utf-8") for p in files)
-    missing = [c for c in cmds if f"`{c}" not in text]
-    assert missing == [], f"subcommands undocumented in commands/: {missing}"

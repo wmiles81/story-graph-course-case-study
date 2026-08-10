@@ -478,49 +478,6 @@ def api_testkey(provider=None):
         return {"ok": False, "detail": str(e)[:200]}
 
 
-_HELP_INDEX = None   # [(topic-id, body-text)] — manifest-listed topics only; static per process
-
-
-def _help_index():
-    global _HELP_INDEX
-    if _HELP_INDEX is None:
-        import json
-        root = Path(__file__).resolve().parent / "help"
-        idx = []
-        try:
-            man = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
-            for sec in man.get("sections", []):
-                for t in sec.get("topics", []):
-                    if "file" not in t:
-                        continue
-                    try:
-                        idx.append((t["id"], (root / t["file"]).read_text(encoding="utf-8")))
-                    except OSError:
-                        pass
-        except (OSError, ValueError):
-            pass
-        _HELP_INDEX = idx
-    return _HELP_INDEX
-
-
-def help_search(qtext):
-    """Case-insensitive substring search over topic bodies. Returns the line the
-    first match sits on as a snippet — enough to decide whether to click."""
-    q = (qtext or "").strip().lower()
-    matches = []
-    if len(q) >= 2:
-        for tid, body in _help_index():
-            i = body.lower().find(q)
-            if i < 0:
-                continue
-            start = body.rfind("\n", 0, i) + 1
-            end = body.find("\n", i)
-            end = len(body) if end < 0 else end
-            snippet = body[start:end].strip().lstrip("#>|-* ").strip()
-            matches.append({"id": tid, "snippet": snippet[:160]})
-    return {"q": qtext or "", "matches": matches}
-
-
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
@@ -577,8 +534,6 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(api_timeline())
         if u.path == "/api/report":
             return self._json(api_report(q.get("kind", ["report"])[0]))
-        if u.path == "/help/search":
-            return self._json(help_search(q.get("q", [""])[0]))
         if u.path.startswith("/help/"):
             return self._help(u.path[len("/help/"):])
         return self._json({"error": "not found"}, 404)
@@ -610,10 +565,6 @@ class Handler(BaseHTTPRequestHandler):
             return
         # Help is static and depends on nothing in STATE, and a slow compile is exactly
         # when someone has time to read it. Let it through.
-        if path == "/help/search":
-            from urllib.parse import parse_qs
-            qs = parse_qs(urlparse(self.path).query)
-            return self._json(help_search(qs.get("q", [""])[0]))
         if path.startswith("/help/"):
             return self._help(path[len("/help/"):])
         if path.startswith("/api/"):
@@ -769,12 +720,10 @@ body.a11y-dyslexia,body.a11y-dyslexia *{font-family:'OpenDyslexic','Comic Sans M
 body.a11y-motion *{transition:none!important;animation:none!important}
 body.a11y-minfont .hint,body.a11y-minfont .tlab,body.a11y-minfont .elab,body.a11y-minfont .nlab,body.a11y-minfont .meta{font-size:12px!important}
 /* ---- Help drawer: slides in from the right, resizable by its left edge ---- */
-#helpdrawer{position:fixed;top:0;right:0;height:100vh;width:var(--help-w,560px);min-width:320px;
+#helpdrawer{position:fixed;top:0;right:0;height:100vh;width:var(--help-w,460px);min-width:320px;
  max-width:95vw;background:var(--bg);border-left:1px solid var(--line);box-shadow:-8px 0 24px rgba(0,0,0,.16);
  transform:translateX(101%);transition:transform .22s ease;z-index:60;display:flex;flex-direction:column}
 #helpdrawer.open{transform:translateX(0)}
-#helpdrawer.max{width:100vw!important;max-width:100vw}
-#helpdrawer.max #helpgrip{display:none}
 #helpgrip{position:absolute;left:0;top:0;width:6px;height:100%;cursor:ew-resize;background:transparent}
 #helpgrip:hover,#helpgrip.drag{background:var(--accent);opacity:.5}
 #helpdrawer header{padding:10px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:.5rem;flex-wrap:nowrap}
@@ -785,14 +734,10 @@ body.a11y-minfont .hint,body.a11y-minfont .tlab,body.a11y-minfont .elab,body.a11
 #helpdoc{flex:1;overflow:auto;padding:1rem 1.2rem 3rem;min-width:0}
 #helpnav .sec{font:600 11px ui-monospace,monospace;color:var(--muted);text-transform:uppercase;
  letter-spacing:.05em;padding:.5rem .8rem .2rem;cursor:pointer;user-select:none}
-#helpnav .sec::before{content:'▾ ';opacity:.6}
-#helpnav .sec.closed::before{content:'▸ '}
 #helpnav .tp{display:block;width:100%;text-align:left;font:13px system-ui;background:none;border:0;
  color:var(--ink);padding:.34rem .8rem .34rem 1.1rem;cursor:pointer;border-left:2px solid transparent}
 #helpnav .tp:hover{background:var(--panel)}
 #helpnav .tp.on{background:var(--panel);border-left-color:var(--accent);font-weight:600}
-#helpnav .snip{font:11px system-ui;color:var(--muted);padding:0 .8rem .3rem 1.4rem;
- white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #helpdoc h1{font:600 1.3rem 'Iowan Old Style',Palatino,Georgia,serif;margin:.2rem 0 .8rem}
 #helpdoc h2{font:600 1.05rem 'Iowan Old Style',Palatino,Georgia,serif;margin:1.4rem 0 .5rem;padding-top:.3rem;border-top:1px solid var(--line)}
 #helpdoc h3{font:600 .95rem system-ui;margin:1rem 0 .4rem}
@@ -809,7 +754,7 @@ body.helping{overflow:hidden}
 <header><h1>Story Graph OS</h1><span class="meta" id="hd"></span><button id="helpbtn" title="Help (?)">❓ Help</button><button id="gear" title="Settings (display, AI model)">⚙️ Settings</button></header>
 <aside id="helpdrawer" aria-hidden="true" aria-label="Help">
  <div id="helpgrip" title="Drag to resize"></div>
- <header><h2>Help</h2><button class="ghost" id="helpmax" title="Maximize / restore">⛶</button><button class="ghost" id="helpclose" title="Close (Esc)">✕</button></header>
+ <header><h2>Help</h2><button class="ghost" id="helpclose" title="Close (Esc)">✕</button></header>
  <div style="padding:.5rem .8rem;border-bottom:1px solid var(--line)"><input id="helpfilter" placeholder="filter topics…" aria-label="Filter help topics"></div>
  <div id="helpbody"><div id="helpnav"></div><div id="helpdoc"></div></div>
 </aside>
@@ -1472,9 +1417,7 @@ setInterval(staleCheck,5000);
    a file — no rebuild, no redeploy.
    ───────────────────────────────────────────────────────────────── */
 const HELP_W_KEY='sgos.helpw';
-const HELP_FOLD_KEY='sgos.helpfold';
-function foldState(){try{return JSON.parse(localStorage.getItem(HELP_FOLD_KEY)||'{}')}catch(_){return{}}}
-let HELP={manifest:null,active:null,loaded:{},body:{}};
+let HELP={manifest:null,active:null,loaded:{}};
 
 // Small markdown renderer. Everything is escaped FIRST and only then given markup, so a
 // topic can contain "<script>" as prose without it becoming one.
@@ -1488,33 +1431,29 @@ function mdRender(src){
    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
    .replace(/(^|[^*])\*([^*\n]+)\*/g,'$1<em>$2</em>')
    .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
- const out=[];let list=null,tbl=null,para=[];
+ const out=[];let list=null,tbl=null;
  const closeList=()=>{if(list){out.push('</'+list+'>');list=null}};
  const closeTbl=()=>{if(tbl){out.push('</tbody></table>');tbl=null}};
- // Consecutive plain lines are ONE paragraph (markdown's rule) — hard-wrapped
- // source must not become a stack of one-line <p>s with margins between them.
- const closePara=()=>{if(para.length){out.push('<p>'+inline(para.join(' '))+'</p>');para=[]}};
  for(const raw of src.split('\n')){
   const line=raw.replace(/\s+$/,'');
-  if(/^@@CB\d+@@$/.test(line)){closeList();closeTbl();closePara();out.push(blocks[+line.slice(4,-2)]);continue}
-  if(!line.trim()){closeList();closeTbl();closePara();continue}
+  if(/^@@CB\d+@@$/.test(line)){closeList();closeTbl();out.push(blocks[+line.slice(4,-2)]);continue}
+  if(!line.trim()){closeList();closeTbl();continue}
   // table: | a | b |  then a |---|---| separator
   if(/^\|.*\|$/.test(line)){
-   closePara();
    const cells=line.slice(1,-1).split('|').map(c=>c.trim());
    if(cells.every(c=>/^:?-{2,}:?$/.test(c))){continue}       // separator row
    if(!tbl){out.push('<table><thead><tr>'+cells.map(c=>'<th>'+inline(c)+'</th>').join('')+'</tr></thead><tbody>');tbl=1;continue}
    out.push('<tr>'+cells.map(c=>'<td>'+inline(c)+'</td>').join('')+'</tr>');continue}
   closeTbl();
   let m;
-  if((m=line.match(/^(#{1,4})\s+(.*)$/))){closeList();closePara();out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);continue}
-  if(/^(---|___|\*\*\*)$/.test(line.trim())){closeList();closePara();out.push('<hr>');continue}
-  if((m=line.match(/^>\s?(.*)$/))){closeList();closePara();out.push('<blockquote>'+inline(m[1])+'</blockquote>');continue}
-  if((m=line.match(/^\s*[-*]\s+(.*)$/))){closePara();if(list!=='ul'){closeList();out.push('<ul>');list='ul'}out.push('<li>'+inline(m[1])+'</li>');continue}
-  if((m=line.match(/^\s*\d+\.\s+(.*)$/))){closePara();if(list!=='ol'){closeList();out.push('<ol>');list='ol'}out.push('<li>'+inline(m[1])+'</li>');continue}
-  closeList();para.push(line);
+  if((m=line.match(/^(#{1,4})\s+(.*)$/))){closeList();out.push(`<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`);continue}
+  if(/^(---|___|\*\*\*)$/.test(line.trim())){closeList();out.push('<hr>');continue}
+  if((m=line.match(/^>\s?(.*)$/))){closeList();out.push('<blockquote>'+inline(m[1])+'</blockquote>');continue}
+  if((m=line.match(/^\s*[-*]\s+(.*)$/))){if(list!=='ul'){closeList();out.push('<ul>');list='ul'}out.push('<li>'+inline(m[1])+'</li>');continue}
+  if((m=line.match(/^\s*\d+\.\s+(.*)$/))){if(list!=='ol'){closeList();out.push('<ol>');list='ol'}out.push('<li>'+inline(m[1])+'</li>');continue}
+  closeList();out.push('<p>'+inline(line)+'</p>');
  }
- closeList();closeTbl();closePara();
+ closeList();closeTbl();
  return out.join('\n');
 }
 
@@ -1526,23 +1465,14 @@ async function helpText(url){
 function helpNav(){
  const nav=document.getElementById('helpnav');if(!nav)return;
  const f=(document.getElementById('helpfilter').value||'').trim().toLowerCase();
- const fold=foldState();
  nav.innerHTML='';
  (HELP.manifest?.sections||[]).forEach(sec=>{
-  const topics=(sec.topics||[]).filter(t=>!f||t.title.toLowerCase().includes(f)||sec.title.toLowerCase().includes(f)||HELP.body[t.id]!=null);
+  const topics=(sec.topics||[]).filter(t=>!f||t.title.toLowerCase().includes(f)||sec.title.toLowerCase().includes(f));
   if(!topics.length)return;
-  // A fold never hides the active topic, and filtering unfolds everything that matched.
-  const closed=!f&&!topics.some(t=>t.id===HELP.active)&&fold[sec.id]===true;
-  const h=$(`<div class="sec${closed?' closed':''}">${esc(sec.title)}</div>`);
-  h.onclick=()=>{const s=foldState();s[sec.id]=!closed;localStorage.setItem(HELP_FOLD_KEY,JSON.stringify(s));helpNav()};
-  nav.appendChild(h);
-  if(closed)return;
+  nav.appendChild($(`<div class="sec">${esc(sec.title)}</div>`));
   topics.forEach(t=>{
    const b=$(`<button class="tp${t.id===HELP.active?' on':''}">${esc(t.title)}</button>`);
-   b.onclick=()=>helpShow(t.id);nav.appendChild(b);
-   if(f&&HELP.body[t.id]!=null&&!t.title.toLowerCase().includes(f))
-    nav.appendChild($(`<div class="snip">${esc(HELP.body[t.id])}</div>`));
-  })});
+   b.onclick=()=>helpShow(t.id);nav.appendChild(b)})});
  if(!nav.children.length)nav.appendChild($(`<div class="sec">no match</div>`));
 }
 async function helpShow(id){
@@ -1578,27 +1508,9 @@ function helpClose(){
  const d=document.getElementById('helpdrawer');
  const w=parseInt(localStorage.getItem(HELP_W_KEY)||'',10);
  if(w>=320)d.style.setProperty('--help-w',w+'px');
- const HELP_MAX_KEY='sgos.helpmax';
- if(localStorage.getItem(HELP_MAX_KEY)==='1')d.classList.add('max');
- document.getElementById('helpmax').onclick=()=>{
-  d.classList.toggle('max');
-  localStorage.setItem(HELP_MAX_KEY,d.classList.contains('max')?'1':'0')};
  document.getElementById('helpbtn').onclick=()=>d.classList.contains('open')?helpClose():helpOpen();
  document.getElementById('helpclose').onclick=helpClose;
- let srchT=0;
- document.getElementById('helpfilter').addEventListener('input',()=>{
-  const q=(document.getElementById('helpfilter').value||'').trim();
-  clearTimeout(srchT);HELP.body={};helpNav();
-  if(q.length>=2)srchT=setTimeout(async()=>{
-   try{
-    const r=await fetch('/help/search?q='+encodeURIComponent(q),{cache:'no-store'});
-    if(!r.ok)return;
-    const j=await r.json();HELP.body={};
-    (j.matches||[]).forEach(m=>{HELP.body[m.id]=m.snippet});
-    helpNav();
-   }catch(_){/* body search is best-effort; title filter already rendered */}
-  },200);
- });
+ document.getElementById('helpfilter').addEventListener('input',helpNav);
  // "?" opens help, Escape closes it — but never while the user is typing somewhere.
  window.addEventListener('keydown',e=>{
   const typing=/^(INPUT|TEXTAREA|SELECT)$/.test((e.target||{}).tagName||'');
